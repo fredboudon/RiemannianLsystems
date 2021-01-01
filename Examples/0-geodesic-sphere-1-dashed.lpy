@@ -1,0 +1,256 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2020
+	Simulates geodesics on a sphere with a riemannian implementation of 
+	the main turtle primitives: F, f, + and -
+	
+	- To draw a geodesic of length L set: length_geodesic = L, nb_seg = 1, dashed = False
+	- To draw a dashed geodesic of length L with 40 drawn dashed segments: length_geodesic = L, nb_seg = 40, dashed = True
+"""
+
+import numpy as np
+from math import ceil
+from random import random
+
+# To import libs from other directories 
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload 
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannian_turtle
+riemannian_turtle = reload(riemannian_turtle)
+
+from surfaces import *
+from riemannian_turtle import *
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0 
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface 
+# this controls the resolution of the geodesic plot with respect to the 
+# surface curvature 
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 0.5 * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+length_geodesic = R*2*np.pi
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
+           # To draw one geodesic, set it to 1 and set dashed to False
+
+dashed = False
+if dashed:
+  nb = 2*nb_seg
+else:
+  nb = nb_seg
+
+module SetSpace(surface), InitTurtle(turtle_state)
+
+Axiom: 
+  # Sets the Riemannian space in which the turtle will move
+  nproduce SetSpace(Sphere(R))
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  a = np.pi/6. # to orient the turtle's head at the beginning
+  nproduce InitTurtle([0,0,np.cos(a),np.sin(a)])
+  nproduce ;(1)A(0)
+
+derivation length: int(nb)
+production:
+
+A(n):
+  if (n%2 == 0 and dashed):
+    nproduce f(length_geodesic/nb) 
+  else:
+    nproduce F(length_geodesic/nb) 
+  nproduce A(n+1)
+
+interpretation:
+
+A(n):
+  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+
+
+#######################################################
+# Generic Interpretation rules for Riemannian geometry
+# (DO NOT EDIT)
+#######################################################
+
+# Two parameters are added to the turtle
+# - turtle.space is added by SetSpace refers to the Riemanian space 
+# in which the turtle is moving
+# - turtle.uvpq is added by init, refers to the initial position and velocity 
+# of the turtle.
+# Sets the Riemanian space used by the turtle and draw it if required
+SetSpace(surface):
+  # Set the space in the turtle
+  turtle.add_parameter('space', surface)
+  
+  # Then plot the space surface
+  if PLOTSPACE:
+    umin,umax,vmin,vmax = surface.uv_domain()
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
+    # Option ccw: (counter-clockwise)
+    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
+    #S1 = surf.patch.getUTangentAt(u,v)
+    #S2 = surf.patch.getVTangentAt(u,v)
+    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
+
+# The turtle is augmented with a memory that stores the previous position and 
+# and velocity of the turtle at the surface: u,v,p,q.
+# This computation can be done in either an absolute or a relative manner. 
+# The relative manner consists of computing the Euler angles for instance 
+# to move the HLU frame from the previous to the current position. 
+# It should correspond for instance to the correction term
+# in the covariant derivative along the current geodesic and 
+# to the covariant derivative of the normal.
+
+InitTurtle(uvpq):
+  turtle.add_parameter('uvpq',uvpq)
+  head, up = riemannian_turtle_init(uvpq, turtle.space)
+  u,v,p,q = uvpq
+  #print("head = ", head)
+  nproduce ;(2)_(0.02)
+  nproduce @M( turtle.space.S(u,v) )
+  nproduce @R(head,up)@O(0.02)
+
+# The following instructions redefined the compute the new riemmanian turtle state 
+# after turtle classical instructions.
+# In addition to the turtle position, the turtle HLU frame is computed:
+# - The Head direction that is a unit vector that point s in the direction 
+# of the movement (defined by p,q in the current state)
+# - The Up direction that is a unit vector that coincides with the surface normal
+
+F(length):
+  #0. Test if argument is null
+  if length < 1e-100: 
+    # value considered as NULL:
+    produce F(0)
+  # 1. Find the nb of segments into which the curve should be divided
+  stepnb = int(ceil(length / MAXSTEPLEN))
+  steplen = length / stepnb
+  #   e.g. 
+  #     - if len = 1.8 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
+  #     - if len = 0.6 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
+  
+  # 2. Integrates the curve along the given length in stepnb steps
+  uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward2(turtle.uvpq,turtle.space,length,stepnb)
+  segnb = len(uvpq_s) # should be equal to stepnb
+  assert stepnb == segnb
+  
+  # 3. sets line width first
+  nproduce _(LINEWIDTH)
+  
+  # 4. draw all the small subsegments (that were returned by the integration)
+  for i in range(segnb):
+    # draw a line from the last visited point to the next one in abs coordinates
+    nproduce LineTo(turtle.space.S(uvpq_s[i][0],uvpq_s[i][1]))
+  
+  # 5. update the turtle's state with the last point of the computed curve
+  turtle.uvpq = uvpq_s[-1]
+  
+  # 6. Finally, orient the head of the turtle 
+  # according to what was computed for the mast point
+  nproduce @R(head,up)  
+
+# Exactly the same algorithm as for F, but with a MoveTo instead of LineTo
+f(length):
+  #0. Test if argument is null
+  if length < 1e-100: 
+    # value considered as NULL:
+    produce f(0)
+  # 1. Find the nb of segments into which the curve should be divided
+  stepnb = int(ceil(length / MAXSTEPLEN))
+  steplen = length / stepnb
+  #   e.g. 
+  #     - if len = 1.8 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
+  #     - if len = 0.6 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
+  
+  # 2. Integrates the curve along the given length in stepnb steps
+  uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward2(turtle.uvpq,turtle.space,length,stepnb)
+  segnb = len(uvpq_s) # should be equal to stepnb
+  assert stepnb == segnb
+  # 3. sets line width first
+  nproduce _(LINEWIDTH)
+  
+  # 4. draw all the small subsegments (that were returned by the integration)
+  for i in range(segnb):
+    # draw a line from the last visited point to the next one in abs coordinates
+    nproduce MoveTo(turtle.space.S(uvpq_s[i][0],uvpq_s[i][1]))
+  
+  # 5. update the turtle's state with the last point of the computed curve
+  turtle.uvpq = uvpq_s[-1]
+  
+  # 6. Finally, orient the head of the turtle 
+  # according to what was computed for the mast point
+  nproduce @R(head,up)  
+
++(angle):
+  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  nproduce @R(head,up)  
+
++(angle):
+  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
+  nproduce @R(head,up)  
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
