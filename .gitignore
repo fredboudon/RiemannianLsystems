@@ -32,6 +32,7 @@ lib64/
 # Vim files
 *.swp
 *.*~
+_*.*
 
 # Mr Developer
 .mr.developer.cfg
