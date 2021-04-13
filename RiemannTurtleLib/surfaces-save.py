@@ -109,18 +109,9 @@ class ParametricSurface:
       return np.sqrt(S1*S1*g[0,0]+S1*S2*g[0,1]+S2*S1*g[1,0]+S2*S2*g[1,1])
 
     def principalCurvatures(self,u,v):
-        """
-        Defines kappa_min, kappa_max, and their direction
-        """
-        E,F,G,L,M,N = self.fundFormCoef(u,v)
-
-        K = (L*N-M**2)/(E*G-F**2)
-        H = (E*N+G*L-2*F*M)/2*(E*G-F**2)
-
-        kappa_min = H + np.sqrt(H**2 - K)
-        kappa_max = H - np.sqrt(H**2 - K)
-
-        return kappa_min, kappa_max
+        fcoefs = self.fundFormCoef(u,v)
+        
+        return
 
     def J2orthonormal(self,u,v):
       """
@@ -255,10 +246,10 @@ class Sphere(ParametricSurface):
 # For the moment the implementation is not done (copied from Sphere)
 class EllipsoidOfRevolution(ParametricSurface):
 
-    def __init__(self, a = 1.0, b = 0.5):
-      self.a = a # radius of the circle at equator
-      self.b = b # other radius
-
+    def __init__(self, a = 1.0, b = 1.0):
+      self.a = a # radius of the torus (center to medial circle)
+      self.b = b # radius of the torus (center to medial circle)
+      #self.CIRCUM = 2*np.pi*self.R  # Circumference
       self.umin = 0
       self.umax = 2*np.pi
       self.vmin = -np.pi/2.

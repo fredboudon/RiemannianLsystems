@@ -1,0 +1,247 @@
+# L-systems in Riemannian geometry
+# Ch. Godin, Inria, 2019-2020
+#
+# Second prototype: 
+# uses the new possibility immplemented by Fred Boudon to manipulate the turtle from interpretation rules
+#
+# Step 0: movements on a sphere - example of a tree-like structure 
+
+
+import numpy as np
+import numpy.linalg
+from random import randint, choice
+import matplotlib.pyplot as plt
+from copy import deepcopy
+
+from openalea.plantgl.math import Vector2,Vector3
+from openalea.plantgl.all import QuadSet
+
+from importlib import reload 
+import surfaces
+surfaces = reload(surfaces)
+import riemannian_turtle
+riemannian_turtle = reload(riemannian_turtle)
+
+from surfaces import *
+from riemannian_turtle import *
+
+# DISPLAY FLAGS
+FRAME = True  # To display the Turtle's Frame while drawing
+DEVFLAG  = True
+PLOTSPACE = True
+COVARIANTBASIS = False
+COVARIANTNAPPE = False
+PRINT = False
+
+# Integration variables
+SUBDIV = 10 # number of subdivisions of a small incremental segment
+
+# Surface parameters
+R = 1.   # Radius of the sphere, or main radius of the torus
+
+# If true, moves the turtle along great circles
+# If not, moves the turtle along a latitude
+GREATCIRCLES = True
+if GREATCIRCLES :
+  NBSTEPS = 3
+else:
+  NBSTEPS = 68
+
+# Length and step of the path
+CIRCUM = 2* np.pi *R  # length on the surface of the drawn geodesic path (in a.u.)
+STEPSIZE = R/100.     # size of a step (in a.u.) used to draw pieces of geodesic
+LINEWIDTH = 0.01
+
+# transported arrow
+AngleRelativeToTurtleHead = 0 #0, 30
+
+def Start():
+  flag = True
+  pass #print (">>>> R =  ", R, " CIRCUM = ", CIRCUM, "STEPSIZE = ", STEPSIZE)
+
+# Initialize the surface coordinate and speed [u0,v0,p0,q0]
+# passed as the argument to Param. The second argument is the chosen parametric surface
+# Default = Sphere.
+# This Parameter will be stored in the INIT module.
+#
+# The initial point is defined in 3D by param.surf(u0,v0)
+# The speed of point mouvement is defined by the norm of [p0,q0]
+#
+# Note that the initial speed on the Sphere for instance
+# must be of norm 1/R if one wants to adapt the movement to the sphere radius
+# (as on a sphere of radius R, on the equator for example s = R.theta and dtheta/ds = 1/R
+
+def StartInterpretation(turtle):
+  #turtle.add_parameter('toto',0)
+  pass
+
+def End():
+  # How to get the turtle object in the end ?
+  pass 
+  #print("Total turrtle rotation during the path = ", turtle.cumrotation)
+
+# SurfaceShape = to plot the surface geometry  with L-Py
+# RF = Riemannian F (used instead of F to move forward on a Riemaniann surface)
+# INIT(state) = initializes the turtle state with state, where state contains
+# initial  conditions and a reference to the parametric surface used
+module SetSpace(surface), InitTurtle(turtle_state), ParallelTransportedArrow(angleRelHead,size)
+
+# Arrow(length, cap_size_ratio=0.2, cap_radius_ratio=2)
+# draws a vector at the current position of the turtle in the direction of the turtle's head
+# - First argument is the norm of the vector
+# - Second param in [0,1] contols the length ratio of the .
+# - Third argument controls the basl radius of the arrow's tip  
+#  (scaling factor with respect to the vector's width = current turtle's width).
+# To position the vector at a given place use: Pinpoint(x,y,z) Arrow()
+#
+Axiom: 
+  # Sets the Riemanian space in which the turtle will move
+  #nproduce SetSpace(Revolution(rfunc1,rprime1,rsecond1, 8*np.pi))
+  nproduce SetSpace(Sphere())
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  #nproduce InitTurtle([0,0,1/np.sqrt(2)/R,1/np.sqrt(2)/R])
+  if GREATCIRCLES == True:
+    NBSTEPS = 3
+    nproduce InitTurtle([0,0,0,1])
+    nproduce ;(3)_(LINEWIDTH)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5);(1)A(0)
+  else:
+    NBSTEPS = 68
+    # look at parallel transport along a latitude that is not a great circle
+    nproduce InitTurtle([0,np.sqrt(3)/2.,1,0])
+    nproduce ;(3)_(LINEWIDTH)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5);(1)B(0)
+    
+
+derivation length: int(NBSTEPS)
+production:
+
+# Describes a movements along great circles
+A(n):  
+  nproduce I(CIRCUM/4)
+  #nproduce Arrow(0.5)
+  nproduce +(90)
+  nproduce A(n+1)
+
+# Describes a latitude
+B(n):
+  nproduce I(CIRCUM/100)
+  #nproduce Arrow(0.5)
+  nproduce +(4)
+  nproduce B(n+1)
+
+
+decomposition:
+
+# Primitives havee been added to plot parallel transported vectors
+I(x):
+  n = int(x/STEPSIZE)
+  for k in range(n):
+    if k % 20 == 0: 
+      nproduce ;(5)
+      nproduce [;(3)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5)]
+    else : nproduce ;(1)
+    nproduce nproduce F(STEPSIZE)
+  nproduce F((x-n*STEPSIZE)*STEPSIZE)
+  nproduce [;(3)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5)]
+
+interpretation:
+
+A(n):
+  produce ;(2)@O(0.02)
+  #if FRAME: nproduce _(0.01)Frame(0.2)
+
+
+#######################################################
+# Generic Interpretation rules for Riemannian geometry
+# (Do not edit)
+#######################################################
+
+# Uncomment the fo-llowing 2 lines to deactivate the riemannian ingterpretation 
+#(and come back to classical euclidean turtle interpretation)
+
+#F(x) --> produce F(x)
+#+(x) --> produce +(x)
+
+# Two parameters are added to the turtle
+# - turtle.space is added by SetSpace refers to the Riemanian space in which the turtle is moving
+# - turtle.uvpq is added by init, refers to the initial position and velocity of the turtle.
+# Sets the Riemannian space used by the turtle and draw it if required
+SetSpace(surface):
+  # Set the space in the turtle
+  turtle.add_parameter('space', surface)
+  turtle.add_parameter('cumrotation', 0)
+  
+  # Then plot the space surface
+  if PLOTSPACE:
+    umin,umax,vmin,vmax = surface.uv_domain()
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
+    # Option ccw: (counter-clockwise)
+    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
+    #S1 = surf.patch.getUTangentAt(u,v)
+    #S2 = surf.patch.getVTangentAt(u,v)
+    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
+
+# The turtle is augmented with a memory that stores the previous position and 
+# and velocity of the turtle at the surface: u,v,p,q.
+# This computation can be done in either an absolute or a relative manner. The relative
+# manner consists of computing the Euler angles for instance to move the HLU frame from
+# the previous to the current position. It should correspond for instance to the correction term
+# in the covariant derivative along the current geodesic and to the covariant derivative
+# of the normal.
+
+InitTurtle(uvpq):
+  turtle.add_parameter('uvpq',uvpq)
+  head, up = riemannian_turtle_init(uvpq, turtle.space)
+  u,v,p,q = uvpq
+  #print("head = ", head)
+  nproduce ;(2)_(0.02)
+  nproduce @M( turtle.space.S(u,v) )
+  nproduce @R(head,up)@O(0.05)
+
+# The following instructions compute the new riemmanian turtle state after turtle classical insstructions.
+# In addition to the turtle position, the turtle HLU frame i computed:
+# - The Head direction that is a unit vector that point s in the direction of the movement
+#   (defined by p,q in the current state)
+# - The Up direction that is a unit vector that coincides with the surface normal
+
+# BUG !!!! uses here riemannian_turtle_move_forward_old (before the adaptative step)
+F(length):
+  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_move_forward_old(turtle.uvpq,turtle.space,length,SUBDIV)
+  nproduce _(LINEWIDTH)
+  nproduce OLineTo(turtle.space.S(turtle.uvpq[0],turtle.uvpq[1]))
+  nproduce @R(head,up)  
+
++(angle):
+  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  turtle.cumrotation += angle
+  # print("Total turtle rotation during the path = ", turtle.cumrotation)
+  nproduce @R(head,up)  
+
+# Draw a vector that is parallel transported along the path that finishes at the current turtle position
+# The vector if of norm = size and is assumed to make an angle angleRelHead at the origin of the turtle's path
+# the initial direction of the path
+ParallelTransportedArrow(angleRelHead,size):
+  nproduce [+(angleRelHead-turtle.cumrotation)Arrow(size)]
+  
+  
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.0181818, 1),(0.0424242, 0.268182, 1),(0.429545, 0.186364, 1),(0.657576, 0.109091, 1),(1, 0.15, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)

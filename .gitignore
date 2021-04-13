@@ -97,3 +97,6 @@ target/
 First_proto/
 Second_proto/
 Third_proto/
+
+Examples/test.py
+RiemannTurtleLib/essai.py

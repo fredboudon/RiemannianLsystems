@@ -1,0 +1,15 @@
+from random import random 
+
+Axiom: ;(2)@O(0.4);(1)A(0) Frame
+
+steplen = 1.
+
+derivation length: 1000
+production:
+
+A(n):
+  a = 360*random()
+  nproduce +(a)F(steplen)A(n+1)
+
+
+endlsystem

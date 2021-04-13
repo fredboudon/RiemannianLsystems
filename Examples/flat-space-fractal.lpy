@@ -1,0 +1,12 @@
+N = 5.
+e = 0.2 / (3.)**(N-1)
+
+Axiom: _(e)-(90)  F(1.) -(120)F(1.) -(120)F(1.)
+
+derivation length: N
+production:
+
+F(x):
+  nproduce F(x/3)+F(x/3)-(120)F(x/3)+F(x/3)
+
+endlsystem
