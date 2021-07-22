@@ -489,11 +489,35 @@ class Paraboloid(ParametricSurface):
       u,v,p,q = uvpq
       return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
+def to_nurbs_python(sh):
+	from geomdl import NURBS, BSpline
+	surf = NURBS.Surface()
+	surf.degree_u = sh.udegree
+	surf.degree_v = sh.vdegree
+	
+	npctrls = np.array(sh.ctrlPointMatrix)
+	shape = npctrls.shape
+	npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
+	npctrls[:,0] *= npctrls[:,3]
+	npctrls[:,1] *= npctrls[:,3]
+	npctrls[:,2] *= npctrls[:,3]
+	surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
+	surf.knotvector_u = list(sh.uknotList)
+	surf.knotvector_v = list(sh.vknotList)
+	
+	surf.evaluate()
+	
+	return surf
+
+
+def derivatives(surf, u, v, order):
+    return surf.derivatives(u,v,order)
 
 class Patch(ParametricSurface):
 
     def __init__(self, patch):
       self.patch = patch
+      self.nurbssurf = to_nurbs_python(patch)
       self.umin = 0.
       self.umax = 1.
       self.vmin = 0.
@@ -511,8 +535,10 @@ class Patch(ParametricSurface):
       u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
       v = elevation (v in [-Pi/2,+Pi/2] )
       """
-      #print ("uv,point = ",u,v,self.patch.getPointAt(u,v))
-      return np.array(self.patch.getPointAt(u,v))
+      u = min(1.0,max(0.0,u))
+      v = min(1.0,max(0.0,v))
+      p = self.nurbssurf.evaluate_single((u,v))
+      return np.array(p)
 
     # the Shift tensor may be wieved as the coordinates of the surface
     # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
@@ -524,31 +550,42 @@ class Patch(ParametricSurface):
       # getDerivativeAt(u,v,nu,nv) returns the dérivative at point (u,v)
       # where nu, and nv specifies the depth of the derivative (number of time the derivative is applied)
       # print("S_u: ", self.patch.getDerivativeAt(u,v,1,0), " S_v: ", self.patch.getDerivativeAt(u,v,0,1))
-      S_u = np.array(self.patch.getDerivativeAt(u,v,1,0)) #.project()
-      S_u = S_u[0:3]
-      S_v = np.array(self.patch.getDerivativeAt(u,v,0,1)) #.project()
-      S_v = S_v[0:3]
+      u = min(1.0,max(0.0,u))
+      v = min(1.0,max(0.0,v))
+      skl = derivatives(self.nurbssurf, u, v, 1)
+      S_u = np.array(skl[1][0]) #
+      S_v = np.array(skl[0][1]) 
 
       return np.array([[S_u[0],S_v[0]],[S_u[1],S_v[1]],[S_u[2],S_v[2]]])
-      #return np.array(list(zip(S_u,S_v)))
-      #return np.array([[xu,xv],[yu,yv],[zu,zv]])
 
     def secondsuu(self,u,v):
       """
       second derivatives of the position vector at the surface
       """
-      return np.array(np.array(self.patch.getDerivativeAt(u,v,2,0)))
+      u = min(1.0,max(0.0,u))
+      v = min(1.0,max(0.0,v))
+      skl = derivatives(self.nurbssurf, u, v, 2)
+      return np.array(skl[2][0])
 
     def secondsuv(self,u,v):
-      return np.array(np.array(self.patch.getDerivativeAt(u,v,1,1)))
+      u = min(1.0,max(0.0,u))
+      v = min(1.0,max(0.0,v))
+      skl = derivatives(self.nurbssurf, u, v, 1)
+      return np.array(skl[1][1])
 
     def secondsvv(self,u,v):
-      return np.array(np.array(self.patch.getDerivativeAt(u,v,0,2)))
+      u = min(1.0,max(0.0,u))
+      v = min(1.0,max(0.0,v))
+      skl = derivatives(self.nurbssurf, u, v, 2)
+      return np.array(skl[0][2])
 
     def RiemannChristoffelSymbols(self,u,v):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
+        u = min(1.0,max(0.0,u))
+        v = min(1.0,max(0.0,v))
+        
         # covariant basis
         S_u, S_v = self.covariant_basis(u,v)
 
@@ -560,12 +597,14 @@ class Patch(ParametricSurface):
         Sv = ig[1][0] * S_u + ig[1][1] * S_v
 
         # derivatives of the covariant basis
-        S_uu = np.array(self.patch.getDerivativeAt(u,v,2,0))
+        skl = derivatives(self.nurbssurf, u, v, 2)
+        
+        S_uu = np.array(skl[2][0])
         S_uu = S_uu[0:3]
-        S_uv = S_vu = np.array(self.patch.getDerivativeAt(u,v,1,1))
+        S_uv = S_vu = np.array(skl[1][1])
         S_uv = S_uv[0:3]
         S_vu = S_vu[0:3]
-        S_vv = np.array(self.patch.getDerivativeAt(u,v,0,2))
+        S_vv = np.array(skl[0][2])
         S_vv = S_vv[0:3]
 
         # compute the dot product ...

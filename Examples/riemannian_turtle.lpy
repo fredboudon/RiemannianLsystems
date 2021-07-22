@@ -34,14 +34,14 @@ interpretation:
 # - turtle.uvpq is added by init, refers to the initial position and velocity 
 # of the turtle.
 # Sets the Riemanian space used by the turtle and draw it if required
-SetSpace(surface):
+SetSpace(surface, Du, Dv):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
   
   # Then plot the space surface
   if PLOTSPACE:
     umin,umax,vmin,vmax = surface.uv_domain()
-    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=Du,Dv=Dv)
     # Option ccw: (counter-clockwise)
     # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
     #S1 = surf.patch.getUTangentAt(u,v)
