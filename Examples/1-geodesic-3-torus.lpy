@@ -80,7 +80,13 @@ Axiom:
   u0= 0 # 0
   v0= 0 # np.pi/6  # np.pi/6 # 0
   # show pi/2, 0 then different values between pi/2 and pi/3
-  a = 11*pi/20 # to orient the turtle's head at the beginning
+  # try: 
+  #  a = 80 * np.pi/180. (closed curve that doesnot wrap the cylinder)
+  #  a = 82 * np.pi/180. (the curve starts to wrap around the cylinder !)
+  #  a = 83 * np.pi/180. (the curve wraps around the cylinder and gets closer!)
+  #  a = 83.1485 * np.pi/180. (closed curve that wraps around the cylinder)
+  
+  a = 83.1485 * np.pi/180. #11*np.pi/20 # to orient the turtle's head at the beginning
   #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
   #produce ;(1)A(0)
 
