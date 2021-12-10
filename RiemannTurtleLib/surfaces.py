@@ -9,6 +9,32 @@
 import numpy as np
 import numpy.linalg
 
+def derivatives(surf, u, v, order):
+    return surf.derivatives(u,v,order)
+
+def derivatives(surf, u, v, order):
+    du = 0.01
+    from scipy.misc import derivative
+    def upt(ui):
+        return np.array(surf.evaluate_single((ui,v)))
+
+    def vpt(vi):
+        return np.array(surf.evaluate_single((u,vi)))
+
+    def dvpt(vi):
+        def lupt(ui):
+            return np.array(surf.evaluate_single((ui,vi)))
+        return derivative(lupt, u, du)
+
+    if order == 1:
+        return [[0,  derivative(vpt, v, du) ],
+                [derivative(upt, u, du), derivative(dvpt, v, du) ]]
+
+    elif order == 2:
+        return [[0,  0,  derivative(vpt, v, du, n=2)],
+                [0, derivative(dvpt, v, du)],
+                [derivative(upt, u, du, n=2)] ]
+
 # Base class for the definition of parametric surfaces
 class ParametricSurface:
 # Surface position vector
@@ -159,7 +185,7 @@ class ParametricSurface:
         """
         u = min(self.umax,max(self.umin,u))
         v = min(self.vmax,max(self.vmin,v))
-        
+
         # covariant basis
         S_u, S_v = self.covariant_basis(u,v)
 
@@ -170,7 +196,7 @@ class ParametricSurface:
         Su = ig[0][0] * S_u + ig[0][1] * S_v
         Sv = ig[1][0] * S_u + ig[1][1] * S_v
 
-        
+
         S_uu = self.secondsuu(u,v)
         S_uv = S_vu = self.secondsuv(u,v)
         S_vv = self.secondsvv(u,v)
@@ -424,9 +450,9 @@ class Torus(ParametricSurface):
     def secondsvv(self,u,v):
       # CORRECTION:
       #xvv = -self.r*np.cos(u)*np.sin(v)
-      xvv = -self.r*np.cos(u)*np.cos(v)
+      xvv = -self.r*np.sin(u)*np.sin(v)
       #yvv = -self.r*np.sin(u)*np.sin(v)
-      yvv = -self.r*np.sin(u)*np.cos(v)
+      yvv = -self.r*np.cos(u)*np.sin(v)
       zvv = -self.r*np.sin(v)
 
       return np.array([xvv,yvv,zvv])
@@ -546,35 +572,6 @@ def to_nurbs_python(sh):
 	return surf
 
 
-def derivatives(surf, u, v, order):
-    return surf.derivatives(u,v,order)
-
-
-import numpy as np
-def derivatives(surf, u, v, order):
-    du = 0.01
-    from scipy.misc import derivative
-    def upt(ui):
-        return np.array(surf.evaluate_single((ui,v)))
-
-    def vpt(vi):
-        return np.array(surf.evaluate_single((u,vi)))
-
-    def dvpt(vi):
-        def lupt(ui):
-            return np.array(surf.evaluate_single((ui,vi)))
-        return derivative(lupt, u, du)
-
-    if order == 1:
-        return [[0,  derivative(vpt, v, du) ], 
-                [derivative(upt, u, du), derivative(dvpt, v, du) ]]
-
-    elif order == 2:
-        return [[0,  0,  derivative(vpt, v, du, n=2)], 
-                [0, derivative(dvpt, v, du)],
-                [derivative(upt, u, du, n=2)] ]
-
-
 class Patch(ParametricSurface):
 
     def __init__(self, patch):
@@ -640,7 +637,7 @@ class Patch(ParametricSurface):
       v = min(self.vmax,max(self.vmin,v))
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
-
+'''
     def RiemannChristoffelSymbols(self,u,v):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
@@ -683,7 +680,7 @@ class Patch(ParametricSurface):
         RCS[1,1,1] = np.dot(Sv,S_vv)
 
         return RCS
-
+'''
 
 class Revolution(ParametricSurface):
 
