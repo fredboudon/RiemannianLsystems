@@ -157,8 +157,39 @@ class ParametricSurface:
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
-        # computes the derivative of the covariant basis
-        print("RiemannChristoffelSymbols: base ParametricSurface class - NOT IMPLEMENTED")
+        u = min(self.umax,max(self.umin,u))
+        v = min(self.vmax,max(self.vmin,v))
+        
+        # covariant basis
+        S_u, S_v = self.covariant_basis(u,v)
+
+        # inverse metric tensor ig
+        ig = self.inverse_metric_tensor(u,v)
+
+        # contravariant basis
+        Su = ig[0][0] * S_u + ig[0][1] * S_v
+        Sv = ig[1][0] * S_u + ig[1][1] * S_v
+
+        
+        S_uu = self.secondsuu(u,v)
+        S_uv = S_vu = self.secondsuv(u,v)
+        S_vv = self.secondsvv(u,v)
+
+        # compute the dot product ...
+        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
+        # Gamma^a_bc  = RCS[a,b,c]
+
+        RCS = np.zeros((2,2,2))
+        RCS[0,0,0] = np.dot(Su,S_uu)
+        RCS[1,0,0] = np.dot(Sv,S_uu)
+        RCS[0,1,0] = np.dot(Su,S_vu)
+        RCS[1,1,0] = np.dot(Sv,S_vu)
+        RCS[0,0,1] = np.dot(Su,S_uv)
+        RCS[1,0,1] = np.dot(Sv,S_uv)
+        RCS[0,1,1] = np.dot(Su,S_vv)
+        RCS[1,1,1] = np.dot(Sv,S_vv)
+
+        return RCS
 
     def geodesic_eq(self,uvpq,s):
         """
@@ -251,6 +282,8 @@ class Sphere(ParametricSurface):
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
       return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
+
+
 
 # For the moment the implementation is not done (copied from Sphere)
 class EllipsoidOfRevolution(ParametricSurface):
@@ -485,7 +518,7 @@ class Paraboloid(ParametricSurface):
       nz = 1/(u * (4*u**2 + 1) )
       return np.array([nx,ny,nz])
 
-    def geodesic_eq(self,uvpq,s):
+    def geode_sic_eq(self,uvpq,s):
       u,v,p,q = uvpq
       return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
@@ -513,15 +546,41 @@ def to_nurbs_python(sh):
 def derivatives(surf, u, v, order):
     return surf.derivatives(u,v,order)
 
+
+import numpy as np
+def derivatives(surf, u, v, order):
+    du = 0.01
+    from scipy.misc import derivative
+    def upt(ui):
+        return np.array(surf.evaluate_single((ui,v)))
+
+    def vpt(vi):
+        return np.array(surf.evaluate_single((u,vi)))
+
+    def dvpt(vi):
+        def lupt(ui):
+            return np.array(surf.evaluate_single((ui,vi)))
+        return derivative(lupt, u, du)
+
+    if order == 1:
+        return [[0,  derivative(vpt, v, du) ], 
+                [derivative(upt, u, du), derivative(dvpt, v, du) ]]
+
+    elif order == 2:
+        return [[0,  0,  derivative(vpt, v, du, n=2)], 
+                [0, derivative(dvpt, v, du)],
+                [derivative(upt, u, du, n=2)] ]
+
+
 class Patch(ParametricSurface):
 
     def __init__(self, patch):
       self.patch = patch
       self.nurbssurf = to_nurbs_python(patch)
-      self.umin = 0.
-      self.umax = 1.
-      self.vmin = 0.
-      self.vmax = 1.
+      self.umin = min(self.nurbssurf.knotvector_u)
+      self.umax = max(self.nurbssurf.knotvector_u)
+      self.vmin = min(self.nurbssurf.knotvector_v)
+      self.vmax = max(self.nurbssurf.knotvector_v)
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
@@ -535,8 +594,8 @@ class Patch(ParametricSurface):
       u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
       v = elevation (v in [-Pi/2,+Pi/2] )
       """
-      u = min(1.0,max(0.0,u))
-      v = min(1.0,max(0.0,v))
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
       p = self.nurbssurf.evaluate_single((u,v))
       return np.array(p)
 
@@ -550,8 +609,8 @@ class Patch(ParametricSurface):
       # getDerivativeAt(u,v,nu,nv) returns the dérivative at point (u,v)
       # where nu, and nv specifies the depth of the derivative (number of time the derivative is applied)
       # print("S_u: ", self.patch.getDerivativeAt(u,v,1,0), " S_v: ", self.patch.getDerivativeAt(u,v,0,1))
-      u = min(1.0,max(0.0,u))
-      v = min(1.0,max(0.0,v))
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
       skl = derivatives(self.nurbssurf, u, v, 1)
       S_u = np.array(skl[1][0]) #
       S_v = np.array(skl[0][1]) 
@@ -562,20 +621,20 @@ class Patch(ParametricSurface):
       """
       second derivatives of the position vector at the surface
       """
-      u = min(1.0,max(0.0,u))
-      v = min(1.0,max(0.0,v))
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[2][0])
 
     def secondsuv(self,u,v):
-      u = min(1.0,max(0.0,u))
-      v = min(1.0,max(0.0,v))
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
       skl = derivatives(self.nurbssurf, u, v, 1)
       return np.array(skl[1][1])
 
     def secondsvv(self,u,v):
-      u = min(1.0,max(0.0,u))
-      v = min(1.0,max(0.0,v))
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
 
@@ -583,8 +642,8 @@ class Patch(ParametricSurface):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
-        u = min(1.0,max(0.0,u))
-        v = min(1.0,max(0.0,v))
+        u = min(self.umax,max(self.umin,u))
+        v = min(self.vmax,max(self.vmin,v))
         
         # covariant basis
         S_u, S_v = self.covariant_basis(u,v)
@@ -598,14 +657,15 @@ class Patch(ParametricSurface):
 
         # derivatives of the covariant basis
         skl = derivatives(self.nurbssurf, u, v, 2)
+        print(skl)
         
         S_uu = np.array(skl[2][0])
-        S_uu = S_uu[0:3]
+        #S_uu = S_uu[0:3]
         S_uv = S_vu = np.array(skl[1][1])
-        S_uv = S_uv[0:3]
-        S_vu = S_vu[0:3]
+        #S_uv = S_uv[0:3]
+        #S_vu = S_vu[0:3]
         S_vv = np.array(skl[0][2])
-        S_vv = S_vv[0:3]
+        #S_vv = S_vv[0:3]
 
         # compute the dot product ...
         # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers

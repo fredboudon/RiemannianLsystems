@@ -28,6 +28,10 @@ lib64/
 
 # editors
 .idea/
+.curveeditor*.xml
+.nurbsobjecteditor*.xml
+.nurbspatch3deditor*.xml
+.qglviewer.xml
 
 # Vim files
 *.swp
