@@ -77,10 +77,14 @@ Axiom:
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0 #np.pi/6
   v0= 0 #np.pi/6
-  a = np.pi/4. # to orient the turtle's head at the beginning
-  nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
-  nproduce ;(1)A(0)
-
+  a = np.pi/3. # to orient the turtle's head at the beginning
+  #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+  #nproduce ;(1)A(0)
+  nb = 8
+  for i in range(nb):  
+    a += 2*np.pi/nb
+    nproduce [InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+    
 derivation length: int(nb_seg)
 production:
 

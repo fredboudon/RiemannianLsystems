@@ -74,11 +74,10 @@ Axiom:
   #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
   #nproduce ;(1)A(0)
   # Second option:draw 10 geodesics with different initial directions
-  nb = 6
-  for i in range(nb+1):  
-    a += 2*np.pi/(nb+1)
-    nproduce [InitTurtle([u0,v0,np.cos(a),np.sin(a)])
-    nproduce InterpolateColors(3,5, i/nb)A(0)]
+  nb = 4
+  for i in range(nb):  
+    a += 2*np.pi/nb
+    nproduce [InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
 
 derivation length: int(nb_seg)
 production:

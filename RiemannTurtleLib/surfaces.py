@@ -659,7 +659,7 @@ class Patch(ParametricSurface):
 
         # derivatives of the covariant basis
         skl = derivatives(self.nurbssurf, u, v, 2)
-        
+
         S_uu = np.array(skl[2][0])
         #S_uu = S_uu[0:3]
         S_uv = S_vu = np.array(skl[1][1])
