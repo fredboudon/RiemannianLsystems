@@ -389,8 +389,11 @@ class Torus(ParametricSurface):
       return np.array([xuv,yuv,zuv])
 
     def secondsvv(self,u,v):
-      xvv = -self.r*np.cos(u)*np.sin(v)
-      yvv = -self.r*np.sin(u)*np.sin(v)
+      # CORRECTION:
+      #xvv = -self.r*np.cos(u)*np.sin(v)
+      xvv = -self.r*np.cos(u)*np.cos(v)
+      #yvv = -self.r*np.sin(u)*np.sin(v)
+      yvv = -self.r*np.sin(u)*np.cos(v)
       zvv = -self.r*np.sin(v)
 
       return np.array([xvv,yvv,zvv])
@@ -494,7 +497,7 @@ def to_nurbs_python(sh):
 	surf = NURBS.Surface()
 	surf.degree_u = sh.udegree
 	surf.degree_v = sh.vdegree
-	
+
 	npctrls = np.array(sh.ctrlPointMatrix)
 	shape = npctrls.shape
 	npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
@@ -504,9 +507,9 @@ def to_nurbs_python(sh):
 	surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
 	surf.knotvector_u = list(sh.uknotList)
 	surf.knotvector_v = list(sh.vknotList)
-	
+
 	surf.evaluate()
-	
+
 	return surf
 
 
@@ -554,7 +557,7 @@ class Patch(ParametricSurface):
       v = min(1.0,max(0.0,v))
       skl = derivatives(self.nurbssurf, u, v, 1)
       S_u = np.array(skl[1][0]) #
-      S_v = np.array(skl[0][1]) 
+      S_v = np.array(skl[0][1])
 
       return np.array([[S_u[0],S_v[0]],[S_u[1],S_v[1]],[S_u[2],S_v[2]]])
 
@@ -585,7 +588,7 @@ class Patch(ParametricSurface):
         """
         u = min(1.0,max(0.0,u))
         v = min(1.0,max(0.0,v))
-        
+
         # covariant basis
         S_u, S_v = self.covariant_basis(u,v)
 
@@ -598,7 +601,7 @@ class Patch(ParametricSurface):
 
         # derivatives of the covariant basis
         skl = derivatives(self.nurbssurf, u, v, 2)
-        
+
         S_uu = np.array(skl[2][0])
         S_uu = S_uu[0:3]
         S_uv = S_vu = np.array(skl[1][1])
