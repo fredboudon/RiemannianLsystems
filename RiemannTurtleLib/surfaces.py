@@ -80,13 +80,15 @@ class ParametricSurface:
       return S1,S2
 
     def metric_tensor(self,u,v):
-      """ NYI: To be defined for the base class
-      = scalar product of covariant basis
-      """
-      guu = 1
-      guv = gvu = 0.
-      gvv = 1
-      return np.array([[guu,guv],[gvu,gvv]])
+        """
+          Default implementation: scalar product of covariant basis
+        """
+        S_u, S_v = self.covariant_basis(u,v)
+        guu = np.dot(S_u,S_u)
+        guv = np.dot(S_u,S_v)
+        gvu = np.dot(S_v,S_u)
+        gvv = np.dot(S_v,S_v)
+        return np.array([[guu,guv],[gvu,gvv]])
 
     def inverse_metric_tensor(self,u,v):
       """
@@ -179,12 +181,12 @@ class ParametricSurface:
       #print("g12 = ", g12, " a = ", a, " b = ", b)
       return np.array([[a,g12*a],[0,b]])
 
-    def RiemannChristoffelSymbols(self,u,v):
+    def RiemannChristoffelSymbols(self,u,v,printflag = False):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
-        u = min(self.umax,max(self.umin,u))
-        v = min(self.vmax,max(self.vmin,v))
+        #u = min(self.umax,max(self.umin,u))
+        #v = min(self.vmax,max(self.vmin,v))
 
         # covariant basis
         S_u, S_v = self.covariant_basis(u,v)
@@ -195,7 +197,6 @@ class ParametricSurface:
         # contravariant basis
         Su = ig[0][0] * S_u + ig[0][1] * S_v
         Sv = ig[1][0] * S_u + ig[1][1] * S_v
-
 
         S_uu = self.secondsuu(u,v)
         S_uv = S_vu = self.secondsuv(u,v)
@@ -214,6 +215,10 @@ class ParametricSurface:
         RCS[1,0,1] = np.dot(Sv,S_uv)
         RCS[0,1,1] = np.dot(Su,S_vv)
         RCS[1,1,1] = np.dot(Sv,S_vv)
+
+        if printflag:
+            print("Riemann Christoffel coefs:")
+            print(RCS)
 
         return RCS
 
@@ -304,11 +309,11 @@ class Sphere(ParametricSurface):
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
       return np.array([nx,ny,nz])
-
+"""
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
       return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
-
+"""
 
 
 # For the moment the implementation is not done (copied from Sphere)
@@ -450,9 +455,9 @@ class Torus(ParametricSurface):
     def secondsvv(self,u,v):
       # CORRECTION:
       #xvv = -self.r*np.cos(u)*np.sin(v)
-      xvv = -self.r*np.sin(u)*np.sin(v)
+      xvv = -self.r*np.cos(u)*np.cos(v)
       #yvv = -self.r*np.sin(u)*np.sin(v)
-      yvv = -self.r*np.cos(u)*np.sin(v)
+      yvv = -self.r*np.sin(u)*np.cos(v)
       zvv = -self.r*np.sin(v)
 
       return np.array([xvv,yvv,zvv])
@@ -464,13 +469,41 @@ class Torus(ParametricSurface):
       return np.array([nx,ny,nz])
 
     def metric_tensor(self,u,v):
-      guu = ((self.R + self.r*np.cos(v)))**2
+      guu = (self.R + self.r*np.cos(v))**2
       guv = gvu = 0.
       gvv = self.r**2
       return np.array([[guu,guv],[gvu,gvv]])
 
+    # COMMENTER POUR TESTER L'EQUATION GEODESIC GENERIQUE (de la classe parametric surface et utilisant les symboles de RiemannChristoffel)
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
+
+      # test equality of Riemmann Christoffel coefs -------
+      if False:
+          Gamma = self.RiemannChristoffelSymbols(u,v)
+          print ("u,v=",u,v)
+          coef010 = coef001 = -(self.r*np.sin(v)/(self.R+self.r*np.cos(v)))
+          coef100 = (self.R+self.r*np.cos(v))*np.sin(v)/self.r
+          if not np.isclose(Gamma[0,0,0],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[0,0,0] = ", Gamma[0,0,0], "instead of: ", 0.)
+          if not np.isclose(Gamma[0,0,1],coef001,rtol=1e-03, atol=1e-05):
+              Gamma = self.RiemannChristoffelSymbols(u,v,True)
+              S_u, S_v = self.covariant_basis(u,v)
+              ig = self.inverse_metric_tensor(u,v)
+              Su = ig[0][0] * S_u + ig[0][1] * S_v
+              Sv = ig[1][0] * S_u + ig[1][1] * S_v
+              S_uv = self.secondsuv(u,v)
+              print("  Error: Gamma[0,0,1] = ", Gamma[0,0,1], "instead of: ", coef001)
+              print("  Su = ", Su)
+              print("  S_uv = ", S_uv)
+              print("  Su.S_uv = ", np.dot(Su,S_uv))
+          if not np.isclose(Gamma[0,1,0],coef001,rtol=1e-03, atol=1e-05): print("  Error: Gamma[0,1,0] = ", Gamma[0,1,0], "instead of: ", coef001)
+          if not np.isclose(Gamma[0,1,1],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[0,1,1] = ", Gamma[0,1,1], "instead of: ", 0.)
+          if not np.isclose(Gamma[1,0,0],coef100,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,0,0] = ", Gamma[1,0,0], "instead of: ", coef100)
+          if not np.isclose(Gamma[1,0,1],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,0,1] = ", Gamma[1,0,1], "instead of: ", 0.)
+          if not np.isclose(Gamma[1,1,0],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,1,0] = ", Gamma[1,1,0], "instead of: ", 0.)
+          if not np.isclose(Gamma[1,1,1],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,1,1] = ", Gamma[1,1,1], "instead of: ", 0.)
+      # end test equality of coefs -------
+
       return [p,q,2*(self.r*np.sin(v)/(self.R+self.r*np.cos(v)))*p*q,-((self.R+self.r*np.cos(v))*np.sin(v)/self.r)*p**2]
 
 
@@ -637,7 +670,7 @@ class Patch(ParametricSurface):
       v = min(self.vmax,max(self.vmin,v))
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
-'''
+
     def RiemannChristoffelSymbols(self,u,v):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
@@ -680,7 +713,7 @@ class Patch(ParametricSurface):
         RCS[1,1,1] = np.dot(Sv,S_vv)
 
         return RCS
-'''
+
 
 class Revolution(ParametricSurface):
 

@@ -85,8 +85,9 @@ Axiom:
   #  a = 82 * np.pi/180. (the curve starts to wrap around the cylinder !)
   #  a = 83 * np.pi/180. (the curve wraps around the cylinder and gets closer!)
   #  a = 83.1485 * np.pi/180. (closed curve that wraps around the cylinder)
+  #  a = 89 * np.pi/180. (bizarre with the use of generic Riemann Christoffel symbols
   
-  a = 83.1485 * np.pi/180. #11*np.pi/20 # to orient the turtle's head at the beginning
+  a = 80 * np.pi/180. #11*np.pi/20 # to orient the turtle's head at the beginning
   #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
   #produce ;(1)A(0)
 

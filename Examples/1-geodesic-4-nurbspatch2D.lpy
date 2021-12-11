@@ -59,7 +59,7 @@ FRAMEWIDTH = 1 * cm
 nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 0.8 
+length_geodesic = 0.5 
 
 
 Axiom:
@@ -74,7 +74,7 @@ Axiom:
   #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
   #nproduce ;(1)A(0)
   # Second option:draw 10 geodesics with different initial directions
-  nb = 4
+  nb = 10
   for i in range(nb):  
     a += 2*np.pi/nb
     nproduce [InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
