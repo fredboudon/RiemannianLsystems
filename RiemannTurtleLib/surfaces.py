@@ -309,11 +309,10 @@ class Sphere(ParametricSurface):
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
       return np.array([nx,ny,nz])
-"""
+
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
       return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
-"""
 
 
 # For the moment the implementation is not done (copied from Sphere)
@@ -478,7 +477,7 @@ class Torus(ParametricSurface):
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
 
-      # test equality of Riemmann Christoffel coefs -------
+      # checks the equality of Riemmann Christoffel coefs -------
       if False:
           Gamma = self.RiemannChristoffelSymbols(u,v)
           print ("u,v=",u,v)
