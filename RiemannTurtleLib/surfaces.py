@@ -6,6 +6,7 @@
     Lab: RDP ENS de Lyon, Mosaic Inria Team
 
 """
+import math
 import numpy as np
 import numpy.linalg
 
@@ -824,6 +825,25 @@ class Revolution(ParametricSurface):
       r2 = self.rsecond(v)
       den = 1+r1**2
       return [p,q, -2*p*q*r1/r, -r1*r2*(q**2)/den + r*r1*(p**2)/den]
+
+
+class PseudoSphere(Revolution):
+
+    def tractrix(u, R = 1):
+        if math.isclose(u,0.0):
+            return math.inf
+        else:
+            try:
+                b = math.sqrt(R**2 - u**2)
+                res = R*math.log((R+b)/u) - b
+            except ValueError:
+                print("tractrix curve: bad domain for u=",u, " (should be 0 < u <=", R, ")" )
+            else:
+                return res
+
+    def __init__(self, R, rprime, rsecond, zmin = -2*R, zmax = 2*R):
+        super(PseudoSphere,self).__init__(tractrix, rprime, rsecond, zmin, zmax)
+
 
 #################################
 # Other surface tools

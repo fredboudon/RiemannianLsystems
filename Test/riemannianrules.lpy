@@ -1,0 +1,173 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2020
+		
+	Interpretation rules to simulate geodesics on a curved surface with a riemannian implementation of 
+	the main turtle primitives: F, f, + and -
+	
+"""
+#######################################################
+# Generic Interpretation rules for Riemannian geometry
+# (DO NOT EDIT)
+#######################################################
+# To import libs from other directories 
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload 
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannian_turtle
+riemannian_turtle = reload(riemannian_turtle)
+
+from surfaces import *
+from riemannian_turtle import *
+
+module SetSpace(surface), InitTurtle(turtle_state)
+
+production:
+interpretation:
+
+# Two parameters are added to the turtle
+# - turtle.space is added by SetSpace refers to the Riemanian space
+# in which the turtle is moving
+# - turtle.uvpq is added by init, refers to the initial position and velocity
+# of the turtle.
+# Sets the Riemanian space used by the turtle and draw it if required
+SetSpace(surface):
+  # Set the space in the turtle
+  turtle.add_parameter('space', surface)
+  
+  # Then plot the space surface
+  if PLOTSPACE:
+    umin,umax,vmin,vmax = surface.uv_domain()
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
+    # Option ccw: (counter-clockwise)
+    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
+    #S1 = surf.patch.getUTangentAt(u,v)
+    #S2 = surf.patch.getVTangentAt(u,v)
+    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
+
+# The turtle is augmented with a memory that stores the previous position and
+# and velocity of the turtle at the surface: u,v,p,q.
+# This computation can be done in either an absolute or a relative manner.
+# The relative manner consists of computing the Euler angles for instance
+# to move the HLU frame from the previous to the current position.
+# It should correspond for instance to the correction term
+# in the covariant derivative along the current geodesic and
+# to the covariant derivative of the normal.
+
+InitTurtle(gencoords):
+  pos = gencoords[0:2] # position
+  dir = gencoords[2:4] # direction
+  # normalizes the initial direction to get a velocity of norm 1
+  # in this way the geodesic equation will use parameter s that corresponds
+  # to the curvilinear abscissa
+  nvelocity = turtle.space.normalize(pos,dir)
+  turtle.add_parameter('uvpq',pos+nvelocity)
+  head, up = riemannian_turtle_init(gencoords, turtle.space)
+  u,v,p,q = gencoords
+  #print("head = ", head)
+  nproduce ;(2)_(0.02)
+  nproduce @M( turtle.space.S([u,v]) )
+  nproduce @R(head,up)@O(0.02)
+
+# The following instructions redefined the compute the new riemmanian turtle state
+# after turtle classical instructions.
+# In addition to the turtle position, the turtle HLU frame is computed:
+# - The Head direction that is a unit vector that point s in the direction
+# of the movement (defined by p,q in the current state)
+# - The Up direction that is a unit vector that coincides with the surface normal
+
+F(length):
+  #0. Test if argument is null
+  if length < 1e-100:
+    # value considered as NULL:
+    produce F(0)
+  # 1. Find the nb of segments into which the curve should be divided
+  # This nb, which should be < MAXSTEPLEN, will be used to divide the length into steplen=length/stepnb
+  # by the riemannian_turtle_move_forward() function.
+  stepnb = int(ceil(length / MAXSTEPLEN))
+  #steplen = length / stepnb
+  #   e.g.
+  #     - if len = 1.8 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
+  #     - if len = 0.6 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
+
+  # 2. Integrates the curve along the given length in stepnb steps
+  uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
+  segnb = len(uvpq_s) # should be equal to stepnb
+  assert stepnb == segnb
+
+  # 3. sets line width first
+  nproduce _(LINEWIDTH)
+
+  # 4. draw all the small subsegments (that were returned by the integration)
+  delta_s = 0
+  u = turtle.uvpq[0]
+  v = turtle.uvpq[1]
+  for i in range(segnb):
+    # draw a line from the last visited point to the next one in abs coordinates
+    delta_s += turtle.space.norm([u,v], [uvpq_s[i][0]-u,uvpq_s[i][1]-v])
+    nproduce LineTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
+    u = uvpq_s[i][0]
+    v = uvpq_s[i][1]
+
+  print("Input length = ", length, " Drawn segment length = ", delta_s)
+
+  # 5. update the turtle's state with the last point of the computed curve
+  turtle.uvpq = uvpq_s[-1]
+
+
+  # 6. Finally, orient the head of the turtle
+  # according to what was computed for the mast point
+  nproduce @R(head,up)
+
+# Exactly the same algorithm as for F, but with a MoveTo instead of LineTo
+f(length):
+  #0. Test if argument is null
+  if length < 1e-100:
+    # value considered as NULL:
+    produce f(0)
+  # 1. Find the nb of segments into which the curve should be divided
+  stepnb = int(ceil(length / MAXSTEPLEN))
+  #steplen = length / stepnb
+  #   e.g.
+  #     - if len = 1.8 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
+  #     - if len = 0.6 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
+
+  # 2. Integrates the curve along the given length in stepnb steps
+  uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
+  segnb = len(uvpq_s) # should be equal to stepnb
+  assert stepnb == segnb
+  # 3. sets line width first
+  nproduce _(LINEWIDTH)
+
+  # 4. draw all the small subsegments (that were returned by the integration)
+  for i in range(segnb):
+    # draw a line from the last visited point to the next one in abs coordinates
+    nproduce MoveTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
+
+  # 5. update the turtle's state with the last point of the computed curve
+  turtle.uvpq = uvpq_s[-1]
+
+  # 6. Finally, orient the head of the turtle
+  # according to what was computed for the mast point
+  nproduce @R(head,up)
+
++(angle):
+  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  nproduce @R(head,up)
+
+-(angle):
+  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
+  nproduce @R(head,up)
+
+endlsystem
