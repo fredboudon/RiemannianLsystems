@@ -13,7 +13,8 @@ import numpy.linalg
 def derivatives(surf, u, v, order):
     return surf.derivatives(u,v,order)
 
-def derivatives(surf, u, v, order):
+# Fred :
+def bruteforce_derivatives(surf, u, v, order):
     du = 0.01
     from scipy.misc import derivative
     def upt(ui):
@@ -35,6 +36,19 @@ def derivatives(surf, u, v, order):
         return [[0,  0,  derivative(vpt, v, du, n=2)],
                 [0, derivative(dvpt, v, du)],
                 [derivative(upt, u, du, n=2)] ]
+
+# computation of generic derivatives using scipy
+################################################
+from scipy.misc import derivative
+
+def prime_derivative(func, x):
+    """
+    Given a function, use a central difference formula with spacing dx to compute the nth derivative at x0, and using an odd number of points around the x value (order = 3)
+    """
+    return derivative(func, x, n=1, dx=1e-6, order = 3)
+
+def second_derivative(func, x):
+    return derivative(func, x, n=2, dx=1e-6, order = 3)
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface:
@@ -580,7 +594,7 @@ class Paraboloid(ParametricSurface):
       nz = 1/(u * (4*u**2 + 1) )
       return np.array([nx,ny,nz])
 
-    def geode_sic_eq(self,uvpq,s):
+    def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
       return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
@@ -671,6 +685,7 @@ class Patch(ParametricSurface):
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
 
+''' Use instead mother class implementation
     def RiemannChristoffelSymbols(self,u,v):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
@@ -713,7 +728,7 @@ class Patch(ParametricSurface):
         RCS[1,1,1] = np.dot(Sv,S_vv)
 
         return RCS
-
+'''
 
 class Revolution(ParametricSurface):
 
@@ -826,41 +841,47 @@ class Revolution(ParametricSurface):
       den = 1+r1**2
       return [p,q, -2*p*q*r1/r, -r1*r2*(q**2)/den + r*r1*(p**2)/den]
 
+def tractrix(u, R=10):
+    if math.isclose(u,0.0):
+        return math.inf
+    else:
+        try:
+            b = math.sqrt(R**2 - u**2)
+            res = R*math.log((R+b)/u) - b
+        except ValueError:
+            print("tractrix curve: bad domain for u=",u, " (should be 0 < u <=", R, ")" )
+        else:
+            return res
+
+def tractrix_prime(x):
+  return prime_derivative(tractrix, x)
+
+def tractrix_second(x):
+  return second_derivative(tractrix, x)
+
+def gen_prime_deriv(func, rargs):
+    def prime_derive(u):
+        return scipy.misc.derivative(func, u, dx = du, n = 1, args=rargs)
+    return prime_derive
+
+'''
+class Revolution:
+  def __init__(self, rfunc, rprime = None, rsecond = None, *rargs = None):
+    if rprime is None:
+        self.rprime = gen_prime_deriv(rfunc, rargs)
+    else:
+        self.rprime = rprime
+
 
 class PseudoSphere(Revolution):
 
-    def tractrix(u, R = 1):
-        if math.isclose(u,0.0):
-            return math.inf
-        else:
-            try:
-                b = math.sqrt(R**2 - u**2)
-                res = R*math.log((R+b)/u) - b
-            except ValueError:
-                print("tractrix curve: bad domain for u=",u, " (should be 0 < u <=", R, ")" )
-            else:
-                return res
-
-    def __init__(self, R, rprime, rsecond, zmin = -2*R, zmax = 2*R):
-        super(PseudoSphere,self).__init__(tractrix, rprime, rsecond, zmin, zmax)
-
+    def __init__(self, R, zmin = -1, zmax = 1):
+        super(PseudoSphere,self).__init__(tractrix, tractrix_prime, tractrix_second, zmin, zmax)
+'''
 
 #################################
 # Other surface tools
 #################################
-
-# computation of generic derivatives using scipy
-################################################
-from scipy.misc import derivative
-
-def prime_derivative(func, x):
-    """
-    Given a function, use a central difference formula with spacing dx to compute the nth derivative at x0, and using an odd number of points around the x value (order = 3)
-    """
-    return derivative(func, x, n=1, dx=1e-6, order = 3)
-
-def second_derivative(func, x):
-    return derivative(func, x, n=2, dx=1e-6, order = 3)
 
 
 # For plotting any surface defined by an explicit equation S(u,v) with Quads

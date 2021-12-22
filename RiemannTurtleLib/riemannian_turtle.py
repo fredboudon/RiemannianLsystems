@@ -75,7 +75,7 @@ def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 100):
   #print ("up = ",up, " up norm = ", np.linalg.norm(up))
 
   return uvpq_s,head,up,S1,S2
-
+'''
 def riemannian_turtle_move_forward_old(p_uvpq,surf,ds,SUBDIV = 100):
 
   uu,vv,pp,qq = p_uvpq
@@ -119,6 +119,7 @@ def riemannian_turtle_move_forward_old(p_uvpq,surf,ds,SUBDIV = 100):
   #print ("up = ",up, " up norm = ", np.linalg.norm(up))
 
   return uvpq,head,up,S1,S2
+'''
 
 def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
 
@@ -161,7 +162,7 @@ def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
 
   return uvpq,head,up,S1,S2
 
-
+'''
 # Old : to be removed when checked
 def turtle_interpret(p_uvpq,surf,deviation_angle,ds,SUBDIV = 100, endflag = False):
 
@@ -220,3 +221,4 @@ def turtle_interpret(p_uvpq,surf,deviation_angle,ds,SUBDIV = 100, endflag = Fals
   #print ("up = ",up, " up norm = ", np.linalg.norm(up))
 
   return uvpq,head,up,S1,S2
+'''

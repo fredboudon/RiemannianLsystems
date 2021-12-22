@@ -1,23 +1,23 @@
 """
 	L-systems in Riemannian geometry
-	
+
 		Author: Ch. Godin, Inria
 		Date: 2019-2020
-		
-	Interpretation rules to simulate geodesics on a curved surface with a riemannian implementation of 
+
+	Interpretation rules to simulate geodesics on a curved surface with a riemannian implementation of
 	the main turtle primitives: F, f, + and -
-	
+
 """
 #######################################################
 # Generic Interpretation rules for Riemannian geometry
 # (DO NOT EDIT)
 #######################################################
-# To import libs from other directories 
+# To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
 import sys
 sys.path.append("../RiemannTurtleLib")
 
-from importlib import reload 
+from importlib import reload
 
 import surfaces
 surfaces = reload(surfaces)
@@ -41,7 +41,7 @@ interpretation:
 SetSpace(surface):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
-  
+
   # Then plot the space surface
   if PLOTSPACE:
     umin,umax,vmin,vmax = surface.uv_domain()
@@ -62,18 +62,19 @@ SetSpace(surface):
 # to the covariant derivative of the normal.
 
 InitTurtle(gencoords):
-  pos = gencoords[0:2] # position
-  dir = gencoords[2:4] # direction
+  #pos = gencoords[0:2] # position
+  #dir = gencoords[2:4] # direction
   # normalizes the initial direction to get a velocity of norm 1
   # in this way the geodesic equation will use parameter s that corresponds
   # to the curvilinear abscissa
-  nvelocity = turtle.space.normalize(pos,dir)
-  turtle.add_parameter('uvpq',pos+nvelocity)
+  # nvelocity = turtle.space.normalize(pos,dir)
+
+  turtle.add_parameter('uvpq',gencoords)
   head, up = riemannian_turtle_init(gencoords, turtle.space)
   u,v,p,q = gencoords
   #print("head = ", head)
   nproduce ;(2)_(0.02)
-  nproduce @M( turtle.space.S([u,v]) )
+  nproduce @M( turtle.space.S(u,v) )
   nproduce @R(head,up)@O(0.02)
 
 # The following instructions redefined the compute the new riemmanian turtle state
