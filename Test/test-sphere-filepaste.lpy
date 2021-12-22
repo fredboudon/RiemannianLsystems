@@ -14,7 +14,7 @@ import numpy as np
 from math import ceil
 from random import random
 
-%pastefile riemannianrules.lpy
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
 #######################
 # Units

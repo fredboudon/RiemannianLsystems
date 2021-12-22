@@ -75,6 +75,7 @@ def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 100):
   #print ("up = ",up, " up norm = ", np.linalg.norm(up))
 
   return uvpq_s,head,up,S1,S2
+
 '''
 def riemannian_turtle_move_forward_old(p_uvpq,surf,ds,SUBDIV = 100):
 

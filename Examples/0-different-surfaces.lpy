@@ -1,0 +1,178 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2020
+
+	Illustrate how to construct different curved surfaces 
+	Just toogle the comment of the line you want to test.
+"""
+
+import numpy as np
+
+# To import libs from other directories 
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload 
+
+import surfaces
+surfaces = reload(surfaces)
+
+from surfaces import *
+
+
+###################################
+# Several functions for Revolution
+###################################
+
+def sinusoid(x):
+  return 2+np.sin(x)
+def sinusoid_prime(x):
+  return np.cos(x)
+def sinusoid_second(x):
+  return -np.sin(x)
+
+def vase(x):
+  if x < 0: 
+    x = 0.
+  u = (x) / 10.
+  #print ("x =", x, "u= ", u)
+  return 5* vasefunc.getValue(u)
+
+# sphere radius
+rr = 1.
+def sphere(x):
+  return np.sqrt(rr**2 - x**2)
+def sphere_prime(x):
+  return - (rr**2 - x**2)**(-1/2.) * x
+def sphere_second(x):
+  term = rr**2 - x**2
+  return - term**(-1/2.) * (1 + ((x**2) /term ))
+
+
+profile = vase
+
+# Definition of how to compute derivatives radius functions
+# usung scipy (called in module surfaces)
+###########################################################
+def profile_prime(x):
+  return prime_derivative(profile, x)
+def profile_second(x):
+  return second_derivative(profile, x)
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface 
+# this controls the resolution of the geodesic plot with respect to the 
+# surface curvature 
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+nb_sim_steps = 2
+
+# Surface parameters
+# Different surfaces:
+# - Sphere(R=1.0):                       u in [0,2*pi], v in [-pi/2,+pi/2]
+# - EllipsoidOfRevolution(a=1.0,b=0.5)   u in [0,2*pi], v in [-pi/2,+pi/2]
+# - Torus(R=1.0,r=0.2)                   u in [0,2*pi], v in [0,2*pi]
+# - Paraboloid(radiusmax=0.5)	           u in [0,radiusmax], v in [0,2*pi]
+# - Revolution(rfunc, rprime, rsecond, zmin = -2*np.pi, zmax = 2*np.pi)   u in [0,2*pi], v in [zmin,zmax]
+# - Patch(patch2D)                       u in [0,1], v in [0,1]
+
+R = 1.   # Radius of the sphere (in graphical units)
+r = 0.3  # for Torus
+a = 1.0  # for EllipsoidOfRevolution
+b = 0.3  # EllipsoidOfRevolution
+radiusmax = 1.0 # Paraboloid
+#rfunc = func0
+#patch2D = patch1
+
+
+module SetSpace(surface) #, InitTurtle(turtle_state)
+
+Axiom: 
+  # Sets the Riemannian space in which the turtle will move
+  #nproduce SetSpace(Sphere(R))
+  #nproduce SetSpace(EllipsoidOfRevolution(a,b))
+  #nproduce SetSpace(Torus(R,r))
+  #nproduce SetSpace(Paraboloid(radiusmax))
+  #nproduce SetSpace(Revolution(sphere,sphere_prime,sphere_second,zmin = -1, zmax = 1))
+  #nproduce SetSpace(Revolution(profile,profile_prime,profile_second,zmin = 0, zmax = 10.))
+  nproduce SetSpace(Patch(patch1))
+
+derivation length: nb_sim_steps
+production:
+
+interpretation:
+
+
+#######################################################
+# Generic Interpretation rules for Riemannian geometry
+# (DO NOT EDIT)
+#######################################################
+
+# Two parameters are added to the turtle
+# - turtle.space is added by SetSpace refers to the Riemanian space 
+# in which the turtle is moving
+# - turtle.uvpq is added by init, refers to the initial position and velocity 
+# of the turtle.
+# Sets the Riemanian space used by the turtle and draw it if required
+SetSpace(surface):
+  # Set the space in the turtle
+  turtle.add_parameter('space', surface)
+  
+  # Then plot the space surface
+  if PLOTSPACE:
+    umin,umax,vmin,vmax = surface.uv_domain()
+    # to augment the precision of the rendering decrease the sampling intervals Du,Dv
+    # BUG: for the moment there id still a bug for some values of Du,Dv (eg. Du=0.01, Dv=0.05)
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
+    # Option ccw: (counter-clockwise)
+    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
+    #S1 = surf.patch.getUTangentAt(u,v)
+    #S2 = surf.patch.getVTangentAt(u,v)
+    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	vasefunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.336861, 1)]) , 
+	    )
+	vasefunc.name = "vasefunc"
+	import openalea.plantgl.all as pgl
+	patch1 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0, -0.166667, 0, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (-0.355718, -0.0565335, 0.508855, 1), (-0.362102, 0.0901285, 0.405202, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.0252141, -0.515907, 0.398777, 1), (-0.352318, -0.00279236, 0.564018, 1), (-0.363668, 0.10938, 0.503837, 1), (-0.0192294, 0.499495, 0.442237, 1)], [(0, -0.5, 0.666667, 1), (-0.33306, -0.00429326, 0.663507, 1), (-0.346903, 0.154968, 0.544111, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0, 0.166667, 1, 1), (0, 0.5, 1, 1)]]) , 
+	    )
+	patch1.name = "patch1"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',vasefunc),('NurbsPatch',patch1)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('vasefunc',vasefunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+	context["patch1"] = patch1
+__references__ = '# '

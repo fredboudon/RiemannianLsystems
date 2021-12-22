@@ -3,15 +3,17 @@
 
 		Author: Ch. Godin, Inria
 		Date: 2019-2020
-
-	Interpretation rules to simulate geodesics on a curved surface with a riemannian implementation of
+	Simulates geodesics on a sphere with a riemannian implementation of
 	the main turtle primitives: F, f, + and -
 
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+
 """
-#######################################################
-# Generic Interpretation rules for Riemannian geometry
-# (DO NOT EDIT)
-#######################################################
+
+import numpy as np
+from math import ceil
+from random import random
+
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
 import sys
@@ -27,17 +29,88 @@ riemannian_turtle = reload(riemannian_turtle)
 from surfaces import *
 from riemannian_turtle import *
 
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+length_geodesic = R*2*np.pi
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
+           # To draw one geodesic, set it to 1 and set dashed to False
+
 module SetSpace(surface), InitTurtle(turtle_state)
 
+Axiom:
+  # Sets the Riemannian space in which the turtle will move
+  nproduce SetSpace(Sphere(R))
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  u0= 0 #np.pi/6
+  v0= 0 #np.pi/6
+  a = np.pi/3. # to orient the turtle's head at the beginning
+  #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+  #nproduce ;(1)A(0)
+  nb = 8
+  for i in range(nb):  
+    a += 2*np.pi/nb
+    nproduce [InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+    
+derivation length: int(nb_seg)
 production:
+
+A(n):
+  nproduce F(length_geodesic/nb_seg)
+  nproduce A(n+1)
+
 interpretation:
 
+A(n):
+  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+
+
+#######################################################
+# Generic Interpretation rules for Riemannian geometry
+# (DO NOT EDIT)
+#######################################################
+
 # Two parameters are added to the turtle
-# - turtle.space is added by SetSpace refers to the Riemanian space
+# - turtle.space is added by SetSpace refers to the Riemanian space 
 # in which the turtle is moving
 # - turtle.uvpq is added by init, refers to the initial position and velocity
 # of the turtle.
-# Sets the Riemanian space used by the turtle and draw it if required
+# Sets the Riemannian space used by the turtle and draw it if required
 SetSpace(surface):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
@@ -61,17 +134,10 @@ SetSpace(surface):
 # in the covariant derivative along the current geodesic and
 # to the covariant derivative of the normal.
 
-InitTurtle(gencoords):
-  #pos = gencoords[0:2] # position
-  #dir = gencoords[2:4] # direction
-  # normalizes the initial direction to get a velocity of norm 1
-  # in this way the geodesic equation will use parameter s that corresponds
-  # to the curvilinear abscissa
-  # nvelocity = turtle.space.normalize(pos,dir)
-
-  turtle.add_parameter('uvpq',gencoords)
-  head, up = riemannian_turtle_init(gencoords, turtle.space)
-  u,v,p,q = gencoords
+InitTurtle(uvpq):
+  turtle.add_parameter('uvpq',uvpq)
+  head, up = riemannian_turtle_init(uvpq, turtle.space)
+  u,v,p,q = uvpq
   #print("head = ", head)
   nproduce ;(2)_(0.02)
   nproduce @M( turtle.space.S(u,v) )
@@ -90,8 +156,6 @@ F(length):
     # value considered as NULL:
     produce F(0)
   # 1. Find the nb of segments into which the curve should be divided
-  # This nb, which should be < MAXSTEPLEN, will be used to divide the length into steplen=length/stepnb
-  # by the riemannian_turtle_move_forward() function.
   stepnb = int(ceil(length / MAXSTEPLEN))
   steplen = length / stepnb
   #   e.g.
@@ -111,21 +175,8 @@ F(length):
   # 4. draw all the small subsegments (that were returned by the integration)
   for i in range(segnb):
     # draw a line from the last visited point to the next one in abs coordinates
-    nproduce LineTo(turtle.space.S(uvpq_s[i][0], uvpq_s[i][1]))
+    nproduce LineTo(turtle.space.S(uvpq_s[i][0],uvpq_s[i][1]))
 
-  '''
-  delta_s = 0
-  u = turtle.uvpq[0]
-  v = turtle.uvpq[1]
-  for i in range(segnb):
-    # draw a line from the last visited point to the next one in abs coordinates
-    delta_s += turtle.space.norm([u,v], [uvpq_s[i][0]-u,uvpq_s[i][1]-v])
-    nproduce LineTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
-    u = uvpq_s[i][0]
-    v = uvpq_s[i][1]
-
-  print("Input length = ", length, " Drawn segment length = ", delta_s)
-  '''
   # 5. update the turtle's state with the last point of the computed curve
   turtle.uvpq = uvpq_s[-1]
 
@@ -141,7 +192,7 @@ f(length):
     produce f(0)
   # 1. Find the nb of segments into which the curve should be divided
   stepnb = int(ceil(length / MAXSTEPLEN))
-  #steplen = length / stepnb
+  steplen = length / stepnb
   #   e.g.
   #     - if len = 1.8 and MAXSTEPLEN = 1.0
   #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
@@ -149,7 +200,7 @@ f(length):
   #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
 
   # 2. Integrates the curve along the given length in stepnb steps
-  uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
+  uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward2(turtle.uvpq,turtle.space,length,stepnb)
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
   # 3. sets line width first
@@ -158,7 +209,7 @@ f(length):
   # 4. draw all the small subsegments (that were returned by the integration)
   for i in range(segnb):
     # draw a line from the last visited point to the next one in abs coordinates
-    nproduce MoveTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
+    nproduce MoveTo(turtle.space.S(uvpq_s[i][0],uvpq_s[i][1]))
 
   # 5. update the turtle's state with the last point of the computed curve
   turtle.uvpq = uvpq_s[-1]
@@ -175,4 +226,30 @@ f(length):
   turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
   nproduce @R(head,up)
 
+
 endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
