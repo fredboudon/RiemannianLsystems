@@ -9,6 +9,11 @@
 	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
 
 """
+
+import numpy as np
+from math import ceil
+from random import random
+
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
 import sys
@@ -26,6 +31,9 @@ from riemannianturtle import *
 
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
+# Flags to control the display
+PLOTSPACE = True
+
 #######################
 # Units
 #######################
@@ -35,14 +43,12 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
 cm = 0.01 * meter
 
 # Surface parameters
-R = 2. * meter   # Radius of the sphere in meter
+R = 1. * meter   # Radius of the sphere in meter
 
 #######################
 # DISPLAY PARAMETERS
 #######################
 
-# Flags to control the display
-PLOTSPACE = True
 
 # maximum len of subdivision step required to draw any line on the surface
 # this controls the resolution of the geodesic plot with respect to the
@@ -60,38 +66,32 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-def vase(x):
-  if x < 0: 
-    x = 0.
-  u = (x) / 10.
-  #print ("x =", x, "u= ", u)
-  return 5* vasefunc.getValue(u)
-
+# Pseudo sphere radius
+radius = 1.
 
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
-profile = vase
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 20.0 
+length_geodesic = 3.5 
+
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  #nproduce SetSpace(Revolution(rfunc1,rprime1,rsecond1, 8*np.pi))
-  nproduce SetSpace(Revolution(profile,zmin = 0, zmax = 10))
-  #nproduce SetSpace(PseudoSphere(profile,profile_prime,profile_second,zmin = 0, zmax = 10.))
-  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  #nproduce InitTurtle([0,0,1/np.sqrt(2)/R,1/np.sqrt(2)/R])
-  #  nb = 
-  #  opening = 3*np.pi/2 # np.pi/2
-  #  for k in range(nb+1):
-    #    u = 0
-    #    v = 0.6
-    #    p = np.sin(opening*k/nb)
-    #    q = np.cos(opening*k/nb)
-    #    nproduce [InitTurtle([u,v,p,q]);(10+k)A(0)]
-  nproduce [;(2)InitTurtle([0,0.1,1,0.0])A(0)]#[;(3)InitTurtle([0,0.1,0.01,0.1])B(0)]
+  nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
+  
+  # tests
+  #nproduce [;(2)InitTurtle([0,0.15,0.1,0.9])A(0)]
+  # geodesique parallele
+  #nproduce [;(3)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
+  #
+  #several geodesics
+  nb = 6
+  a = np.pi/20 # to orient the turtle's head at the beginning
+  for i in range(nb):  
+    b = np.pi/2-0.1 - a * i
+    nproduce [;(0+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
 
 
 derivation length: int(nb_seg)
@@ -105,7 +105,6 @@ interpretation:
 
 A(n):
   produce _(FRAMEWIDTH)Frame(FRAMESIZE)
-
 
 
 endlsystem
@@ -123,14 +122,4 @@ def __initialiseContext__(context):
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]
-	import openalea.plantgl.all as pgl
-	vasefunc = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00037769, 0.274198, 1),(0.357908, -0.103508, 1),(0.775875, 0.63109, 1),(0.964766, 0.284219, 1),(1, 0.0411976, 1)]) , 
-	    )
-	vasefunc.name = "vasefunc"
-	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',vasefunc)])
-	parameterset = [panel_0,]
-	context["__functions__"] = [('vasefunc',vasefunc),]
-	context["__curves__"] = []
-	context["__parameterset__"] = parameterset
-	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+__references__ = '#'

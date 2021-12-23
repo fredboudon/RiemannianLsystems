@@ -14,6 +14,8 @@
 #######################################################
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
+from math import ceil
+
 import sys
 sys.path.append("../RiemannTurtleLib")
 
@@ -73,7 +75,7 @@ InitTurtle(gencoords):
   head, up = riemannian_turtle_init(gencoords, turtle.space)
   u,v,p,q = gencoords
   #print("head = ", head)
-  nproduce ;(2)_(0.02)
+  nproduce _(0.02)
   nproduce @M( turtle.space.S(u,v) )
   nproduce @R(head,up)@O(0.02)
 

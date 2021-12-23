@@ -44,14 +44,25 @@ def bruteforce_derivatives(surf, u, v, order):
 ################################################
 from scipy.misc import derivative
 
-def prime_derivative(func, x):
-    """
-    Given a function, use a central difference formula with spacing dx to compute the nth derivative at x0, and using an odd number of points around the x value (order = 3)
-    """
-    return derivative(func, x, n=1, dx=1e-6, order = 3)
+# Functions to generate derivatives (with a single x argument) automatically.
+# Note that the original function func, may have additional arguments
 
-def second_derivative(func, x):
-    return derivative(func, x, n=2, dx=1e-6, order = 3)
+# Create a function with a single argument from a known list of arguments (function parameters)
+def gen_func(func, args):
+    def ff(x):
+        return func(x, *args)
+    return ff
+
+def gen_prime_deriv(func, args):
+    def prime_derive(x):
+        return derivative(func, x, dx = 1e-6, n = 1, args=args)
+    return prime_derive
+
+def gen_second_deriv(func, args):
+    def second_derive(x):
+        return derivative(func, x, dx = 1e-6, n = 2, args=args)
+    return second_derive
+
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface:
@@ -735,22 +746,29 @@ class Patch(ParametricSurface):
 
 class Revolution(ParametricSurface):
 
-    def __init__(self, rfunc, rprime, rsecond, zmin = -2*np.pi, zmax = 2*np.pi):
+    def __init__(self, rfunc, args = [], zmin = -2*np.pi, zmax = 2*np.pi):
       """
       u = theta - azimuthal position aroundd the symmetry axis
       v = z - altitude on the symmetry axis
 
       r is a function of z (i.e. v) that defines in 3D the radius of the point at altitude z
-      rprime is its derivative
-      rsecond is its second derivative
+      The first and second derivatives are computed automatically
       """
+      #print('args = ', args)
+      #print('rfunc(2.,args)', rfunc(2.,*args))
+      f = gen_func(rfunc, args)
+      df = gen_prime_deriv(rfunc, args)
+      ddf = gen_second_deriv(rfunc, args)
+      #print(rfunc(2.,*args), df(0.1), ddf(0.1))
+
       self.umin = 0
       self.umax = 2*np.pi
       self.vmin = zmin
       self.vmax = zmax
-      self.rfunc = rfunc        # care this are functions
-      self.rprime = rprime      # first derivative of the radius with respect to z
-      self.rsecond = rsecond    # second derivative of the radius with respect to z
+      self.rfunc = f        # care this are functions
+      self.args = args
+      self.rprime = df      # first derivative of the radius with respect to z
+      self.rsecond = ddf    # second derivative of the radius with respect to z
 
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the paraboloid surface
@@ -844,7 +862,8 @@ class Revolution(ParametricSurface):
       den = 1+r1**2
       return [p,q, -2*p*q*r1/r, -r1*r2*(q**2)/den + r*r1*(p**2)/den]
 
-def tractrix(u, R=10):
+
+def tractrix(u, R = 10):
     if math.isclose(u,0.0):
         return math.inf
     else:
@@ -856,31 +875,12 @@ def tractrix(u, R=10):
         else:
             return res
 
-def tractrix_prime(x):
-  return prime_derivative(tractrix, x)
-
-def tractrix_second(x):
-  return second_derivative(tractrix, x)
-
-def gen_prime_deriv(func, rargs):
-    def prime_derive(u):
-        return scipy.misc.derivative(func, u, dx = du, n = 1, args=rargs)
-    return prime_derive
-
-'''
-class Revolution:
-  def __init__(self, rfunc, rprime = None, rsecond = None, *rargs = None):
-    if rprime is None:
-        self.rprime = gen_prime_deriv(rfunc, rargs)
-    else:
-        self.rprime = rprime
-
-
 class PseudoSphere(Revolution):
 
-    def __init__(self, R, zmin = -1, zmax = 1):
-        super(PseudoSphere,self).__init__(tractrix, tractrix_prime, tractrix_second, zmin, zmax)
-'''
+    def __init__(self, R, zmin = 0.1, zmax = 0.99):
+        list = [R]
+        super(PseudoSphere,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
+
 
 #################################
 # Other surface tools
@@ -896,6 +896,7 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
     u is in [umax, umin], varies by steps of size Du
     v is in [vmax, vmin], varies by steps of size Dv
     '''
+    #print("QUADIFY ...")
     # arange does not include the last bound if equal
     # --> shift the last value by Du (Dv)
     # to include the umax (vmax) bound in the array

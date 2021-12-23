@@ -32,7 +32,7 @@ def riemannian_turtle_init(uvpq,space):
   up = np.array(space.normal(u,v))
   return head,up
 
-def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 100):
+def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):
 
   uu,vv,pp,qq = p_uvpq
   # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
