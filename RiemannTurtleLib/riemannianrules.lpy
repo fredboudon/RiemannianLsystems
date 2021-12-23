@@ -75,7 +75,7 @@ InitTurtle(gencoords):
   head, up = riemannian_turtle_init(gencoords, turtle.space)
   u,v,p,q = gencoords
   #print("head = ", head)
-  nproduce _(0.02)
+  #nproduce _(0.02)
   nproduce @M( turtle.space.S(u,v) )
   nproduce @R(head,up)@O(0.02)
 
@@ -107,8 +107,8 @@ F(length):
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
 
-  # 3. sets line width first
-  nproduce _(LINEWIDTH)
+  # 3. sets line width first --> Leaves this outside F
+  # nproduce _(LINEWIDTH)
 
   # 4. draw all the small subsegments (that were returned by the integration)
   for i in range(segnb):

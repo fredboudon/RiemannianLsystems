@@ -74,33 +74,25 @@ radius = 1.
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 3.5 
+slen = 1.8
 
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
+  # max radius should not be reached (zmax must be < maxradius)
   nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
-  
-  # tests
-  #nproduce [;(2)InitTurtle([0,0.15,0.1,0.9])A(0)]
-  # geodesique parallele
-  #nproduce [;(3)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
-  #
-  #several geodesics
-  nb = 6
-  a = np.pi/20 # to orient the turtle's head at the beginning
-  nproduce _(LINEWIDTH)
-  for i in range(nb):  
-    b = np.pi/2-0.1 - a * i
-    nproduce [;(1+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
+  nproduce InitTurtle([0,0.14,-0.6,1.1])
+  nproduce ;(6)_(LINEWIDTH)F(slen)-(120)F(slen)-(120)F(slen)
+ 
 
-
-derivation length: int(nb_seg)
+derivation length: 4
 production:
 
-A(n):
-  nproduce F(length_geodesic/nb_seg)
-  nproduce A(n+1)
+derivation length: 4
+production:
+
+F(x):
+  nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
 
 interpretation:
 

@@ -56,7 +56,7 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 1. * cm
+LINEWIDTH  = 4. * cm
 
 # To control the Frame size
 FRAMESIZE  = 0.3 * meter
@@ -74,33 +74,24 @@ radius = 1.
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 3.5 
+slen = 0.2
 
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
-  
-  # tests
-  #nproduce [;(2)InitTurtle([0,0.15,0.1,0.9])A(0)]
-  # geodesique parallele
-  #nproduce [;(3)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
-  #
-  #several geodesics
-  nb = 6
-  a = np.pi/20 # to orient the turtle's head at the beginning
-  nproduce _(LINEWIDTH)
-  for i in range(nb):  
-    b = np.pi/2-0.1 - a * i
-    nproduce [;(1+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
+  nproduce SetSpace(PseudoSphere(radius, zmin = 0.01, zmax = radius-0.001))
+  nproduce ;(3)InitTurtle([0,0.02,0,1])
+  nproduce ;(6)F(slen)-(120)F(slen)-(120)F(slen)
+ 
 
-
-derivation length: int(nb_seg)
+derivation length: 4
 production:
 
-A(n):
-  nproduce F(length_geodesic/nb_seg)
-  nproduce A(n+1)
+derivation length: 4
+production:
+
+F(x):
+  nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
 
 interpretation:
 

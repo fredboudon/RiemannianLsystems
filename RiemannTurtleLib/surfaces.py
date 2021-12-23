@@ -71,6 +71,7 @@ class ParametricSurface:
        print("S: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
 
     def uv_domain(self):
+        #print("Domain = ", self.umin,self.umax,self.vmin,self.vmax)
         return self.umin,self.umax,self.vmin,self.vmax
 
     def Shift(self,u,v):
@@ -754,12 +755,12 @@ class Revolution(ParametricSurface):
       r is a function of z (i.e. v) that defines in 3D the radius of the point at altitude z
       The first and second derivatives are computed automatically
       """
-      #print('args = ', args)
-      #print('rfunc(2.,args)', rfunc(2.,*args))
+      print('args = ', args)
+      print('rfunc(2.,args)', rfunc(2.,*args))
       f = gen_func(rfunc, args)
       df = gen_prime_deriv(rfunc, args)
       ddf = gen_second_deriv(rfunc, args)
-      #print(rfunc(2.,*args), df(0.1), ddf(0.1))
+      print(rfunc(2.,*args), df(0.1), ddf(0.1))
 
       self.umin = 0
       self.umax = 2*np.pi
@@ -863,22 +864,21 @@ class Revolution(ParametricSurface):
       return [p,q, -2*p*q*r1/r, -r1*r2*(q**2)/den + r*r1*(p**2)/den]
 
 
-def tractrix(u, R = 10):
-    if math.isclose(u,0.0):
+def tractrix(x, R = 10):
+    if math.isclose(x,0.0):
         return math.inf
     else:
         try:
-            b = math.sqrt(R**2 - u**2)
-            res = R*math.log((R+b)/u) - b
+            b = math.sqrt(R**2 - x**2)
+            res = R*math.log((R+b)/x) - b
         except ValueError:
-            print("tractrix curve: bad domain for u=",u, " (should be 0 < u <=", R, ")" )
+            print("tractrix curve: bad domain for x=",x, " (should be 0 < x <=", R, ")" )
         else:
             return res
 
 class PseudoSphere(Revolution):
 
     def __init__(self, R, zmin = 0.1, zmax = 0.99):
-        list = [R]
         super(PseudoSphere,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
 
 
@@ -896,12 +896,20 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
     u is in [umax, umin], varies by steps of size Du
     v is in [vmax, vmin], varies by steps of size Dv
     '''
-    #print("QUADIFY ...")
+
     # arange does not include the last bound if equal
-    # --> shift the last value by Du (Dv)
-    # to include the umax (vmax) bound in the array
-    ilist = np.arange(umin,umax+Du,Du)
-    jlist = np.arange(vmin,vmax+Dv,Dv)
+    # --> append this value in both arrays
+
+    #print("QUADIFY", umin,umax,vmin,vmax)
+    ilist = np.arange(umin,umax,Du)
+    #print("ilist before = ", ilist)
+    ilist = np.append(ilist, umax) # add the last bound as it is not done by arange
+    #print("ilist after  = ", ilist)
+
+    jlist = np.arange(vmin,vmax,Dv)
+    #print("jlist before = ", jlist)
+    jlist = np.append(jlist, vmax) # case of a periodic list
+    #print("jlist after  = ", jlist)
 
     M = len(ilist)
     N = len(jlist)
