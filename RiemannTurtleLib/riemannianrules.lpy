@@ -21,11 +21,11 @@ from importlib import reload
 
 import surfaces
 surfaces = reload(surfaces)
-import riemannian_turtle
-riemannian_turtle = reload(riemannian_turtle)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
 
 from surfaces import *
-from riemannian_turtle import *
+from riemannianturtle import *
 
 module SetSpace(surface), InitTurtle(turtle_state)
 

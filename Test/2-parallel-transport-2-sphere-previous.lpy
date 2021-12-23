@@ -19,11 +19,11 @@ from openalea.plantgl.all import QuadSet
 from importlib import reload 
 import surfaces
 surfaces = reload(surfaces)
-import riemannian_turtle
+import riemannianturtle
 riemannian_turtle = reload(riemannian_turtle)
 
 from surfaces import *
-from riemannian_turtle import *
+from riemannianturtle import *
 
 # DISPLAY FLAGS
 FRAME = True  # To display the Turtle's Frame while drawing

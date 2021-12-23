@@ -22,6 +22,8 @@ surfaces = reload(surfaces)
 
 from surfaces import *
 
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
 
 ###################################
 # Several functions for Revolution
@@ -77,7 +79,7 @@ PLOTSPACE = True
 # SIMULATION PARAMETERS
 #######################
 
-nb_sim_steps = 2
+nb_sim_steps = 0
 
 # Surface parameters
 # Different surfaces:
@@ -97,7 +99,7 @@ radiusmax = 1.0 # Paraboloid
 #patch2D = patch1
 
 
-module SetSpace(surface) #, InitTurtle(turtle_state)
+#module SetSpace(surface) #, InitTurtle(turtle_state)
 
 Axiom: 
   # Sets the Riemannian space in which the turtle will move
@@ -111,36 +113,6 @@ Axiom:
 
 derivation length: nb_sim_steps
 production:
-
-interpretation:
-
-
-#######################################################
-# Generic Interpretation rules for Riemannian geometry
-# (DO NOT EDIT)
-#######################################################
-
-# Two parameters are added to the turtle
-# - turtle.space is added by SetSpace refers to the Riemanian space 
-# in which the turtle is moving
-# - turtle.uvpq is added by init, refers to the initial position and velocity 
-# of the turtle.
-# Sets the Riemanian space used by the turtle and draw it if required
-SetSpace(surface):
-  # Set the space in the turtle
-  turtle.add_parameter('space', surface)
-  
-  # Then plot the space surface
-  if PLOTSPACE:
-    umin,umax,vmin,vmax = surface.uv_domain()
-    # to augment the precision of the rendering decrease the sampling intervals Du,Dv
-    # BUG: for the moment there id still a bug for some values of Du,Dv (eg. Du=0.01, Dv=0.05)
-    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
-    # Option ccw: (counter-clockwise)
-    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
-    #S1 = surf.patch.getUTangentAt(u,v)
-    #S2 = surf.patch.getVTangentAt(u,v)
-    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
 
 
 endlsystem

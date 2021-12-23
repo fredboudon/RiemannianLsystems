@@ -5,15 +5,18 @@
     Date: 2019-2021
     Lab: RDP ENS de Lyon, Mosaic Inria Team
 
+TODO: add the automatic construction of derivative functions
+TODO: add PseudoSphere to list of available surface classes
+TODO: add Extrusions (i.e. generalized cylinders) to list of available surface classes
+TODO: compute principal curvatures, gauss curvature for the mother class
 """
 import math
 import numpy as np
-import numpy.linalg
 
 def derivatives(surf, u, v, order):
     return surf.derivatives(u,v,order)
 
-# Fred :
+# Fred's code :
 def bruteforce_derivatives(surf, u, v, order):
     du = 0.01
     from scipy.misc import derivative
