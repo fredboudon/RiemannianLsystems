@@ -107,9 +107,10 @@ Axiom:
   #nproduce SetSpace(EllipsoidOfRevolution(a,b))
   #nproduce SetSpace(Torus(R,r))
   #nproduce SetSpace(Paraboloid(radiusmax))
-  #nproduce SetSpace(Revolution(sphere,sphere_prime,sphere_second,zmin = -1, zmax = 1))
-  #nproduce SetSpace(Revolution(profile,profile_prime,profile_second,zmin = 0, zmax = 10.))
-  nproduce SetSpace(Patch(patch1))
+  #nproduce SetSpace(Revolution(sphere,zmin = -1, zmax = 1))
+  #nproduce SetSpace(Revolution(profile,zmin = 0, zmax = 10.))
+  #nproduce SetSpace(Patch(patch1))
+  nproduce SetSpace(PseudoSphere(R, zmin = 0.1, zmax = R-0.001))
 
 derivation length: nb_sim_steps
 production:
