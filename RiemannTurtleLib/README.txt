@@ -14,3 +14,6 @@ FIXME: SIMULATIONS-  Accelerate geodesic simulations (became slow after length o
 
 TODO: SIMULATIONS- Growth of a surface embedding a tree whose growth is triggered by the growth of the surface
 TODO: SIMULATIONS- Growth that is affected by space curvature (in addition of being a geodesic)
+TODO: SIMULATIONS- Random walks on pseudo sphere
+
+TODO: ALGORITHM- Computing the distance between two points on the surface (will make it possible to evaluate the diffusion radius for a random walk)
