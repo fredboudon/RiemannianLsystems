@@ -99,6 +99,7 @@ class ParametricSurface:
 
     def normal(self,u,v):
       S_u, S_v = self.covariant_basis(u,v)
+      #FIXME: Check why - sign ???
       N1 = - np.cross(S_u,S_v)
 
       return N1/np.linalg.norm(N1)
@@ -133,8 +134,9 @@ class ParametricSurface:
       - L,M,N: Second funcdamental form = curvature (II = L du^2 + 2M dudv + N dv2)
       The second fondamental form represents for given du,dv how the surface
       gets quadratically away from the tangent plane.
-      if d(du,dv) is the distance of a a point P(du,dv) to the tangent compliance
+      if d(du,dv) is the distance of a point P(du,dv) to the tangent compliance
       II = 2 * d
+      (See for instance A. Gray p282)
       """
       g = self.metric_tensor(u,v)
 
@@ -166,19 +168,35 @@ class ParametricSurface:
       g = self.metric_tensor(u,v)
       return np.sqrt(S1*S1*g[0,0]+S1*S2*g[0,1]+S2*S1*g[1,0]+S2*S2*g[1,1])
 
-    def principalCurvatures(self,u,v):
+    def localCurvatures(self,u,v):
         """
-        Defines kappa_min, kappa_max, and their direction
+        Returns Gaussian (K), mean (H), kappa_min, kappa_max local curvatures at point u,v
         """
         E,F,G,L,M,N = self.fundFormCoef(u,v)
 
         K = (L*N-M**2)/(E*G-F**2)
-        H = (E*N+G*L-2*F*M)/2*(E*G-F**2)
+        H = (E*N+G*L-2*F*M)/(2*(E*G-F**2))
 
-        kappa_min = H + np.sqrt(H**2 - K)
-        kappa_max = H - np.sqrt(H**2 - K)
+        # TODO: check whether (H**2 - K) can become negative
+        discriminant = H ** 2 - K
+        if np.isclose(discriminant,0):
+            k1 = k2 = H
+        elif discriminant < 0:
+            print("discriminant < 0")
+            k1 = Nan
+            k2 = Nan
+        else:
+            k1 = H + np.sqrt(discriminant)
+            k2 = H - np.sqrt(discriminant)
 
-        return kappa_min, kappa_max
+        if abs(k1) > abs(k2):
+            kappa_min = k2
+            kappa_max = k1
+        else:
+            kappa_min = k1
+            kappa_max = k2
+
+        return K, H, kappa_min, kappa_max
 
     def J2orthonormal(self,u,v):
       """
@@ -345,7 +363,185 @@ class Sphere(ParametricSurface):
       return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
 
 
+class PseudoSphere(ParametricSurface):
+
+    def __init__(self, R = 1.0,zmin=-5,zmax=5):
+      self.R = R # radius of the sphere
+      self.CIRCUM = 2*np.pi*self.R  # Circumference
+      self.umin = zmin
+      self.umax = zmax
+      self.vmin = 0
+      self.vmax = 2*np.pi
+
+    # Surface position vector
+    # uvpq is an 1x4 array of reals where:
+    # - u,v are the coordinates on the surface of the moving point
+    # - p,q are the coordinates of the initial vector corresponding to
+    # the initial direction in the local covariant basis (at point [u,v]
+
+    def S(self,u,v):
+      """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
+      as a function of the two surface coordinates (u,v)
+      u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
+      v = elevation (v in [-Pi/2,+Pi/2] )
+      """
+      x = self.R*np.cos(v)/np.cosh(u)
+      y = self.R*np.sin(v)/np.cosh(u)
+      z = self.R * (u - np.tanh(u))
+
+      return np.array([x,y,z])
+
+    # the Shift tensor may be wieved as the coordinates of the surface
+    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+    def Shift(self,u,v):
+      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      It is derived from the partial derivatives of the surface equations wrt u,v
+      (may be could be computed automatically from S(u,v) ... see that later)
+      """
+      sech = 1 / np.cosh(u)
+      xu = -self.R*sech*np.tanh(u)*np.cos(v)
+      yu = -self.R*sech*np.tanh(u)*np.sin(v)
+      zu = self.R*np.tanh(u)**2
+      xv = -self.R*sech*np.sin(v)
+      yv =  self.R*sech*np.cos(v)
+      zv = 0
+
+      return np.array([[xu,xv],[yu,yv],[zu,zv]])
+
+    def secondsuu(self,u,v):
+      """
+      second derivatives of the position vector at the surface
+      """
+      sech = 1/np.cosh(u)
+      xuu = -self.R*np.cos(v)*sech*(sech**2 - np.tanh(u)**2)
+      yuu = -self.R*np.sin(v)*sech*(sech**2 - np.tanh(u)**2)
+      zuu = 2*self.R*np.tanh(u)*sech**2
+      return np.array([xuu,yuu,zuu])
+
+    def secondsuv(self,u,v):
+      sech = 1 / np.cosh(u)
+      xuv =  self.R*sech*np.tanh(u)*np.sin(v)
+      yuv = -self.R*sech*np.tanh(u)*np.cos(v)
+      zuv = 0
+      return np.array([xuv,yuv,zuv])
+
+    def secondsvv(self,u,v):
+      sech = 1 / np.cosh(u)
+      xvv = -self.R*sech*np.cos(v)
+      yvv = -self.R*sech*np.sin(v)
+      zvv = 0
+
+      return np.array([xvv,yvv,zvv])
+
+    def metric_tensor(self,u,v):
+      sech = 1 / np.cosh(u)
+
+      guu = (self.R**2) * np.tanh(u)**2
+      guv = gvu = 0.
+      gvv = (self.R**2) * sech**2
+      return np.array([[guu,guv],[gvu,gvv]])
+
+    def normal(self,u,v):
+      nx = -np.tanh(u)*np.cos(v)
+      ny = -np.tanh(u)*np.sin(v)
+      nz = - 1/np.cosh(u)
+      return np.array([nx,ny,nz])
+
+    def geodesic_eq(self,uvpq,s):
+      u,v,p,q = uvpq
+      sech = 1 / np.cosh(u)
+      tanh = np.tanh(u)
+      pdot = -((sech**2-tanh**2)/(np.sinh(u)*np.cosh(u)))*p**2 - (sech/np.sinh(u))*q**2
+      qdot = 2*tanh*p*q
+      return [p,q,pdot,qdot]
+
+
 # For the moment the implementation is not done (copied from Sphere)
+class EllipsoidOfRevolution(ParametricSurface):
+
+    def __init__(self, a = 1.0, b = 0.5):
+      self.a = a # radius of the circle at equator
+      self.b = b # other radius
+
+      self.umin = 0
+      self.umax = 2*np.pi
+      self.vmin = -np.pi/2.
+      self.vmax = np.pi/2.
+
+    # Surface position vector
+    # uvpq is an 1x4 array of reals where:
+    # - u,v are the coordinates on the surface of the moving point
+    # - p,q are the coordinates of the initial vector corresponding to
+    # the initial direction in the local covariant basis (at point [u,v]
+
+    def S(self,u,v):
+      """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
+      as a function of the two surface coordinates (u,v)
+      u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
+      v = elevation (v in [-Pi/2,+Pi/2] )
+      """
+      x = self.a*np.cos(u)*np.cos(v)
+      y = self.a*np.sin(u)*np.cos(v)
+      z = self.b*np.sin(v)
+      return np.array([x,y,z])
+
+    # the Shift tensor may be wieved as the coordinates of the surface
+    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+    def Shift(self,u,v):
+      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      It is derived from the partial derivatives of the surface equations wrt u,v
+      (may be could be computed automatically from S(u,v) ... see that later)
+      """
+      xu = -self.a*np.sin(u)*np.cos(v)
+      yu =  self.a*np.cos(u)*np.cos(v)
+      zu = 0
+      xv = -self.a*np.cos(u)*np.sin(v)
+      yv = -self.a*np.sin(u)*np.sin(v)
+      zv = self.b*np.cos(v)
+
+      return np.array([[xu,xv],[yu,yv],[zu,zv]])
+
+    def secondsuu(self,u,v):
+      """
+      second derivatives of the position vector at the surface
+      """
+      xuu = -self.a*np.cos(u)*np.cos(v)
+      yuu = -self.a*np.sin(u)*np.cos(v)
+      zuu = 0
+      return np.array([xuu,yuu,zuu])
+
+    def secondsuv(self,u,v):
+      xuv =  self.a*np.sin(u)*np.sin(v)
+      yuv = -self.a*np.cos(u)*np.sin(v)
+      zuv = 0
+      return np.array([xuv,yuv,zuv])
+
+    def secondsvv(self,u,v):
+      xvv = -self.a*np.cos(u)*np.cos(v)
+      yvv = -self.a*np.sin(u)*np.cos(v)
+      zvv = -self.b*np.sin(v)
+
+      return np.array([xvv,yvv,zvv])
+
+    def metric_tensor(self,u,v):
+      guu = ((self.a*np.cos(v)))**2
+      guv = gvu = 0.
+      gvv = (self.a*np.sin(v))**2 + (self.b*np.cos(v))**2
+      return np.array([[guu,guv],[gvu,gvv]])
+
+    def normal(self,u,v):
+      den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
+      nx = self.b*np.cos(u)*np.cos(v)
+      ny = self.b*np.sin(u)*np.cos(v)
+      nz = self.a*np.sin(v)
+      return np.array([nx,ny,nz])
+
+    def geodesic_eq(self,uvpq,s):
+      u,v,p,q = uvpq
+      den = (self.a*np.sin(v))**2 + (self.b*np.cos(v))**2
+      return [p,q,2*np.tan(v)*p*q,-((self.a**2-self.b**2)*np.cos(v)*np.sin(v)/den)*q**2 - ((self.a**2)*np.cos(v)*np.sin(v)/den)*p**2]
+
+
 class EllipsoidOfRevolution(ParametricSurface):
 
     def __init__(self, a = 1.0, b = 0.5):
@@ -876,10 +1072,11 @@ def tractrix(x, R = 10):
         else:
             return res
 
-class PseudoSphere(Revolution):
-
+class ChineseHat(Revolution):
+    ''' This surface is made with a tractrix revoluting around its x-axis (instead of y as in the PseudoSphere)
+    '''
     def __init__(self, R, zmin = 0.1, zmax = 0.99):
-        super(PseudoSphere,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
+        super(ChiniseHat,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
 
 
 #################################

@@ -31,6 +31,8 @@ from riemannianturtle import *
 
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
+PRINT_CURVATURES = True
+
 #######################
 # Units
 #######################
@@ -85,7 +87,7 @@ Axiom:
   nb = 8
   for i in range(nb):  
     a += 2*np.pi/nb
-    nproduce [InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
     
 derivation length: int(nb_seg)
 production:
@@ -97,6 +99,12 @@ A(n):
 interpretation:
 
 A(n):
+  if PRINT_CURVATURES:
+    u,v,p,q = turtle.uvpq 
+    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
+    print("Courbures: Gauss = ", "{:.3f}".format(K), \
+    ", Mean = ", "{:.3f}".format(H), \
+    ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
   produce _(FRAMEWIDTH)Frame(FRAMESIZE)
 
 
