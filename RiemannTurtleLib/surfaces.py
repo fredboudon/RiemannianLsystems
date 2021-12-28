@@ -183,8 +183,8 @@ class ParametricSurface:
             k1 = k2 = H
         elif discriminant < 0:
             print("discriminant < 0")
-            k1 = Nan
-            k2 = Nan
+            k1 = float('nan')
+            k2 = float('nan')
         else:
             k1 = H + np.sqrt(discriminant)
             k2 = H - np.sqrt(discriminant)
@@ -542,91 +542,6 @@ class EllipsoidOfRevolution(ParametricSurface):
       return [p,q,2*np.tan(v)*p*q,-((self.a**2-self.b**2)*np.cos(v)*np.sin(v)/den)*q**2 - ((self.a**2)*np.cos(v)*np.sin(v)/den)*p**2]
 
 
-class EllipsoidOfRevolution(ParametricSurface):
-
-    def __init__(self, a = 1.0, b = 0.5):
-      self.a = a # radius of the circle at equator
-      self.b = b # other radius
-
-      self.umin = 0
-      self.umax = 2*np.pi
-      self.vmin = -np.pi/2.
-      self.vmax = np.pi/2.
-
-    # Surface position vector
-    # uvpq is an 1x4 array of reals where:
-    # - u,v are the coordinates on the surface of the moving point
-    # - p,q are the coordinates of the initial vector corresponding to
-    # the initial direction in the local covariant basis (at point [u,v]
-
-    def S(self,u,v):
-      """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
-      as a function of the two surface coordinates (u,v)
-      u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
-      v = elevation (v in [-Pi/2,+Pi/2] )
-      """
-      x = self.a*np.cos(u)*np.cos(v)
-      y = self.a*np.sin(u)*np.cos(v)
-      z = self.b*np.sin(v)
-      return np.array([x,y,z])
-
-    # the Shift tensor may be wieved as the coordinates of the surface
-    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
-    def Shift(self,u,v):
-      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
-      It is derived from the partial derivatives of the surface equations wrt u,v
-      (may be could be computed automatically from S(u,v) ... see that later)
-      """
-      xu = -self.a*np.sin(u)*np.cos(v)
-      yu =  self.a*np.cos(u)*np.cos(v)
-      zu = 0
-      xv = -self.a*np.cos(u)*np.sin(v)
-      yv = -self.a*np.sin(u)*np.sin(v)
-      zv = self.b*np.cos(v)
-
-      return np.array([[xu,xv],[yu,yv],[zu,zv]])
-
-    def secondsuu(self,u,v):
-      """
-      second derivatives of the position vector at the surface
-      """
-      xuu = -self.a*np.cos(u)*np.cos(v)
-      yuu = -self.a*np.sin(u)*np.cos(v)
-      zuu = 0
-      return np.array([xuu,yuu,zuu])
-
-    def secondsuv(self,u,v):
-      xuv =  self.a*np.sin(u)*np.sin(v)
-      yuv = -self.a*np.cos(u)*np.sin(v)
-      zuv = 0
-      return np.array([xuv,yuv,zuv])
-
-    def secondsvv(self,u,v):
-      xvv = -self.a*np.cos(u)*np.cos(v)
-      yvv = -self.a*np.sin(u)*np.cos(v)
-      zvv = -self.b*np.sin(v)
-
-      return np.array([xvv,yvv,zvv])
-
-    def metric_tensor(self,u,v):
-      guu = ((self.a*np.cos(v)))**2
-      guv = gvu = 0.
-      gvv = (self.a*np.sin(v))**2 + (self.b*np.cos(v))**2
-      return np.array([[guu,guv],[gvu,gvv]])
-
-    def normal(self,u,v):
-      den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
-      nx = self.b*np.cos(u)*np.cos(v)
-      ny = self.b*np.sin(u)*np.cos(v)
-      nz = self.a*np.sin(v)
-      return np.array([nx,ny,nz])
-
-    def geodesic_eq(self,uvpq,s):
-      u,v,p,q = uvpq
-      den = (self.a*np.sin(v))**2 + (self.b*np.cos(v))**2
-      return [p,q,2*np.tan(v)*p*q,-((self.a**2-self.b**2)*np.cos(v)*np.sin(v)/den)*q**2 - ((self.a**2)*np.cos(v)*np.sin(v)/den)*p**2]
-
-
 class Torus(ParametricSurface):
 
     def __init__(self, R = 1.0, r = 0.2):
@@ -810,24 +725,24 @@ class Paraboloid(ParametricSurface):
       return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
 def to_nurbs_python(sh):
-	from geomdl import NURBS, BSpline
-	surf = NURBS.Surface()
-	surf.degree_u = sh.udegree
-	surf.degree_v = sh.vdegree
+    from geomdl import NURBS, BSpline
+    surf = NURBS.Surface()
+    surf.degree_u = sh.udegree
+    surf.degree_v = sh.vdegree
 
-	npctrls = np.array(sh.ctrlPointMatrix)
-	shape = npctrls.shape
-	npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
-	npctrls[:,0] *= npctrls[:,3]
-	npctrls[:,1] *= npctrls[:,3]
-	npctrls[:,2] *= npctrls[:,3]
-	surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
-	surf.knotvector_u = list(sh.uknotList)
-	surf.knotvector_v = list(sh.vknotList)
+    npctrls = np.array(sh.ctrlPointMatrix)
+    shape = npctrls.shape
+    npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
+    npctrls[:,0] *= npctrls[:,3]
+    npctrls[:,1] *= npctrls[:,3]
+    npctrls[:,2] *= npctrls[:,3]
+    surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
+    surf.knotvector_u = list(sh.uknotList)
+    surf.knotvector_v = list(sh.vknotList)
 
-	surf.evaluate()
+    surf.evaluate()
 
-	return surf
+    return surf
 
 
 class Patch(ParametricSurface):
@@ -1032,7 +947,7 @@ class Revolution(ParametricSurface):
     #  u,v,p,q = uvpq
     #  return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
-    def RiemannChristoffelSymbols(self,u,v):
+    def RiemannChristoffelSymbols(self,u,v,printflag = False):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
