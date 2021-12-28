@@ -1076,7 +1076,7 @@ class ChineseHat(Revolution):
     ''' This surface is made with a tractrix revoluting around its x-axis (instead of y as in the PseudoSphere)
     '''
     def __init__(self, R, zmin = 0.1, zmax = 0.99):
-        super(ChiniseHat,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
+        super(ChineseHat,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
 
 
 #################################
