@@ -56,7 +56,7 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 4. * cm
+LINEWIDTH  = 1. * cm
 
 # To control the Frame size
 FRAMESIZE  = 0.3 * meter
@@ -81,19 +81,19 @@ angle = 45
 
 # Length and step of the path
 LENGTH = 2* np.pi *R               # length on the surface of the drawn geodesic path (in a.u.)
-STEPSIZE = 0.09     # size of a step (in a.u.) used to draw pieces of geodesic
-LINEWIDTH = 0.05
-LEAVES = True
+STEPSIZE = 0.1     # size of a step (in a.u.) used to draw pieces of geodesic
+LEAVES = False
 ROTATELEAF = False
 
+TEST1 = False  # True for long internodes
 
 def length(n):
   return 4*STEPSIZE - 4*n * STEPSIZE/10.
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(PseudoSphere(radius, zmin = 0.01, zmax = radius-0.001))
-  nproduce ;(3)InitTurtle([0,0.03,-0.7,1])
+  nproduce SetSpace(PseudoSphere(R))
+  nproduce ;(3)InitTurtle([0.1,0.01,1.0,-0.01])
   nproduce ;(6)_(LINEWIDTH)A(0)
  
 derivation length: 6
@@ -108,7 +108,11 @@ A(n):
     ba = angle
     la = -30
   
-  nproduce I(10) [+(ba)
+  if TEST1:
+    ilen = 0.28
+  else:
+    ilen = 0.20
+  nproduce F(ilen) [+(ba)
   if LEAVES:
     nproduce [L(la,0)]
   nproduce A(n+1)]
@@ -120,19 +124,10 @@ L(la,n):
   else:
     produce L(la,n+1)
 
-
-decomposition:
-
-I(x):
-  for k in range(int(x)):
-    nproduce nproduce F(0.1)
-  nproduce 
-
-
 interpretation:
 
 A(n):
-  produce ;(2)@O(0.1)
+  produce ;(2)@O(0.03)
   #if FRAME: nproduce _(0.01)Frame(0.2)
 
 L(la,n):
@@ -142,7 +137,7 @@ L(la,n):
     turn = np.copysign(90,la)
   else:
     turn = 0
-  produce ;(2)-(la)/(turn)~l(0.1)
+  produce ;(2)-(la)/(turn)~l(1.0)
 
 
 

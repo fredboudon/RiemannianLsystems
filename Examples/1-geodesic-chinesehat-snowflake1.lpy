@@ -3,9 +3,10 @@
 
 		Author: Ch. Godin, Inria
 		Date: 2019-2020
-		
-	Simulates geodesics on a pseudo sphere 
+	Simulates geodesics on a sphere with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
 
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
 
 """
 
@@ -30,12 +31,8 @@ from riemannianturtle import *
 
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
-
 # Flags to control the display
 PLOTSPACE = True
-
-TEST1 = False
-TEST2 = True
 
 #######################
 # Units
@@ -46,7 +43,7 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
 cm = 0.01 * meter
 
 # Surface parameters
-R = 1. * meter   # Radius of the pseudosphere in meter
+R = 1. * meter   # Radius of the sphere in meter
 
 #######################
 # DISPLAY PARAMETERS
@@ -69,60 +66,36 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
+# Pseudo sphere radius
+radius = 1.
+
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 3.5 
+slen = 1.8
 
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(PseudoSphere(R, zmin = -5, zmax = 5))
-  nproduce _(LINEWIDTH)
-  # geodesic familly with increasing initial bending
-  nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
-  nproduce [;(3)InitTurtle([0.1,0.0,0.98,0.02])A(0)]
-  nproduce [;(4)InitTurtle([0.1,0.0,0.97,0.03])A(0)]
-  nproduce [;(5)InitTurtle([0.1,0.0,0.95,0.05])A(0)]
-  nproduce [;(6)InitTurtle([0.1,0.0,0.94,0.06])A(0)]
-  nproduce [;(7)InitTurtle([0.1,0.0,0.935,0.065])A(0)]
-  
-derivation length: int(nb_seg)
+  nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
+  nproduce InitTurtle([0,0.14,0.0,1.])
+  nproduce ;(6)_(LINEWIDTH)F(slen)-(120)F(slen)-(120)F(slen)
+ 
+
+derivation length: 4
 production:
 
-A(n):
-  #global turtle
-  nproduce F(length_geodesic/nb_seg)
-  nproduce A(n+1)
+derivation length: 4
+production:
+
+F(x):
+  nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
 
 interpretation:
 
 A(n):
-  u,v,p,q = turtle.uvpq 
-  
-  if TEST1:
-	  # Test: computed numerical coef o the fundamental forms I and II
-	  E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
-	  
-	  # theoretical values of E,F,G,L,M,N:
-	  EE = (R*np.tanh(u))**2
-	  FF = 0
-	  GG = (R/np.cosh(u))**2
-	  
-	  LL = -R*np.sinh(u)/(np.cosh(u)**2)
-	  MM = 0
-	  NN = -R*(1/np.cosh(u))*np.tanh(u)
-	  
-	  print("  {:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
-	  print("  {:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
-	  
-  if TEST2:
-    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
-    print("Courbures: Gauss = ", "{:.3f}".format(K), \
-    ", Mean = ", "{:.3f}".format(H), \
-    ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
   produce _(FRAMEWIDTH)Frame(FRAMESIZE)
 
 
@@ -133,9 +106,6 @@ __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
 	import openalea.plantgl.all as pgl
-	Color_7 = pgl.Material("Color_7" , ambient = (32,255,255) , diffuse = 0.627451 , )
-	Color_7.name = "Color_7"
-	context.turtle.setMaterial(7,Color_7)
 	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
