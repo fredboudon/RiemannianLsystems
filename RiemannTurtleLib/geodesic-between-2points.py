@@ -12,7 +12,6 @@ import numpy as np
 
 from scipy.linalg import solve_banded
 
-from surfaces import *
 
 # A curve on a parametric surface defined explicitly
 #
