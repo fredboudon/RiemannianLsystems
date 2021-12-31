@@ -1,0 +1,114 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2020
+	Simulates geodesics on a sphere with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
+
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+
+   - TODO: Checks that MonkeySaddle works with geodesics properly ...
+"""
+
+import numpy as np
+from math import ceil
+from random import random, seed
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
+
+from surfaces import *
+from riemannianturtle import *
+
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+# Flags to control the display
+PLOTSPACE = True
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 1. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 0.3 * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.03 * meter
+FRAMEWIDTH = 0.1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+# Tighten the nec of the pin form structure to see that the geodesic 
+# at some threshold is doomed to stay in the lower part and cannot reach the other part
+nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
+            # To draw one geodesic, set it to 1 and set dashed to False
+
+slen = 0.015 # 0.7
+
+seed(0)
+
+Axiom: 
+  # Sets the Riemanian space in which the turtle will move
+  nproduce SetSpace(MonkeySaddle(a = 0.1, n=3, umax = 1.))
+  nproduce InitTurtle([0.7,0.0,0.0,1.0])
+  nproduce ;(6)_(LINEWIDTH)A(0)@O(0.003)
+ 
+
+derivation length: 15
+production:
+
+A(n):
+  a = 21 #360*random()
+  nproduce +(a)F(slen)A(n+1)
+
+interpretation:
+
+A(n):
+  produce _(FRAMEWIDTH) Frame(FRAMESIZE)
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+__references__ = '#'

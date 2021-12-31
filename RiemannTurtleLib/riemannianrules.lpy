@@ -77,7 +77,7 @@ InitTurtle(gencoords):
   #print("head = ", head)
   #nproduce _(0.02)
   nproduce @M( turtle.space.S(u,v) )
-  nproduce @R(head,up)@O(0.02)
+  nproduce @R(head,up)
 
 # The following instructions redefined the compute the new riemmanian turtle state
 # after turtle classical instructions.
