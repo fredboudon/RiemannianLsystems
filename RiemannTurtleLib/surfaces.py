@@ -179,6 +179,15 @@ class ParametricSurface:
       g = self.metric_tensor(u,v)
       return np.sqrt(S1*S1*g[0,0]+S1*S2*g[0,1]+S2*S1*g[1,0]+S2*S2*g[1,1])
 
+    def ds(self,u,v,du,dv):
+      """
+      uses the metric tensor at point u,v to compute the ds at a point (u,v) in direction (du,dv)
+      """
+      #print("norm: ******")
+      #print("S = ", S)
+      g = self.metric_tensor(u,v)
+      return np.sqrt(du*du*g[0,0]+du*dv*g[0,1]+dv*du*g[1,0]+dv*dv*g[1,1])
+
     def localCurvatures(self,u,v):
         """
         Returns Gaussian (K), mean (H), kappa_min, kappa_max local curvatures at point u,v
@@ -1078,11 +1087,11 @@ class ChineseHat(Revolution):
     def __init__(self, R, zmin = 0.1, zmax = 0.99):
         super(ChineseHat,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
 
-
+######################################################
 def model_params(u,v,source,ry,rz):
     p = np.array((u, v))
     s = np.array(source)
-    r = np.linalg.norm(p - s)
+    r = np.linalg.norm(s - p)
 
     costheta = (s[0] - u) / r
     sintheta = (s[1] - v) / r
@@ -1091,11 +1100,13 @@ def model_params(u,v,source,ry,rz):
     ratioz = r / rz
     return r,costheta,sintheta,ratioy,ratioz
 
+
 # Functions to redefine for different metrics
+# 'Repulsive' metric
 def g11(u,v,*args):
     r, costheta, sintheta, ratioy, ratioz = model_params(u, v, *args)
     return ratioy*costheta**2 + ratioz*sintheta**2
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument
+# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
 def g11s(v,u,*args):
     return g11(u,v,*args)
 
@@ -1112,6 +1123,50 @@ def g22(u,v,*args):
 def g22s(v,u,*args):
     return g22(u,v,*args)
 
+
+'''
+# Functions to redefine for different metrics
+# 'Attractive' metric
+def g11(u,v,*args):
+    r, costheta, sintheta, ratioy, ratioz = model_params(u, v, *args)
+    return (1/ratioy)*costheta**2 + (1/ratioz)*sintheta**2
+# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
+def g11s(v,u,*args):
+    return g11(u,v,*args)
+
+# g12 == g21
+def g12(u,v,*args):
+    r, costheta, sintheta, ratioy, ratioz = model_params(u, v,*args)
+    return ((1/ratioy)-(1/ratioz))*costheta*sintheta
+def g12s(v,u,*args):
+    return g12(u,v,*args)
+
+def g22(u,v,*args):
+    r, costheta, sintheta, ratioy, ratioz = model_params(u, v,*args)
+    return (1/ratioy)*sintheta**2 + (1/ratioz)*costheta**2
+def g22s(v,u,*args):
+    return g22(u,v,*args)
+'''
+
+'''
+# Hyperbolic metric (Halfplane PoinCaré-Beltrami)
+def g11(u,v,*args):
+    return 1/v
+# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
+def g11s(v,u,*args):
+    return g11(u,v,*args)
+
+# g12 == g21
+def g12(u,v,*args):
+    return 0
+def g12s(v,u,*args):
+    return g12(u,v,*args)
+
+def g22(u,v,*args):
+    return 1/v
+def g22s(v,u,*args):
+    return g22(u,v,*args)
+'''
 
 class IntrinsicCurved2DYZ(ParametricSurface):
 
@@ -1195,7 +1250,7 @@ class IntrinsicCurved2DYZ(ParametricSurface):
         # covariant basis
         #S_u, S_v = self.covariant_basis(u,v)
 
-        g = self.metric_tensor(u,v)
+        #g = self.metric_tensor(u,v)
 
         # inverse metric tensor ig
         ig = self.inverse_metric_tensor(u,v)
@@ -1206,6 +1261,7 @@ class IntrinsicCurved2DYZ(ParametricSurface):
         # Computation of the derivatives of the metric to prepare the RC coef computation
         args = (self.source,self.ry,self.rz)
 
+        # computation of derivative functions of the metric
         d1g11f = gen_prime_deriv(g11,u,*args)
         d1g12f = gen_prime_deriv(g12,u,*args)
         d1g22f = gen_prime_deriv(g22,u,*args)
@@ -1216,7 +1272,7 @@ class IntrinsicCurved2DYZ(ParametricSurface):
         d1g11 = d1g11f(u)
         d2g11 = d2g11f(v)
         d1g12 = d1g12f(u)
-        d1g21 = d1g12
+        d1g21 = d1g12       # not used below due to symmetry
         d2g12 = d2g12f(v)
         d2g21 = d2g12
         d1g22 = d1g22f(u)

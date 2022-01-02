@@ -34,6 +34,7 @@ from riemannianturtle import *
 
 # Flags to control the display
 PLOTSPACE = True
+PLOTDS2 = True
 
 #######################
 # Units
@@ -57,34 +58,42 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 0.9 * cm
+LINEWIDTH  = 2 * cm
 
 # To control the Frame size
-FRAMESIZE  = 0.2 * meter
-FRAMEWIDTH = 0.7 * cm
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 0.5 * cm
 
 #######################
 # SIMULATION PARAMETERS
 #######################
 
+TREE = False
+sun = (1.,1.5) # source of attraction
+
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
-
 ilen = 0.4 # 
-
 seed(0)
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  sun = (1.0,1.5)
+  #nproduce SetSpace(IntrinsicCurved2DYZ(ry = 1., rz = 2., source = sun, umin = -2, umax = 2., vmin = 0, vmax = 3))
   nproduce SetSpace(IntrinsicCurved2DYZ(ry = 1., rz = 2., source = sun, umin = -2, umax = 2., vmin = 0, vmax = 3))
-  nproduce InitTurtle([0.0,0.0,0.,1.])
-  nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
+  nproduce InitTurtle([0.0,0.0,0.2,0.8])
+  # nproduce InitTurtle([0.9,1.4,-0.7,-0.2]) # Gowing away from the source ...
+
+  # for hyperbolic geometry:
+  # just uncomment the hyperbolic metric in surfaces.py and comment the other one
+  # Geodesics are semi-circles of the Poincaré-Beltrami half plane
+  #nproduce InitTurtle([-1.5,0.1,0.3,0.9])
+  
+  nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)_(FRAMEWIDTH)Frame(FRAMESIZE)
  
 
-derivation length: 6
+derivation length: 8 # set to 12 for a hyperbolic geodesic, and 7 for hyperbolic tree
 production:
 
 A(n):
@@ -94,7 +103,8 @@ A(n):
   else:
     ba = -30
   nproduce F(ilen) 
-  nproduce [+(ba)A(n+1)]
+  if TREE:
+    nproduce [+(ba)A(n+1)]
   nproduce A(n+1)
 
 interpretation:
@@ -103,7 +113,7 @@ A(n):
   produce ;(2)@O(0.03)
 
 S: 
-  produce [MoveTo(turtle.space.S(1,2));(4)@O(0.1)]
+  produce [MoveTo(turtle.space.S(*sun));(4)@O(0.1)]
 
 endlsystem
 ###### INITIALISATION ######

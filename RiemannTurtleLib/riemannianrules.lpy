@@ -47,12 +47,30 @@ SetSpace(surface):
   # Then plot the space surface
   if PLOTSPACE:
     umin,umax,vmin,vmax = surface.uv_domain()
-    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
+    Du = 0.1
+    Dv = 0.1
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du,Dv)
     # Option ccw: (counter-clockwise)
     # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
     #S1 = surf.patch.getUTangentAt(u,v)
     #S2 = surf.patch.getVTangentAt(u,v)
     nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
+
+    if PLOTDS2:
+      ilist = np.arange(umin, umax, Du)
+      ilist = np.append(ilist, umax)  # add the last bound as it is not done by arange
+      # print("ilist after  = ", ilist)
+      jlist = np.arange(vmin, vmax, Dv)
+      jlist = np.append(jlist, vmax)  # case of a periodic list
+      a = 4 # scale ratio to plot the ds2
+      nproduce [
+      for i in ilist:
+        for j in jlist:
+          ds = turtle.space.ds(i, j, Du/a, Dv/a)
+          # plot ds2 at point (0,i,j) (case of intrinsic 2D spaces y,z)
+          nproduce @M(turtle.space.S(i,j)) @O(ds)
+      nproduce ]
+
 
 # The turtle is augmented with a memory that stores the previous position and
 # and velocity of the turtle at the surface: u,v,p,q.
