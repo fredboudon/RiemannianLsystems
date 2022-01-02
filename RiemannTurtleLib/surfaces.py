@@ -50,7 +50,7 @@ from scipy.misc import derivative
 # Create a function with a single argument from a known list of arguments (function parameters)
 # given as a list: eg. gen_func(f,(2,3,10))
 # means f(x,2,3,10)
-def gen_func(func, args):
+def gen_func(func, *args):
     def ff(x):
         return func(x, *args)
     return ff
@@ -75,45 +75,75 @@ def gen_second_deriv(func, *args):
     return second_derive
 
 
-# Base class for the definition of parametric surfaces
-class ParametricSurface:
-# Surface position vector
+class RiemannianSpace2D:
+    '''
+    This class represents an intrinsic 2D space with coordinates u,v
+    Each point of the coordinate space (u,v) is mapped in the R3 euclidean space to the point (x=0,y=u,z=v)
+
+    The distance between nearby points separated by du,dv is given by a metric:
+    ds2 = g11 du^2 + 2 g12 du dv + g22 dv^2
+
+    where g11, g12 and g22 are functions of u,v and are passed to the constructor of the class
+    (with possibly arguments as a list in metric_tensor_params)
+
+    All other classes (for parametric surfaces) will be inherited from this class,
+    (as the was to compute geodesics, RC sympbols may be inherited)
+    but usually they will redefine the some of them.
+    '''
+
+    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = ()):
+      # functions to compute the metric
+      self.g11 = g11
+      self.g12 = g12
+      self.g22 = g22
+      self.g11s = g11s
+      self.g12s = g12s
+      self.g22s = g22s
+
+      self.metric_tensor_params = metric_tensor_params
+
+      # sets domain bounds
+      self.umin = umin
+      self.umax = umax
+      self.vmin = vmin
+      self.vmax = vmax
+
+      self.metric_tensor_params = metric_tensor_params
+
     def S(self,u,v):
-       print("S: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
+      """
+      by default (u,v) = (y,z) and x = 0
+      """
+      x = 0.
+      y = u
+      z = v
+      return np.array([x,y,z])
+
+    # the Shift tensor may be wieved as the coordinates of the surface
+    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+    def Shift(self,u,v):
+      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      Here u,v, are mapped on the y,z plane
+      """
+      xu = 0.
+      yu = 1.
+      zu = 0.
+      xv = 0.
+      yv = 0.
+      zv = 1.
+
+      return np.array([[xu,xv],[yu,yv],[zu,zv]])
+
+    def normal(self,u,v):
+      # the normal is always borne by the x axis (as the space is the plane y,z)
+      nx = 1.
+      ny = 0.
+      nz = 0.
+      return np.array([nx,ny,nz])
 
     def uv_domain(self):
         #print("Domain = ", self.umin,self.umax,self.vmin,self.vmax)
         return self.umin,self.umax,self.vmin,self.vmax
-
-    def Shift(self,u,v):
-      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
-      It is derived from the partial derivatives of the surface equations wrt u,v
-      DS(u,v)/du, DS(u,v)/dv
-      (may be could be computed automatically from S(u,v) ... see that later)
-      """
-      print("Shift tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
-
-    def secondsuu(self,u,v):
-      """ Vectors of the second derivatives of the point S(u,v):
-      D2S(u,v)/du^2, D2S(u,v)/du2dv2, D2S(u,v)/dv^2 (the fourth /dvdu is symmetric to /dudv)
-      tensor (3,3 matrix))
-
-      Used for instance to compute the coefficients of the second fundamental form (LMN)
-      """
-      print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
-
-    def secondsuv(self,u,v):
-      print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
-
-    def secondsvv(self,u,v):
-      print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
-
-    def normal(self,u,v):
-      S_u, S_v = self.covariant_basis(u,v)
-      #FIXME: Check why - sign ???
-      N1 = - np.cross(S_u,S_v)
-
-      return N1/np.linalg.norm(N1)
 
     def covariant_basis(self,u,v):
       A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
@@ -121,51 +151,18 @@ class ParametricSurface:
       S2 = A[:,1] # second column of A = second surface covariant vector in ambiant space
       return S1,S2
 
-    def metric_tensor(self,u,v):
-        """
-          Default implementation: scalar product of covariant basis
-        """
-        S_u, S_v = self.covariant_basis(u,v)
-        guu = np.dot(S_u,S_u)
-        guv = np.dot(S_u,S_v)
-        gvu = np.dot(S_v,S_u)
-        gvv = np.dot(S_v,S_v)
-        return np.array([[guu,guv],[gvu,gvv]])
+    def metric_tensor(self, u, v):
+        args = self.metric_tensor_params # args is a store in the object as a tuple
+        guu = self.g11(u, v, *args)      # args is unpacked before calling the function
+        guv = gvu = self.g12(u, v, *args)
+        gvv = self.g22(u, v, *args)
+        return np.array([[guu, guv], [gvu, gvv]])
 
     def inverse_metric_tensor(self,u,v):
       """
       tensor = inverse of the metric tensor
       """
       return np.linalg.inv(self.metric_tensor(u,v))
-
-    def fundFormCoef(self,u,v):
-      """
-      Returns the coefficients of the fondamental forms I and II at point (u,v)
-      - E,F,G: First fundamental form = metric (I = ds^2 = E du^2 + 2F dudv + G dv2)
-      - L,M,N: Second funcdamental form = curvature (II = L du^2 + 2M dudv + N dv2)
-      The second fondamental form represents for given du,dv how the surface
-      gets quadratically away from the tangent plane.
-      if d(du,dv) is the distance of a point P(du,dv) to the tangent compliance
-      II = 2 * d
-      (See for instance A. Gray p282)
-      """
-      g = self.metric_tensor(u,v)
-
-      E = g[0,0]
-      F = g[1,0]
-      G = g[1,1]
-
-      Suu = self.secondsuu(u,v)
-      Suv = self.secondsuv(u,v)
-      Svv = self.secondsvv(u,v)
-
-      Normal = self.normal(u,v)
-
-      L = np.dot(Suu,Normal)
-      M = np.dot(Suv,Normal)
-      N = np.dot(Svv,Normal)
-
-      return (E,F,G,L,M,N)
 
     def norm(self,u,v,S):
       """
@@ -187,36 +184,6 @@ class ParametricSurface:
       #print("S = ", S)
       g = self.metric_tensor(u,v)
       return np.sqrt(du*du*g[0,0]+du*dv*g[0,1]+dv*du*g[1,0]+dv*dv*g[1,1])
-
-    def localCurvatures(self,u,v):
-        """
-        Returns Gaussian (K), mean (H), kappa_min, kappa_max local curvatures at point u,v
-        """
-        E,F,G,L,M,N = self.fundFormCoef(u,v)
-
-        K = (L*N-M**2)/(E*G-F**2)
-        H = (E*N+G*L-2*F*M)/(2*(E*G-F**2))
-
-        # TODO: check whether (H**2 - K) can become negative
-        discriminant = H ** 2 - K
-        if np.isclose(discriminant,0):
-            k1 = k2 = H
-        elif discriminant < 0:
-            print("discriminant < 0")
-            k1 = float('nan')
-            k2 = float('nan')
-        else:
-            k1 = H + np.sqrt(discriminant)
-            k2 = H - np.sqrt(discriminant)
-
-        if abs(k1) > abs(k2):
-            kappa_min = k2
-            kappa_max = k1
-        else:
-            kappa_min = k1
-            kappa_max = k2
-
-        return K, H, kappa_min, kappa_max
 
     def J2orthonormal(self,u,v):
       """
@@ -248,6 +215,192 @@ class ParametricSurface:
       #print("         S22 = ",S22)
       #print("g12 = ", g12, " a = ", a, " b = ", b)
       return np.array([[a,g12*a],[0,b]])
+
+    def RiemannChristoffelSymbols(self,u,v,printflag = False):
+        """
+        defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
+        """
+        #u = min(self.umax,max(self.umin,u))
+        #v = min(self.vmax,max(self.vmin,v))
+
+        # covariant basis
+        #S_u, S_v = self.covariant_basis(u,v)
+
+        #g = self.metric_tensor(u,v)
+
+        # inverse metric tensor ig
+        ig = self.inverse_metric_tensor(u,v)
+
+        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
+        # Gamma^a_bc  = RCS[a,b,c]
+
+        # Computation of the derivatives of the metric to prepare the RC coef computation
+        args = self.metric_tensor_params
+
+        # computation of derivative functions of the metric
+        d1g11f = gen_prime_deriv(self.g11,u,*args)
+        d1g12f = gen_prime_deriv(self.g12,u,*args)
+        d1g22f = gen_prime_deriv(self.g22,u,*args)
+        d2g11f = gen_prime_deriv(self.g11s,v,*args)
+        d2g12f = gen_prime_deriv(self.g12s,v,*args)
+        d2g22f = gen_prime_deriv(self.g22s,v,*args)
+
+        d1g11 = d1g11f(u)
+        d2g11 = d2g11f(v)
+        d1g12 = d1g12f(u)
+        d1g21 = d1g12       # not used below due to symmetry
+        d2g12 = d2g12f(v)
+        d2g21 = d2g12
+        d1g22 = d1g22f(u)
+        d2g22 = d2g22f(v)
+
+        RCS = np.zeros((2,2,2))
+        RCS[0,0,0] = 0.5*ig[0][0]*d1g11 + 0.5*ig[0][1]*(2*d1g12 - d2g11)
+        RCS[1,0,0] = 0.5*ig[1][0]*d1g11 + 0.5*ig[1][1]*(2*d1g12 - d2g11)
+        RCS[0,1,0] = 0.5*ig[0][0]*d2g11 + 0.5*ig[0][1]*d1g22
+        RCS[1,1,0] = 0.5*ig[1][0]*d2g11 + 0.5*ig[1][1]*d1g22
+        RCS[0,0,1] = RCS[0,1,0]
+        RCS[1,0,1] = RCS[1,1,0]
+        RCS[0,1,1] = 0.5*ig[0][0]*(2*d2g21-d1g22) + 0.5*ig[0][1]*d2g22
+        RCS[1,1,1] = 0.5*ig[1][0]*(2*d2g21-d2g22) + 0.5*ig[1][1]*d2g22
+
+        if printflag:
+            print("Riemann Christoffel coefs:")
+            print(RCS)
+
+        return RCS
+
+    def geodesic_eq(self,uvpq,s):
+        """
+        definition of a geodesic at the surface starting at point u,v and heading in direction p,q
+        expressing the tangent components in the surface covariant basis.
+        """
+        u,v,p,q = uvpq
+        Gamma = self.RiemannChristoffelSymbols(u,v)
+        lhs1 = - Gamma[0,0,0]*p**2 - 2*Gamma[0,0,1]*p*q - Gamma[0,1,1]*q**2
+        lhs2 = - Gamma[1,0,0]*p**2 - 2*Gamma[1,0,1]*p*q - Gamma[1,1,1]*q**2
+        return [p,q,lhs1,lhs2]
+
+
+# Base class for the definition of parametric surfaces
+class ParametricSurface(RiemannianSpace2D):
+    ''''# Surface position vector
+    def S(self,u,v):
+       print("S: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
+
+    def uv_domain(self):
+        #print("Domain = ", self.umin,self.umax,self.vmin,self.vmax)
+        return self.umin,self.umax,self.vmin,self.vmax
+
+    def Shift(self,u,v):
+      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      It is derived from the partial derivatives of the surface equations wrt u,v
+      DS(u,v)/du, DS(u,v)/dv
+      (may be could be computed automatically from S(u,v) ... see that later)
+      """
+      print("Shift tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
+    '''
+    def secondsuu(self,u,v):
+      """ Vectors of the second derivatives of the point S(u,v):
+      D2S(u,v)/du^2, D2S(u,v)/du2dv2, D2S(u,v)/dv^2 (the fourth /dvdu is symmetric to /dudv)
+      tensor (3,3 matrix))
+
+      Used for instance to compute the coefficients of the second fundamental form (LMN)
+      """
+      print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
+
+    def secondsuv(self,u,v):
+      print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
+
+    def secondsvv(self,u,v):
+      print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
+
+
+    def normal(self,u,v):
+      S_u, S_v = self.covariant_basis(u,v)
+      #FIXME: Check why - sign ???
+      N1 = - np.cross(S_u,S_v)
+
+      return N1/np.linalg.norm(N1)
+
+    '''
+    def covariant_basis(self,u,v):
+      A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
+      S1 = A[:,0] # first colum of A = first surface covariant vector in ambiant space
+      S2 = A[:,1] # second column of A = second surface covariant vector in ambiant space
+      return S1,S2
+    '''
+
+    def metric_tensor(self,u,v):
+        """
+          Via the dot product for parametric surfaces=
+          scalar product of covariant basis
+        """
+        S_u, S_v = self.covariant_basis(u,v)
+        guu = np.dot(S_u,S_u)
+        guv = np.dot(S_u,S_v)
+        gvu = np.dot(S_v,S_u)
+        gvv = np.dot(S_v,S_v)
+        return np.array([[guu,guv],[gvu,gvv]])
+
+    def fundFormCoef(self,u,v):
+      """
+      Returns the coefficients of the fondamental forms I and II at point (u,v)
+      - E,F,G: First fundamental form = metric (I = ds^2 = E du^2 + 2F dudv + G dv2)
+      - L,M,N: Second funcdamental form = curvature (II = L du^2 + 2M dudv + N dv2)
+      The second fondamental form represents for given du,dv how the surface
+      gets quadratically away from the tangent plane.
+      if d(du,dv) is the distance of a point P(du,dv) to the tangent compliance
+      II = 2 * d
+      (See for instance A. Gray p282)
+      """
+      g = self.metric_tensor(u,v)
+
+      E = g[0,0]
+      F = g[1,0]
+      G = g[1,1]
+
+      Suu = self.secondsuu(u,v)
+      Suv = self.secondsuv(u,v)
+      Svv = self.secondsvv(u,v)
+
+      Normal = self.normal(u,v)
+
+      L = np.dot(Suu,Normal)
+      M = np.dot(Suv,Normal)
+      N = np.dot(Svv,Normal)
+
+      return (E,F,G,L,M,N)
+
+    def localCurvatures(self,u,v):
+        """
+        Returns Gaussian (K), mean (H), kappa_min, kappa_max local curvatures at point u,v
+        """
+        E,F,G,L,M,N = self.fundFormCoef(u,v)
+
+        K = (L*N-M**2)/(E*G-F**2)
+        H = (E*N+G*L-2*F*M)/(2*(E*G-F**2))
+
+        # TODO: check whether (H**2 - K) can become negative
+        discriminant = H ** 2 - K
+        if np.isclose(discriminant,0):
+            k1 = k2 = H
+        elif discriminant < 0:
+            print("discriminant < 0")
+            k1 = float('nan')
+            k2 = float('nan')
+        else:
+            k1 = H + np.sqrt(discriminant)
+            k2 = H - np.sqrt(discriminant)
+
+        if abs(k1) > abs(k2):
+            kappa_min = k2
+            kappa_max = k1
+        else:
+            kappa_min = k1
+            kappa_max = k2
+
+        return K, H, kappa_min, kappa_max
 
     def RiemannChristoffelSymbols(self,u,v,printflag = False):
         """
@@ -289,17 +442,6 @@ class ParametricSurface:
             print(RCS)
 
         return RCS
-
-    def geodesic_eq(self,uvpq,s):
-        """
-        definition of a geodesic at the surface starting at point u,v and heading in direction p,q
-        expressing the tangent components in the surface covariant basis.
-        """
-        u,v,p,q = uvpq
-        Gamma = self.RiemannChristoffelSymbols(u,v)
-        lhs1 = - Gamma[0,0,0]*p**2 - 2*Gamma[0,0,1]*p*q - Gamma[0,1,1]*q**2
-        lhs2 = - Gamma[1,0,0]*p**2 - 2*Gamma[1,0,1]*p*q - Gamma[1,1,1]*q**2
-        return [p,q,lhs1,lhs2]
 
 class Sphere(ParametricSurface):
 
@@ -960,12 +1102,12 @@ class Revolution(ParametricSurface):
       r is a function of z (i.e. v) that defines in 3D the radius of the point at altitude z
       The first and second derivatives are computed automatically
       """
-      print('args = ', args)
-      print('rfunc(2.,args)', rfunc(2.,*args))
+      #print('args = ', args)
+      #print('rfunc(2.,args)', rfunc(2.,args))
       f = gen_func(rfunc, args)
       df = gen_prime_deriv(rfunc, args)
       ddf = gen_second_deriv(rfunc, args)
-      print(rfunc(2.,*args), df(0.1), ddf(0.1))
+      #print(rfunc(2.,args), df(0.1), ddf(0.1))
 
       self.umin = 0
       self.umax = 2*np.pi
@@ -1085,218 +1227,12 @@ class ChineseHat(Revolution):
     ''' This surface is made with a tractrix revoluting around its x-axis (instead of y as in the PseudoSphere)
     '''
     def __init__(self, R, zmin = 0.1, zmax = 0.99):
-        super(ChineseHat,self).__init__(tractrix, args = [R], zmin = zmin, zmax = zmax)
-
-######################################################
-def model_params(u,v,source,ry,rz):
-    p = np.array((u, v))
-    s = np.array(source)
-    r = np.linalg.norm(s - p)
-
-    costheta = (s[0] - u) / r
-    sintheta = (s[1] - v) / r
-
-    ratioy = r / ry
-    ratioz = r / rz
-    return r,costheta,sintheta,ratioy,ratioz
+        super(ChineseHat,self).__init__(tractrix, args = (R), zmin = zmin, zmax = zmax)
 
 
-# Functions to redefine for different metrics
-# 'Repulsive' metric
-def g11(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = model_params(u, v, *args)
-    return ratioy*costheta**2 + ratioz*sintheta**2
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
-def g11s(v,u,*args):
-    return g11(u,v,*args)
-
-# g12 == g21
-def g12(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = model_params(u, v,*args)
-    return (ratioy-ratioz)*costheta*sintheta
-def g12s(v,u,*args):
-    return g12(u,v,*args)
-
-def g22(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = model_params(u, v,*args)
-    return ratioy*sintheta**2 + ratioz*costheta**2
-def g22s(v,u,*args):
-    return g22(u,v,*args)
-
-
-'''
-# Functions to redefine for different metrics
-# 'Attractive' metric
-def g11(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = model_params(u, v, *args)
-    return (1/ratioy)*costheta**2 + (1/ratioz)*sintheta**2
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
-def g11s(v,u,*args):
-    return g11(u,v,*args)
-
-# g12 == g21
-def g12(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = model_params(u, v,*args)
-    return ((1/ratioy)-(1/ratioz))*costheta*sintheta
-def g12s(v,u,*args):
-    return g12(u,v,*args)
-
-def g22(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = model_params(u, v,*args)
-    return (1/ratioy)*sintheta**2 + (1/ratioz)*costheta**2
-def g22s(v,u,*args):
-    return g22(u,v,*args)
-'''
-
-'''
-# Hyperbolic metric (Halfplane PoinCaré-Beltrami)
-def g11(u,v,*args):
-    return 1/v
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
-def g11s(v,u,*args):
-    return g11(u,v,*args)
-
-# g12 == g21
-def g12(u,v,*args):
-    return 0
-def g12s(v,u,*args):
-    return g12(u,v,*args)
-
-def g22(u,v,*args):
-    return 1/v
-def g22s(v,u,*args):
-    return g22(u,v,*args)
-'''
-
-class IntrinsicCurved2DYZ(ParametricSurface):
-
-    def __init__(self, ry = 1., rz = 2., source = (1,2), umin = -1, umax = 1., vmin = 0, vmax = 2):
-      self.ry = ry # metric factor on y
-      self.rz = rz # metric factor on z
-      self.source = source # source of the curving signal
-      self.umin = umin
-      self.umax = umax
-      self.vmin = vmin
-      self.vmax = vmax
-
-    def S(self,u,v):
-      """
-      (u,v) = (y,z) and x = 0
-      """
-      x = 0.
-      y = u
-      z = v
-      return np.array([x,y,z])
-
-    # the Shift tensor may be wieved as the coordinates of the surface
-    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
-    def Shift(self,u,v):
-      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
-      It is derived from the partial derivatives of the surface equations wrt u,v
-      (may be could be computed automatically from S(u,v) ... see that later)
-      """
-      xu = 0.
-      yu = 1.
-      zu = 0.
-      xv = 0.
-      yv = 0.
-      zv = 1.
-
-      return np.array([[xu,xv],[yu,yv],[zu,zv]])
-
-    def secondsuu(self,u,v):
-      """
-      second derivatives of the position vector at the surface
-      """
-      xuu = 0.
-      yuu = 0.
-      zuu = 0.
-      return np.array([xuu,yuu,zuu])
-
-    def secondsuv(self,u,v):
-      xuv =  0.
-      yuv =  0.
-      zuv =  0.
-      return np.array([xuv,yuv,zuv])
-
-    def secondsvv(self,u,v):
-      xvv = 0.
-      yvv = 0.
-      zvv = 0.
-
-      return np.array([xvv,yvv,zvv])
-
-    def metric_tensor(self,u,v):
-      args = (self.source, self.ry, self.rz)
-      guu = g11(u,v,*args)
-      guv = gvu = g12(u,v,*args)
-      gvv = g22(u,v,*args)
-
-      return np.array([[guu,guv],[gvu,gvv]])
-
-    def normal(self,u,v):
-      nx = 1.
-      ny = 0.
-      nz = 0.
-      return np.array([nx,ny,nz])
-
-    def RiemannChristoffelSymbols(self,u,v,printflag = False):
-        """
-        defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
-        """
-        #u = min(self.umax,max(self.umin,u))
-        #v = min(self.vmax,max(self.vmin,v))
-
-        # covariant basis
-        #S_u, S_v = self.covariant_basis(u,v)
-
-        #g = self.metric_tensor(u,v)
-
-        # inverse metric tensor ig
-        ig = self.inverse_metric_tensor(u,v)
-
-        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
-        # Gamma^a_bc  = RCS[a,b,c]
-
-        # Computation of the derivatives of the metric to prepare the RC coef computation
-        args = (self.source,self.ry,self.rz)
-
-        # computation of derivative functions of the metric
-        d1g11f = gen_prime_deriv(g11,u,*args)
-        d1g12f = gen_prime_deriv(g12,u,*args)
-        d1g22f = gen_prime_deriv(g22,u,*args)
-        d2g11f = gen_prime_deriv(g11s,v,*args)
-        d2g12f = gen_prime_deriv(g12s,v,*args)
-        d2g22f = gen_prime_deriv(g22s,v,*args)
-
-        d1g11 = d1g11f(u)
-        d2g11 = d2g11f(v)
-        d1g12 = d1g12f(u)
-        d1g21 = d1g12       # not used below due to symmetry
-        d2g12 = d2g12f(v)
-        d2g21 = d2g12
-        d1g22 = d1g22f(u)
-        d2g22 = d2g22f(v)
-
-        RCS = np.zeros((2,2,2))
-        RCS[0,0,0] = 0.5*ig[0][0]*d1g11 + 0.5*ig[0][1]*(2*d1g12 - d2g11)
-        RCS[1,0,0] = 0.5*ig[1][0]*d1g11 + 0.5*ig[1][1]*(2*d1g12 - d2g11)
-        RCS[0,1,0] = 0.5*ig[0][0]*d2g11 + 0.5*ig[0][1]*d1g22
-        RCS[1,1,0] = 0.5*ig[1][0]*d2g11 + 0.5*ig[1][1]*d1g22
-        RCS[0,0,1] = RCS[0,1,0]
-        RCS[1,0,1] = RCS[1,1,0]
-        RCS[0,1,1] = 0.5*ig[0][0]*(2*d2g21-d1g22) + 0.5*ig[0][1]*d2g22
-        RCS[1,1,1] = 0.5*ig[1][0]*(2*d2g21-d2g22) + 0.5*ig[1][1]*d2g22
-
-        if printflag:
-            print("Riemann Christoffel coefs:")
-            print(RCS)
-
-        return RCS
 #################################
 # Other surface tools
 #################################
-
 
 # For plotting any surface defined by an explicit equation S(u,v) with Quads
 ##############################################################################

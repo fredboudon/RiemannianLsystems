@@ -8,7 +8,13 @@
 
 	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
 
+   - TODO: Checks that MonkeySaddle works with geodesics properly ...
 """
+
+import numpy as np
+from math import ceil
+from random import random, seed
+
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
 import sys
@@ -24,7 +30,38 @@ riemannian_turtle = reload(riemannianturtle)
 from surfaces import *
 from riemannianturtle import *
 
+
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+# Flags to control the display
+PLOTSPACE = True
+PLOTDS2 = True
+
+######################################
+# DEFINITION OF THE METRIC (INTRINSIC)
+######################################
+
+######################################################
+
+
+# Hyperbolic metric (Halfplane PoinCaré-Beltrami)
+def g11_hyperbolic(u,v,*args):
+    return 1./v**2
+# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
+def g11s_hyperbolic(v,u,*args):
+    return g11_hyperbolic(u,v,*args)
+
+# g12 == g21
+def g12_hyperbolic(u,v,*args):
+    return 0.
+def g12s_hyperbolic(v,u,*args):
+    return g12_hyperbolic(u,v,*args)
+
+def g22_hyperbolic(u,v,*args):
+    return 1./v**2
+def g22s_hyperbolic(v,u,*args):
+    return g22_hyperbolic(u,v,*args)
+
 
 #######################
 # Units
@@ -35,14 +72,12 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
 cm = 0.01 * meter
 
 # Surface parameters
-R = 2. * meter   # Radius of the sphere in meter
+R = 1. * meter   # Radius of the sphere in meter
 
 #######################
 # DISPLAY PARAMETERS
 #######################
 
-# Flags to control the display
-PLOTSPACE = True
 
 # maximum len of subdivision step required to draw any line on the surface
 # this controls the resolution of the geodesic plot with respect to the
@@ -50,63 +85,46 @@ PLOTSPACE = True
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 4. * cm
+LINEWIDTH  = 0.9 * cm
 
 # To control the Frame size
-FRAMESIZE  = 0.3 * meter
-FRAMEWIDTH = 1 * cm
+FRAMESIZE  = 0.2 * meter
+FRAMEWIDTH = 0.6 * cm
+
+DS2_SCALEFACTOR = 12.
 
 #######################
 # SIMULATION PARAMETERS
 #######################
 
-def vase(x, *args):
-  if x < 0: 
-    x = 0.
-  u = (x) / 10.
-  #print ("x =", x, "u= ", u)
-  return 5* vasefunc.getValue(u)
-
-
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
-profile = vase
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 20.0 
+slen = 0.10 # 
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  #nproduce SetSpace(Revolution(rfunc1,rprime1,rsecond1, 8*np.pi))
-  nproduce SetSpace(Revolution(profile,zmin = 0, zmax = 10))
-  #nproduce SetSpace(PseudoSphere(profile,profile_prime,profile_second,zmin = 0, zmax = 10.))
-  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  #nproduce InitTurtle([0,0,1/np.sqrt(2)/R,1/np.sqrt(2)/R])
-  #  nb = 
-  #  opening = 3*np.pi/2 # np.pi/2
-  #  for k in range(nb+1):
-    #    u = 0
-    #    v = 0.6
-    #    p = np.sin(opening*k/nb)
-    #    q = np.cos(opening*k/nb)
-    #    nproduce [InitTurtle([u,v,p,q]);(10+k)A(0)]
-  nproduce [;(2)InitTurtle([0,0.1,1,0.0])A(0)]#[;(3)InitTurtle([0,0.1,0.01,0.1])B(0)]
+  metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
 
+  # Note the second argument is optional and set the display 
+  
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0.12, vmax = 2), DS2_SCALEFACTOR)
+  nproduce InitTurtle([-0.7,0.12,0.15,0.9])
 
-derivation length: int(nb_seg)
+  nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
+
+derivation length: 45
 production:
 
 A(n):
-  nproduce F(length_geodesic/nb_seg)
-  nproduce A(n+1)
+  nproduce F(slen)A(n+1)
 
 interpretation:
 
 A(n):
-  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
-
-
+  produce _(FRAMEWIDTH) Frame(FRAMESIZE)
 
 endlsystem
 ###### INITIALISATION ######
@@ -123,14 +141,4 @@ def __initialiseContext__(context):
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]
-	import openalea.plantgl.all as pgl
-	vasefunc = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00037769, 0.274198, 1),(0.357908, -0.103508, 1),(0.775875, 0.63109, 1),(0.964766, 0.284219, 1),(1, 0.0411976, 1)]) , 
-	    )
-	vasefunc.name = "vasefunc"
-	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',vasefunc)])
-	parameterset = [panel_0,]
-	context["__functions__"] = [('vasefunc',vasefunc),]
-	context["__curves__"] = []
-	context["__parameterset__"] = parameterset
-	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+__references__ = '#'

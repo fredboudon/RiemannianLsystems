@@ -30,6 +30,7 @@ def riemannian_turtle_init(uvpq,space):
   h = A.dot(np.array([p,q]))
   head = h / np.linalg.norm(h)
   up = np.array(space.normal(u,v))
+  #print('head,up=',(head,up))
   return head,up
 
 def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):

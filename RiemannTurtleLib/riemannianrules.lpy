@@ -43,8 +43,11 @@ interpretation:
 # in which the turtle is moving
 # - turtle.uvpq is added by init, refers to the initial position and velocity
 # of the turtle.
-# Sets the Riemanian space used by the turtle and draw it if required
-SetSpace(surface):
+# Sets the Riemannian space used by the turtle and draw it if required
+# Plots the ds2 field if required
+# A second argument is an array of optional parameters:
+# args[0] --> DS2_SCALEFACTOR  (= 4 by default) to display the metrics ds2
+SetSpace(surface,*args):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
 
@@ -66,11 +69,16 @@ SetSpace(surface):
       # print("ilist after  = ", ilist)
       jlist = np.arange(vmin, vmax, Dv)
       jlist = np.append(jlist, vmax)  # case of a periodic list
-      a = 4 # scale ratio to plot the ds2
+
+      if len(args) != 0:
+        DS2_SCALEFACTOR = args[0]
+      else:
+        DS2_SCALEFACTOR = 4. # default value
+
       nproduce [
       for i in ilist:
         for j in jlist:
-          ds = turtle.space.ds(i, j, Du/a, Dv/a)
+          ds = turtle.space.ds(i, j, Du/DS2_SCALEFACTOR, Dv/DS2_SCALEFACTOR)
           # plot ds2 at point (0,i,j)
           nproduce @M(turtle.space.S(i,j)) @O(ds)
       nproduce ]
@@ -97,7 +105,7 @@ InitTurtle(gencoords):
   head, up = riemannian_turtle_init(gencoords, turtle.space)
   u,v,p,q = gencoords
   #print("head = ", head)
-  #nproduce _(0.02)
+
   nproduce @M( turtle.space.S(u,v) )
   nproduce @R(head,up)
 
