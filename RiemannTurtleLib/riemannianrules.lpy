@@ -31,6 +31,10 @@ from riemannianturtle import *
 
 module SetSpace(surface), InitTurtle(turtle_state)
 
+#Default values --> can be redefined below in the main file if needed
+PLOTSPACE = True
+PLOTDS2 = False
+
 production:
 interpretation:
 
@@ -67,7 +71,7 @@ SetSpace(surface):
       for i in ilist:
         for j in jlist:
           ds = turtle.space.ds(i, j, Du/a, Dv/a)
-          # plot ds2 at point (0,i,j) (case of intrinsic 2D spaces y,z)
+          # plot ds2 at point (0,i,j)
           nproduce @M(turtle.space.S(i,j)) @O(ds)
       nproduce ]
 

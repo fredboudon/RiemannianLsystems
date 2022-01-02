@@ -33,6 +33,7 @@ from riemannianturtle import *
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
 PRINT_CURVATURES = True
+PLOTDS2 = False
 
 #######################
 # Units
@@ -87,7 +88,7 @@ Axiom:
     v0= 0
     p0 = 0.
     q0 = 1.
-    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0])A(0)]
+    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
     
   # Test 2 draw a series of geodesics from a point
   if TEST2:
