@@ -341,6 +341,8 @@ class ParametricSurface(RiemannianSpace2D):
         guv = np.dot(S_u,S_v)
         gvu = np.dot(S_v,S_u)
         gvv = np.dot(S_v,S_v)
+        if (np.isclose(guu,0.0) and np.isclose(guv,0.0) and np.isclose(gvv,0.0) ):
+            print ("NULL METRIC TENSOR DETECTED ")
         return np.array([[guu,guv],[gvu,gvv]])
 
     def fundFormCoef(self,u,v):
@@ -522,7 +524,11 @@ class Sphere(ParametricSurface):
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
-      return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
+      if np.isclose(np.sin(v), 1.): #(v = pi/2)
+          print("PI/2 REACHED ...")
+          return [p,q,math.inf*p*q,-np.cos(v)*np.sin(v)*p**2]
+      else:
+          return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
 
 
 class PseudoSphere(ParametricSurface):

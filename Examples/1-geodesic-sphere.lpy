@@ -78,16 +78,27 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 TEST1 = True
 TEST2 = False
 
+GREAT_CIRCLE = False
+QUARTER_CIRCLE = False
+
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   nproduce SetSpace(Sphere(R))
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   # Test 1
   if TEST1:
-    u0= 0 
-    v0= 0
-    p0 = 0.
-    q0 = 1.
+    u0= 0.
+    v0= 1.
+    p0 = 0.0
+    q0 = 0.1
+    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
+
+  # Test 1.1: Bug: the rotation is not in the correct sense (as the covariant basis changes directness)
+  if TEST1:
+    u0= 0.
+    v0= 1.
+    p0 = 0.0
+    q0 = 0.1
     nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
     
   # Test 2 draw a series of geodesics from a point
@@ -106,10 +117,18 @@ derivation length: int(nb_seg)
 production:
 
 A(n):
-  nproduce F(length_geodesic/nb_seg)
+  seglen = 2*np.pi*R/4. # -0.01 is still Ok, but -0.001 creates the bug
+  if GREAT_CIRCLE : 
+    nproduce F(length_geodesic/nb_seg)
+  elif QUARTER_CIRCLE:
+    nproduce F(length_geodesic/(4*nb_seg))
+  else: # Triangle
+    nproduce F(seglen)+(90) #F(seglen)+(90)F(seglen)
   nproduce A(n+1)
 
 interpretation:
+
+#maximum depth : 2
 
 A(n):
   if PRINT_CURVATURES:
@@ -118,9 +137,8 @@ A(n):
     print("Courbures: Gauss = ", "{:.3f}".format(K), \
     ", Mean = ", "{:.3f}".format(H), \
     ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
-  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
-
-
+  nproduce _(FRAMEWIDTH)Frame(FRAMESIZE)
+  #nproduce CovariantBasis(0.3)
 
 
 endlsystem

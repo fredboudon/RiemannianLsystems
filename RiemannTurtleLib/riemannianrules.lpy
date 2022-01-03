@@ -29,7 +29,7 @@ riemannian_turtle = reload(riemannianturtle)
 from surfaces import *
 from riemannianturtle import *
 
-module SetSpace(surface), InitTurtle(turtle_state)
+module SetSpace(surface), InitTurtle(turtle_state), ParallelTransportedArrow(angleRelHead,size), CovariantBasis(size)
 
 #Default values --> can be redefined below in the main file if needed
 PLOTSPACE = True
@@ -37,6 +37,9 @@ PLOTDS2 = False
 
 production:
 interpretation:
+
+# for drawing Vects: FIXME: @Fred can you create builtin primitives for this. Also this doesnot work in the %copyfile
+#maximum depth : 2
 
 # Two parameters are added to the turtle
 # - turtle.space is added by SetSpace refers to the Riemanian space
@@ -50,6 +53,7 @@ interpretation:
 SetSpace(surface,*args):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
+  turtle.add_parameter('cumrotation', 0) # for parallel transport
 
   # Then plot the space surface
   if PLOTSPACE:
@@ -137,10 +141,7 @@ F(length):
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
 
-  # 3. sets line width first --> Leaves this outside F
-  # nproduce _(LINEWIDTH)
-
-  # 4. draw all the small subsegments (that were returned by the integration)
+  # 3. draw all the small subsegments (that were returned by the integration)
   for i in range(segnb):
     # draw a line from the last visited point to the next one in abs coordinates
     nproduce LineTo(turtle.space.S(uvpq_s[i][0], uvpq_s[i][1]))
@@ -158,10 +159,10 @@ F(length):
 
   print("Input length = ", length, " Drawn segment length = ", delta_s)
   '''
-  # 5. update the turtle's state with the last point of the computed curve
+  # 4. update the turtle's state with the last point of the computed curve
   turtle.uvpq = uvpq_s[-1]
 
-  # 6. Finally, orient the head of the turtle
+  # 5. Finally, orient the head of the turtle
   # according to what was computed for the mast point
   nproduce @R(head,up)
 
@@ -173,7 +174,7 @@ f(length):
     produce f(0)
   # 1. Find the nb of segments into which the curve should be divided
   stepnb = int(ceil(length / MAXSTEPLEN))
-  #steplen = length / stepnb
+  steplen = length / stepnb
   #   e.g.
   #     - if len = 1.8 and MAXSTEPLEN = 1.0
   #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
@@ -184,27 +185,58 @@ f(length):
   uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
-  # 3. sets line width first
-  nproduce _(LINEWIDTH)
 
-  # 4. draw all the small subsegments (that were returned by the integration)
+  # 3. Move to the end of the last segment u,v (that were returned by the integration)
+  nproduce MoveTo(turtle.space.S(uvpq_s[segnb-1][0],uvpq_s[segnb-1][1]))
+  ''' 
+  # Not necessary to pass through all intermediate segments as in F(), as they are not drawn
   for i in range(segnb):
     # draw a line from the last visited point to the next one in abs coordinates
     nproduce MoveTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
+  '''
 
-  # 5. update the turtle's state with the last point of the computed curve
+  # 4. update the turtle's state with the last point of the computed curve
   turtle.uvpq = uvpq_s[-1]
 
-  # 6. Finally, orient the head of the turtle
+  # 5. Finally, orient the head of the turtle
   # according to what was computed for the mast point
   nproduce @R(head,up)
 
 +(angle):
   turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  turtle.cumrotation += angle
+  # print("Total turtle rotation during the path = ", turtle.cumrotation)
   nproduce @R(head,up)
 
 -(angle):
   turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
+  turtle.cumrotation -= angle
   nproduce @R(head,up)
+
+# Draw a vector that is parallel transported along the path that finishes at the current turtle position
+# The vector if of norm = size and is assumed to make an angle angleRelHead at the origin of the turtle's path
+# the initial direction of the path
+ParallelTransportedArrow(angleRelHead,size):
+  nproduce [+(angleRelHead-turtle.cumrotation)Arrow(size)]
+
+CovariantBasis(size):
+  surf = turtle.space
+  u,v,p,q = turtle.uvpq
+  S1, S2 = surf.covariant_basis(u, v)
+  print("Coucou1", S1,S2)
+  #nproduce [;(1)DrawVectnp(S1)][;(4)DrawVectnp(S2)]
+  nproduce [_(0.01);(2)LineRel(size*S1)@O(0.01)][_(0.01);(3)LineRel(size*S2)@O(0.01)]
+
+# Draw a line from the current position of the turtle to point of coord in R0
+DrawVect(coord):
+  # draw a line from the current position of the Turtle to the indicated position
+  nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+
+# argument is numpy array
+DrawVectnp(coord):
+  # draw a line from the current position of the Turtle to the indicated position
+  #print(coord)
+  print("Coucou2")
+  nproduce _(0.01)LineRel(coord);(1)@O(0.01)
 
 endlsystem

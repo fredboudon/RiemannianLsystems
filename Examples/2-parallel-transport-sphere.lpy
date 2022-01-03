@@ -1,0 +1,190 @@
+# L-systems in Riemannian geometry
+# Ch. Godin, Inria, 2019-2020
+#
+# Second prototype: 
+# uses the new possibility immplemented by Fred Boudon to manipulate the turtle from interpretation rules
+#
+# Step 0: movements on a sphere - example of a tree-like structure 
+
+
+import numpy as np
+import numpy.linalg
+from random import randint, choice
+import matplotlib.pyplot as plt
+from copy import deepcopy
+
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
+
+from surfaces import *
+from riemannianturtle import *
+
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+PLOTDS2 = False
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+# DISPLAY FLAGS
+FRAME = True  # To display the Turtle's Frame while drawing
+PRINT = False
+
+# Integration variables
+SUBDIV = 10 # number of subdivisions of a small incremental segment
+
+# Surface parameters
+R = 1.   # Radius of the sphere, or main radius of the torus
+
+# If true, moves the turtle along great circles
+# If not, moves the turtle along a latitude
+GREATCIRCLES = False
+if GREATCIRCLES :
+  NBSTEPS = 3
+else:
+  NBSTEPS = 68
+
+# Length and step of the path
+CIRCUM = 2* np.pi *R  # length on the surface of the drawn geodesic path (in a.u.)
+STEPSIZE = R/10.     # size of a step (in a.u.) used to draw pieces of geodesic
+LINEWIDTH = 0.01
+
+# transported arrow
+AngleRelativeToTurtleHead = 0 #0, 30
+
+def Start():
+  flag = True
+  pass #print (">>>> R =  ", R, " CIRCUM = ", CIRCUM, "STEPSIZE = ", STEPSIZE)
+
+# Initialize the surface coordinate and speed [u0,v0,p0,q0]
+# passed as the argument to Param. The second argument is the chosen parametric surface
+# Default = Sphere.
+# This Parameter will be stored in the INIT module.
+#
+# The initial point is defined in 3D by param.surf(u0,v0)
+# The speed of point mouvement is defined by the norm of [p0,q0]
+#
+# Note that the initial speed on the Sphere for instance
+# must be of norm 1/R if one wants to adapt the movement to the sphere radius
+# (as on a sphere of radius R, on the equator for example s = R.theta and dtheta/ds = 1/R
+
+def StartInterpretation(turtle):
+  
+  pass
+
+def End():
+  # How to get the turtle object in the end ?
+  pass 
+  #print("Total turrtle rotation during the path = ", turtle.cumrotation)
+
+# Arrow(length, cap_size_ratio=0.2, cap_radius_ratio=2)
+# draws a vector at the current position of the turtle in the direction of the turtle's head
+# - First argument is the norm of the vector
+# - Second param in [0,1] contols the length ratio of the .
+# - Third argument controls the basl radius of the arrow's tip  
+#  (scaling factor with respect to the vector's width = current turtle's width).
+# To position the vector at a given place use: Pinpoint(x,y,z) Arrow()
+#
+Axiom: 
+  # Sets the Riemanian space in which the turtle will move
+  #nproduce SetSpace(Revolution(rfunc1,rprime1,rsecond1, 8*np.pi))
+  nproduce SetSpace(Sphere())
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  #nproduce InitTurtle([0,0,1/np.sqrt(2)/R,1/np.sqrt(2)/R])
+  if GREATCIRCLES == True:
+    NBSTEPS = 3
+    nproduce InitTurtle([0,0,0,1])
+    nproduce ;(3)_(LINEWIDTH)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5);(1)A(0)
+  else:
+    NBSTEPS = 68
+    # look at parallel transport along a latitude that is not a great circle
+    nproduce InitTurtle([0,np.sqrt(3)/2.,1,0])
+    nproduce ;(3)_(LINEWIDTH)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5);(1)B(0)
+  
+
+derivation length: int(NBSTEPS)
+production:
+
+# Describes a movements along great circles
+A(n):  
+  nproduce F(CIRCUM/4.-0.01)
+  nproduce [;(3)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5)]
+  nproduce +(90)
+  nproduce A(n+1)
+
+# Describes a latitude
+B(n):
+  nproduce F(CIRCUM/100)
+  nproduce [;(3)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5)]
+  #nproduce Arrow(0.5)
+  nproduce +(3.9)
+  nproduce B(n+1)
+
+
+interpretation:
+
+A(n):
+  produce ;(2)@O(0.02)
+  #if FRAME: nproduce _(0.01)Frame(0.2)
+
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.0181818, 1),(0.0424242, 0.268182, 1),(0.429545, 0.186364, 1),(0.657576, 0.109091, 1),(1, 0.15, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
