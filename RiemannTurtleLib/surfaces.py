@@ -189,7 +189,7 @@ class RiemannianSpace2D:
       """
       defines the Jacobian to pass from the covariant basis to an orthomormal
       basis constructed using Gram-Schmidt method starting with S1
-      (useful to make rotation in the tangent plane defined by u,v
+      (useful to make rotation in the tangent plane defined by u,v)
       """
       S1,S2 = self.covariant_basis(u,v)
       a = 1/np.linalg.norm(S1)

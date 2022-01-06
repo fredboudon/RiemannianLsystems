@@ -48,7 +48,7 @@ def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):
   # NEXT POS: compute turtle's next position and orientation
   # and update the turtle's current state
 
-  # to express the distance to move forward expressed in the curve covariant basis
+  # to express the distance to move forward from coords expressed in the curve covariant basis
   n_ds = ds / surf.norm(uu,vv,npq[0:2])
   #print("*** ds = ",ds, " n_ds = ", n_ds)
   s = np.linspace(0,n_ds,SUBDIV)
@@ -85,10 +85,16 @@ def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
   uu,vv,pp,qq = p_uvpq
   # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
 
-  # ROTATION : Turn turtle with deviation angle before moving
+  # ROTATION : Turn turtle with deviation angle
   angle_rad = np.radians(deviation_angle)
-  if deviation_angle != 0:
+  if deviation_angle != 0.: # FIXME: replace this equality test with np.isclose()
     p_npq = np.array([pp,qq])
+    # FIXME: test and handle the case where the covariant basis is not degenerated (det = 0). This can occur if one of the basis vector for instance get to 0 (case of the sphere at the poles)
+    # 1. computes an orthogonal frame from the local covariant basis using Gram-Schmidt orthog. principle)
+    # 2. computes the components of the direction vector (given in the local covariant basis as [pp,qq]),
+    # in the orthonormal frame
+    # 3. then perform the rotation of the vector by an angle deviation_angle
+    # 4. finally, transforms back the resulting vector in the covariant basis
     npq1 = surf.Jfromorthonormal(uu,vv).dot(p_npq)
     npq2 = rotation_mat(angle_rad).dot(npq1)
     npq  = surf.J2orthonormal(uu,vv).dot(npq2)
