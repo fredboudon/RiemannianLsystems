@@ -75,27 +75,30 @@ length_geodesic = R*2*np.pi
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
            # To draw one geodesic, set it to 1 and set dashed to False
 
-TEST1 = True
-TEST2 = False
-TEST3 = False
+AXIOMTEST1 = True
+AXIOMTEST2 = False
+AXIOMTEST3 = False
 
-GREAT_CIRCLE = True
+
+#By default makes a great circle
+GREAT_CIRCLE_ARC = False
 QUARTER_CIRCLE = False
+TRIANGLE = True
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   nproduce SetSpace(Sphere(R))
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   # Test 1
-  if TEST1:
+  if AXIOMTEST1:
     u0= 0.
     v0= 0.
-    p0 = 0.0
+    p0 = 0 # 0.03
     q0 = 0.1
     nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
 
   # Test 1.1: Bug: the rotation is not in the correct sense (as the covariant basis changes directness)
-  if TEST2:
+  if AXIOMTEST2:
     u0= 0.
     v0= 1.
     p0 = 0.0
@@ -103,7 +106,7 @@ Axiom:
     nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
     
   # Test 2 draw a series of geodesics from a point
-  if TEST3:
+  if AXIOMTEST3:
     u0= 0 #np.pi/6
     v0= 0 #np.pi/6
     a = np.pi/3. # to orient the turtle's head at the beginning
@@ -118,18 +121,23 @@ derivation length: int(nb_seg)
 production:
 
 A(n):
-  seglen = 2*np.pi*R/4. # -0.01 is still Ok, but -0.001 creates the bug
-  if GREAT_CIRCLE : 
+  seglen = 2*np.pi*R/4. +1. # -0.01 is still Ok, but -0.001 creates the bug
+  if GREAT_CIRCLE_ARC : 
+    seglen = 2*np.pi*R/4. +1.
     nproduce F(length_geodesic/nb_seg)
   elif QUARTER_CIRCLE:
     nproduce F(length_geodesic/(4*nb_seg))
-  else: # Triangle
+  elif TRIANGLE: # Triangle
     nproduce F(seglen)+(90) #F(seglen)+(90)F(seglen)
+  else:
+    seglen = 2*np.pi*R/4.+0.01
+    nproduce F(length_geodesic/nb_seg)
   nproduce A(n+1)
+
 
 interpretation:
 
-#maximum depth : 2
+maximum depth : 2
 
 A(n):
   if PRINT_CURVATURES:
@@ -138,7 +146,7 @@ A(n):
     print("Courbures: Gauss = ", "{:.3f}".format(K), \
     ", Mean = ", "{:.3f}".format(H), \
     ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
-  nproduce _(FRAMEWIDTH)Frame(FRAMESIZE)
+  #nproduce _(FRAMEWIDTH)Frame(FRAMESIZE)
   nproduce CovariantBasis(0.3)
 
 

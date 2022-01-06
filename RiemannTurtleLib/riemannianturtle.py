@@ -95,9 +95,16 @@ def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
     # in the orthonormal frame
     # 3. then perform the rotation of the vector by an angle deviation_angle
     # 4. finally, transforms back the resulting vector in the covariant basis
-    npq1 = surf.Jfromorthonormal(uu,vv).dot(p_npq)
+    #FIXME: the transformations seem to be in the oppsite order: why ?
+    #npq1 = surf.Jfromorthonormal(uu,vv).dot(p_npq)
+    #npq2 = rotation_mat(angle_rad).dot(npq1)
+    #npq  = surf.J2orthonormal(uu,vv).dot(npq2)
+
+    # New: test of the inverted formula --> apparently does not change anything ???
+    npq1 = surf.J2orthonormal(uu, vv).dot(p_npq)
     npq2 = rotation_mat(angle_rad).dot(npq1)
-    npq  = surf.J2orthonormal(uu,vv).dot(npq2)
+    npq = surf.Jfromorthonormal(uu, vv).dot(npq2)
+
     #J1 = surf.J2orthonormal(uu,vv)
     #J2 = surf.Jfromorthonormal(uu,vv)
     #Jprod = np.dot(J1,J2)
