@@ -50,13 +50,15 @@ def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):
 
   # to express the distance to move forward from coords expressed in the curve covariant basis
   n_ds = ds / surf.norm(uu,vv,npq[0:2])
-  #print("*** ds = ",ds, " n_ds = ", n_ds)
+  print("*** ds = ",ds, " n_ds = ", n_ds)
   s = np.linspace(0,n_ds,SUBDIV)
   # computes the new state by integration of the geodesic equation
   # uvpq_s = odeint(pturtle_state.surf.geodesic_eq,pturtle_state.uvpq,s)
-  #print("AVANT: ", np.array([uu,vv,npq[0],npq[1]]))
+  print("AVANT: ", np.array([uu,vv,npq[0],npq[1]]))
+  #print("s (len = ", len(s),"):", s)
+
   uvpq_s = odeint(surf.geodesic_eq,np.array([uu,vv,npq[0],npq[1]]),s)
-  #print("APRES: ", uvpq_s)
+  print("APRES(len = ", len(uvpq_s),"): ", uvpq_s[SUBDIV-1])
   #stores in u,v,p,q
   uvpq = uvpq_s[SUBDIV-1]
   u,v,p,q = uvpq

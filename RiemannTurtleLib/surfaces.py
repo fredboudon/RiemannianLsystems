@@ -524,11 +524,27 @@ class Sphere(ParametricSurface):
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
-      if np.isclose(np.sin(v), 1.): #(v = pi/2)
-          print("PI/2 REACHED ...")
-          return [p,q,math.inf*p*q,-np.cos(v)*np.sin(v)*p**2]
-      else:
-          return [p,q,2*np.tan(v)*p*q,-np.cos(v)*np.sin(v)*p**2]
+
+      X = self.S(u, v)              # current 3D point on the trajectory
+      P1 = self.S(0, np.pi / 2)     # pole 1
+      P2 = self.S(0, -np.pi / 2)    # pole 2
+
+     # the following test check in the 3D space (and not in the parameter space)
+      # whether the current point is close to either poles.
+      if np.allclose(X, P1) or np.allclose(X, P2):      # np.isclose(np.sin(v), 1.): #(v = pi/2)
+          # If yes slightly approximates the equation to avoid divergence at the pole
+          # by pretending that p keeps constant while the point is in the narrow
+          # degenerated region.
+          print("PI/2 REACHED ...", np.allclose(X, P1), np.allclose(X, P1) )
+          # makes the approximation that p does not change close to this very narrow region
+          # this avoids the divergence of p at the poles
+
+          # p and q are the next values for u,v. One must check that q stays between [-pi/2,pi/2]
+          #print("angles = ", u, v, p, q)
+
+          return [p, q, p, -np.cos(v) * np.sin(v) * p ** 2]
+      else: # standard equation
+          return [p, q, 2*np.tan(v)*p*q, -np.cos(v)*np.sin(v)*p**2]
 
 
 class PseudoSphere(ParametricSurface):

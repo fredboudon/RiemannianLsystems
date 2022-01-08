@@ -160,7 +160,21 @@ F(length):
   print("Input length = ", length, " Drawn segment length = ", delta_s)
   '''
   # 4. update the turtle's state with the last point of the computed curve
-  turtle.uvpq = uvpq_s[-1]
+  u,v,p,q = uvpq_s[-1]
+  if v > np.pi / 2:
+    print("*******          angles =", u, v, p, q)
+    v = np.pi - v
+    u = u + np.pi
+    q = -q
+    print("******* changing angles =", u, v, p, q)
+  elif v < -np.pi / 2:
+    print("*******          angles =", u, v, p, q)
+    v = - np.pi - v
+    u = u + np.pi
+    q = -q
+    print("******* changing angles =", u, v, p, q)
+
+  turtle.uvpq = [u,v,p,q] #uvpq_s[-1]
 
   # 5. Finally, orient the head of the turtle
   # according to what was computed for the mast point
@@ -223,20 +237,31 @@ CovariantBasis(size):
   surf = turtle.space
   u,v,p,q = turtle.uvpq
   S1, S2 = surf.covariant_basis(u, v)
-  print("Coucou1", u,v, S1,S2)
+
+  l1 = np.linalg.norm(S1)
+  l2 = np.linalg.norm(S2)
   #nproduce [;(1)DrawVectnp(S1)][;(4)DrawVectnp(S2)]
-  nproduce [_(0.01);(2)LineRel(size*S1)@O(0.01)][_(0.01);(3)LineRel(size*S2)@O(0.01)]
+  #nproduce [_(0.01);(2)LineRel(size*S1)@O(0.01)][_(0.01);(3)LineRel(size*S2)@O(0.01)]
 
-# Draw a line from the current position of the turtle to point of coord in R0
-DrawVect(coord):
-  # draw a line from the current position of the Turtle to the indicated position
-  nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  nproduce [_(0.01);(2)PinpointRel(S1)Arrow(l1*size)][_(0.01);(3)PinpointRel(S2)Arrow(l2*size)]
 
-# argument is numpy array
-DrawVectnp(coord):
+# Draw a vector at the current position of the turtle
+DrawVect(vect):
   # draw a line from the current position of the Turtle to the indicated position
-  #print(coord)
-  print("Coucou2")
-  nproduce _(0.01)LineRel(coord);(1)@O(0.01)
+  #nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  l1 = np.linalg.norm(vect)
+  #nproduce [_(0.01)LineRel(coord)]
+  # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+  nproduce [PinpointRel(vect)Arrow(l1)]
+
+# Draw a vector at the current position of the turtle
+DrawVect(vect, size):
+  # draw a line from the current position of the Turtle to the indicated position
+  #nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  l1 = np.linalg.norm(vect)
+  #nproduce [_(0.01)LineRel(coord)]
+  # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+  nproduce [PinpointRel(vect)Arrow(l1*size)]
+
 
 endlsystem
