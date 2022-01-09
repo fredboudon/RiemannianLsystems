@@ -85,15 +85,23 @@ STEPSIZE = 0.1     # size of a step (in a.u.) used to draw pieces of geodesic
 LEAVES = False
 ROTATELEAF = False
 
+AXIOMTEST = 1
+
 TEST1 = False  # True for long internodes
 
 def length(n):
   return 4*STEPSIZE - 4*n * STEPSIZE/10.
 
 Axiom: 
-  # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(PseudoSphere(R))
-  nproduce ;(3)InitTurtle([0.1,0.01,1.0,-0.01])
+  # Sets the Riemanian space in which the turtle will move. The args = (True) 
+  nproduce SetSpace(PseudoSphere(R),(True))
+  if AXIOMTEST == 1:
+    # test the passage through the pseudosphere
+    nproduce ;(2)InitTurtle([-1.5,0.0,1.,0.])
+  elif AXIOMTEST == 2:
+    nproduce ;(3)InitTurtle([0.1,0.01,0.1,0.00])
+  else:
+    nproduce ;(3)InitTurtle([0.1,0.01,1.0,0.00])
   nproduce ;(6)_(LINEWIDTH)A(0)
  
 derivation length: 6
@@ -126,8 +134,13 @@ L(la,n):
 
 interpretation:
 
+maximum depth: 2
+
 A(n):
   produce ;(2)@O(0.03)
+  nproduce CovariantBasis(0.3)
+  nproduce _(0.03)DrawVect(velocity,1.5)
+
   #if FRAME: nproduce _(0.01)Frame(0.2)
 
 L(la,n):

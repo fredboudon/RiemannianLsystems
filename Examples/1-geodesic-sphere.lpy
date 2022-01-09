@@ -93,7 +93,7 @@ Axiom:
   if AXIOMTEST1:
     u0= 0.
     v0= 0.
-    p0 = 0 # 0.001 # 0.03
+    p0 = 0.0 # 0.001 # 0.03
     q0 = 0.1
     nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
 
@@ -137,7 +137,7 @@ A(n):
 
 interpretation:
 
-maximum depth : 2
+maximum depth: 2
 
 A(n):
   if PRINT_CURVATURES:

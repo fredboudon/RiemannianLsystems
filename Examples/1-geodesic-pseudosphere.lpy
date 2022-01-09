@@ -76,18 +76,29 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 
 length_geodesic = 3.5 
 
+#Select Axiom here
+AXIOMTEST = 1
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(PseudoSphere(R, zmin = -5, zmax = 5))
+  # u = control of z (the bigger u the highest z (warning it is not directly z)
+  # v = azimuth
+  nproduce SetSpace(PseudoSphere(R, zmin = -3, zmax = 3),(True))
   nproduce _(LINEWIDTH)
-  # geodesic familly with increasing initial bending
-  nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
-  nproduce [;(3)InitTurtle([0.1,0.0,0.98,0.02])A(0)]
-  nproduce [;(4)InitTurtle([0.1,0.0,0.97,0.03])A(0)]
-  nproduce [;(5)InitTurtle([0.1,0.0,0.95,0.05])A(0)]
-  nproduce [;(6)InitTurtle([0.1,0.0,0.94,0.06])A(0)]
-  nproduce [;(7)InitTurtle([0.1,0.0,0.935,0.065])A(0)]
+
+  if AXIOMTEST == 1:
+    # test the passage through the pseudosphere rim
+    nproduce [;(2)InitTurtle([1.,0.0,-1,0.])A(0)]
+  elif AXIOMTEST == 2:
+    # geodesic familly with increasing initial bending
+    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
+    nproduce [;(3)InitTurtle([0.1,0.0,0.98,0.02])A(0)]
+    nproduce [;(4)InitTurtle([0.1,0.0,0.97,0.03])A(0)]
+    nproduce [;(5)InitTurtle([0.1,0.0,0.95,0.05])A(0)]
+    nproduce [;(6)InitTurtle([0.1,0.0,0.94,0.06])A(0)]
+    nproduce [;(7)InitTurtle([0.1,0.0,0.935,0.065])A(0)]
+  else:
+    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
   
 derivation length: int(nb_seg)
 production:

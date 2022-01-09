@@ -50,15 +50,17 @@ def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):
 
   # to express the distance to move forward from coords expressed in the curve covariant basis
   n_ds = ds / surf.norm(uu,vv,npq[0:2])
-  print("*** ds = ",ds, " n_ds = ", n_ds)
+  #print("*** ds = ",ds, " n_ds = ", n_ds)
   s = np.linspace(0,n_ds,SUBDIV)
   # computes the new state by integration of the geodesic equation
   # uvpq_s = odeint(pturtle_state.surf.geodesic_eq,pturtle_state.uvpq,s)
-  print("AVANT: ", np.array([uu,vv,npq[0],npq[1]]))
+  #print("BEFORE: ", np.array([uu,vv,npq[0],npq[1]]))
   #print("s (len = ", len(s),"):", s)
 
   uvpq_s = odeint(surf.geodesic_eq,np.array([uu,vv,npq[0],npq[1]]),s)
-  print("APRES(len = ", len(uvpq_s),"): ", uvpq_s[SUBDIV-1])
+
+  '''
+  #print("AFTER(len = ", len(uvpq_s),"): ", uvpq_s[SUBDIV-1])
   #stores in u,v,p,q
   uvpq = uvpq_s[SUBDIV-1]
   u,v,p,q = uvpq
@@ -78,8 +80,9 @@ def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):
   up = np.array(surf.normal(u,v))
   #print ("head = ",head, " head norm = ", np.linalg.norm(head))
   #print ("up = ",up, " up norm = ", np.linalg.norm(up))
+  '''
 
-  return uvpq_s,head,up,S1,S2
+  return uvpq_s
 
 
 def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
@@ -97,15 +100,17 @@ def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
     # in the orthonormal frame
     # 3. then perform the rotation of the vector by an angle deviation_angle
     # 4. finally, transforms back the resulting vector in the covariant basis
-    #FIXME: the transformations seem to be in the oppsite order: why ?
-    #npq1 = surf.Jfromorthonormal(uu,vv).dot(p_npq)
-    #npq2 = rotation_mat(angle_rad).dot(npq1)
-    #npq  = surf.J2orthonormal(uu,vv).dot(npq2)
+    #FIXME: the transformations seem to be in the oppsite order: why ? should be fixed now, see below ...
+    npq1 = surf.Jfromorthonormal(uu,vv).dot(p_npq)
+    npq2 = rotation_mat(angle_rad).dot(npq1)
+    npq  = surf.J2orthonormal(uu,vv).dot(npq2)
 
-    # New: test of the inverted formula --> apparently does not change anything ???
+    # New: test of the inverted formula --> apparently does changes the angles which are incorrect ?!
+    '''
     npq1 = surf.J2orthonormal(uu, vv).dot(p_npq)
     npq2 = rotation_mat(angle_rad).dot(npq1)
     npq = surf.Jfromorthonormal(uu, vv).dot(npq2)
+    '''
 
     #J1 = surf.J2orthonormal(uu,vv)
     #J2 = surf.Jfromorthonormal(uu,vv)

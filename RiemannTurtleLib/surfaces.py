@@ -12,6 +12,7 @@ TODO: compute principal curvatures, gauss curvature for the mother class
 """
 import math
 import numpy as np
+from pynverse import inversefunc
 
 def derivatives(surf, u, v, order):
     return surf.derivatives(u,v,order)
@@ -91,7 +92,7 @@ class RiemannianSpace2D:
     but usually they will redefine the some of them.
     '''
 
-    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = ()):
+    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
       # functions to compute the metric
       self.g11 = g11
       self.g12 = g12
@@ -110,6 +111,9 @@ class RiemannianSpace2D:
 
       self.metric_tensor_params = metric_tensor_params
 
+      self.STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U
+      self.STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_U
+
     def S(self,u,v):
       """
       by default (u,v) = (y,z) and x = 0
@@ -119,11 +123,61 @@ class RiemannianSpace2D:
       z = v
       return np.array([x,y,z])
 
-    # the Shift tensor may be wieved as the coordinates of the surface
-    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+    def check_coords_domain(self,u,v):
+        '''
+        Checks whether domain boundary was reached at u,v
+        Do something only if the boundary reached in the parameter space
+        and if the flag to stay on boundary is on (by defaut, it is off).
+        '''
+        boundary_reached = False
+
+        if self.STAY_ON_BOUNDARY_U:
+            if u > self.umax:
+                boundary_reached = True
+                u = self.umax
+            elif u < self.umin:
+                boundary_reached = True
+                u = self.umin
+        if self.STAY_ON_BOUNDARY_V:
+            if v > self.vmax:
+                boundary_reached = True
+                v = self.vmax
+            elif v < self.vmin:
+                boundary_reached = True
+                v = self.vmin
+
+        return u,v, boundary_reached
+
+    def check_coords(self, uvpq):
+        '''
+        Verification of the impact of degenerated points
+        by default returns upvq
+        '''
+        return uvpq
+
+    def sets_boundary_flag(self, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V=False):
+        """
+        By default the class contains a flag that restricts the values of (u,v)
+        to stay in the domain (umin,umax,vmin,vmax) while the turtle is moving .
+
+        This functions may be used to change this default behaviour:
+        if set to True, check_coord function will returned bounded values
+        when called to check specific (u,v)
+
+        This can be used to stop the turtle movement
+        """
+        self.STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U  # boolean value
+        self.STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_V  # boolean value
+
+
     def Shift(self,u,v):
-      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      """
+      the Shift tensor may be wieved as the coordinates of the surface
+      covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+      It is a (3,2 matrix) to transform the coordinates u,v in x,y,z
       Here u,v, are mapped on the y,z plane
+      It can also be used to transform a vector in the u,v tangent plane into a 3D vector
+      in the ambient space if any.
       """
       xu = 0.
       yu = 1.
@@ -150,6 +204,24 @@ class RiemannianSpace2D:
       S1 = A[:,0] # first colum of A = first surface covariant vector in ambiant space
       S2 = A[:,1] # second column of A = second surface covariant vector in ambiant space
       return S1,S2
+
+    def covariant_basis_and_velocity(self,u,v,p,q):
+      A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
+      S1 = A[:,0] # first colum of A = first surface covariant vector in ambiant space
+      S2 = A[:,1] # second column of A = second surface covariant vector in ambiant space
+
+      velocity = A.dot(np.array([p, q]))
+
+      return S1,S2,velocity
+
+    def shift_vector(self,u,v,p,q):
+      A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
+
+      # Computes the 3D vector corresponding to the vector p,q
+      # in the tangent plane at point u,v.
+      vector = A.dot(np.array([p, q]))
+
+      return vector
 
     def metric_tensor(self, u, v):
         args = self.metric_tensor_params # args is a store in the object as a tuple
@@ -300,6 +372,9 @@ class ParametricSurface(RiemannianSpace2D):
       """
       print("Shift tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
     '''
+    def __init__(self, umin,umax,vmin,vmax, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
+        super(ParametricSurface, self).__init__(umin=umin,umax=umax,vmin=vmin,vmax=vmax,STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U, STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_V)
+
     def secondsuu(self,u,v):
       """ Vectors of the second derivatives of the point S(u,v):
       D2S(u,v)/du^2, D2S(u,v)/du2dv2, D2S(u,v)/dv^2 (the fourth /dvdu is symmetric to /dudv)
@@ -448,12 +523,9 @@ class ParametricSurface(RiemannianSpace2D):
 class Sphere(ParametricSurface):
 
     def __init__(self, R = 1.0):
-      self.R = R # radius of the sphere
-      self.CIRCUM = 2*np.pi*self.R  # Circumference
-      self.umin = 0
-      self.umax = 2*np.pi
-      self.vmin = -np.pi/2.
-      self.vmax = np.pi/2.
+        super(Sphere, self).__init__(umin=0, umax=2 * np.pi, vmin=-np.pi/2., vmax=np.pi/2.)
+        self.R = R # radius of the sphere
+        self.CIRCUM = 2*np.pi*self.R  # Circumference
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
@@ -471,6 +543,48 @@ class Sphere(ParametricSurface):
       y = self.R*np.sin(u)*np.cos(v)
       z = self.R*np.sin(v)
       return np.array([x,y,z])
+
+    def check_coords(self,uvpq):
+        '''
+        Verification of the impact of degenerated points
+        On a sphere, trajectories that go through the poles need
+        to have uvpq possibly corrected after passing the pole.
+        Here, we don't know whether
+        the trajectory went through the poles, but if it is
+        the case, upvq have to be checked, and possibly corrected
+        '''
+
+        # First checks whether u,v are in the domain
+        # For a sphere and its parameterization,
+        # u may be any real number (representing an angle between 0 and 2 pi
+        # v must be between -pi/2 and pi
+        u, v, p, q = uvpq
+        w = v
+        if v < 0:  # if negative apply the rule to -v
+            w = -v
+        # Now test the rule on w (representing either v or -v)
+        # Compute the floor division and modulo of w by pi/2
+        k, r = divmod(w, np.pi / 2.)
+        if int(k) % 2 != 0:  # floor division is an odd number
+            if np.isclose(r, 0.):
+                # consider that w is either pi/2 or -pi/2
+                pass
+            else:
+                #print("*******          angles =", u, v, p, q)
+                if v >= 0:
+                    v = np.pi - v
+                else:
+                    v = - np.pi - v
+                u = u + np.pi
+                q = -q
+                #print("******* changing angles =", u, v, p, q)
+
+        # No needs of additional check for u,v on the boundary
+        # Poles are considered as boundaries, but as they are degenerate,
+        # they are not a true boundary and we don't want to stop there
+        # is not terminal point.
+
+        return [u,v,p,q]
 
     # the Shift tensor may be wieved as the coordinates of the surface
     # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
@@ -535,27 +649,31 @@ class Sphere(ParametricSurface):
           # If yes slightly approximates the equation to avoid divergence at the pole
           # by pretending that p keeps constant while the point is in the narrow
           # degenerated region.
-          print("PI/2 REACHED ...", np.allclose(X, P1), np.allclose(X, P1) )
+
+          #print("PI/2 REACHED ...", np.allclose(X, P1), np.allclose(X, P1) )
+
           # makes the approximation that p does not change close to this very narrow region
           # this avoids the divergence of p at the poles
-
-          # p and q are the next values for u,v. One must check that q stays between [-pi/2,pi/2]
-          #print("angles = ", u, v, p, q)
 
           return [p, q, p, -np.cos(v) * np.sin(v) * p ** 2]
       else: # standard equation
           return [p, q, 2*np.tan(v)*p*q, -np.cos(v)*np.sin(v)*p**2]
 
+# function defined to compute its inverse
+def pseudo_sphere_z(x, R):
+    return R * (x - np.tanh(x))
 
 class PseudoSphere(ParametricSurface):
 
     def __init__(self, R = 1.0,zmin=-5,zmax=5):
+      # Need to infer min and max values of u from that of z
+      # warning: inverse function returns an array for a given input value
+      min = inversefunc(pseudo_sphere_z, y_values=zmin, args=(R))
+      max = inversefunc(pseudo_sphere_z, y_values=zmax, args=(R))
+      super(PseudoSphere, self).__init__(umin=min,umax=max,vmin=0,vmax=2*np.pi,STAY_ON_BOUNDARY_V=True) # only keep z in the domain
+
       self.R = R # radius of the sphere
       self.CIRCUM = 2*np.pi*self.R  # Circumference
-      self.umin = zmin
-      self.umax = zmax
-      self.vmin = 0
-      self.vmax = 2*np.pi
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
@@ -637,20 +755,32 @@ class PseudoSphere(ParametricSurface):
       tanh = np.tanh(u)
       pdot = -((sech**2-tanh**2)/(np.sinh(u)*np.cosh(u)))*p**2 - (sech/np.sinh(u))*q**2
       qdot = 2*tanh*p*q
-      return [p,q,pdot,qdot]
+
+      X = self.S(u, v)
+
+      # check if z is close to 0
+      if np.isclose(X[2], 0):  # np.isclose(np.sin(v), 1.): #(v = pi/2)
+          # If yes slightly approximates the equation to avoid divergence at the pole
+          # by pretending that p keeps constant while the point is in the narrow
+          # degenerated region.
+
+          # print("RIM REACHED ...")
+
+          # makes the approximation that p does not change close to this very narrow region
+          # this avoids the divergence of p at the rim (z = 0)
+
+          return [p, q, p,qdot]
+      else:
+          return [p,q,pdot,qdot]
 
 
 # For the moment the implementation is not done (copied from Sphere)
 class EllipsoidOfRevolution(ParametricSurface):
 
     def __init__(self, a = 1.0, b = 0.5):
+      super(EllipsoidOfRevolution, self).__init__(umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2)
       self.a = a # radius of the circle at equator
       self.b = b # other radius
-
-      self.umin = 0
-      self.umax = 2*np.pi
-      self.vmin = -np.pi/2.
-      self.vmax = np.pi/2.
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
@@ -668,6 +798,47 @@ class EllipsoidOfRevolution(ParametricSurface):
       y = self.a*np.sin(u)*np.cos(v)
       z = self.b*np.sin(v)
       return np.array([x,y,z])
+
+    def check_coords(self,uvpq):
+        '''
+        Verification of the impact of degenerated points
+        On a sphere, trajectories that go through the poles need
+        to have upvq possibly corrected. Here, we don't know whether
+        the trajectory went through the poles, but if it is
+        the case, upvq have to be checked
+        '''
+
+        # First checks whether u,v are in the domain
+        # For a an ellipsoid of revolution and its parameterization,
+        # u may be any real number (representing an angle between 0 and 2 pi
+        # v must be between -pi/2 and pi
+        u, v, p, q = uvpq
+        w = v
+        if v < 0:  # if negative apply the rule to -v
+            w = -v
+        # Now test the rule on w (representing either v or -v)
+        # Compute the floor division and modulo of w by pi/2
+        k, r = divmod(w, np.pi / 2.)
+        if int(k) % 2 != 0:  # floor division is an odd number
+            if np.isclose(r, 0.):
+                # consider that w is either pi/2 or -pi/2
+                boundary = True
+            else:
+                #print("*******          angles =", u, v, p, q)
+                if v >= 0:
+                    v = np.pi - v
+                else:
+                    v = - np.pi - v
+                u = u + np.pi
+                q = -q
+                #print("******* changing angles =", u, v, p, q)
+
+        # No needs of additional check for u,v on the boundary
+        # Poles are considered as boundaries, but as they are degenerate,
+        # they are not a true boundary and we don't want to stop there
+        # is not terminal point.
+
+        return [u,v,p,q]
 
     # the Shift tensor may be wieved as the coordinates of the surface
     # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
@@ -722,19 +893,37 @@ class EllipsoidOfRevolution(ParametricSurface):
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
-      den = (self.a*np.sin(v))**2 + (self.b*np.cos(v))**2
-      return [p,q,2*np.tan(v)*p*q,-((self.a**2-self.b**2)*np.cos(v)*np.sin(v)/den)*q**2 - ((self.a**2)*np.cos(v)*np.sin(v)/den)*p**2]
+
+      X = self.S(u, v)  # current 3D point on the trajectory
+      P1 = self.S(0, np.pi / 2)  # pole 1
+      P2 = self.S(0, -np.pi / 2)  # pole 2
+
+      den = (self.a * np.sin(v)) ** 2 + (self.b * np.cos(v)) ** 2
+
+      # the following test check in the 3D space (and not in the parameter space)
+      # whether the current point is close to either poles.
+      if np.allclose(X, P1) or np.allclose(X, P2):  # np.isclose(np.sin(v), 1.): #(v = pi/2)
+          # If yes slightly approximates the equation to avoid divergence at the pole
+          # by pretending that p keeps constant while the point is in the narrow
+          # degenerated region.
+          # print("PI/2 REACHED ...", np.allclose(X, P1), np.allclose(X, P1))
+          # makes the approximation that p does not change close to this very narrow region
+          # this avoids the divergence of p at the poles
+
+          # p and q are the next values for u,v. One must check that q stays between [-pi/2,pi/2]
+          # print("angles = ", u, v, p, q)
+
+          return [p, q, p,-((self.a**2-self.b**2)*np.cos(v)*np.sin(v)/den)*q**2 - ((self.a**2)*np.cos(v)*np.sin(v)/den)*p**2]
+      else:  # standard equation
+          return [p,q,2*np.tan(v)*p*q,-((self.a**2-self.b**2)*np.cos(v)*np.sin(v)/den)*q**2 - ((self.a**2)*np.cos(v)*np.sin(v)/den)*p**2]
 
 
 class Torus(ParametricSurface):
 
     def __init__(self, R = 1.0, r = 0.2):
+      super(Torus, self).__init__(umin=0,umax=2*np.pi,vmin=0.,vmax=2*np.pi)
       self.R = R # radius of the torus (center to medial circle)
       self.r = r # radius of the torus cylinder
-      self.umin = 0
-      self.umax = 2*np.pi
-      self.vmin = 0
-      self.vmax = 2*np.pi
 
     # Surface position vector
     def S(self,u,v):
@@ -832,16 +1021,13 @@ class Torus(ParametricSurface):
 
 
 class Paraboloid(ParametricSurface):
+    """
+    u = radius of the circle (r)
+    v = position on the circle (theta)
+    """
 
     def __init__(self, radiusmax = 0.5):
-      """
-      u = radius of the circle (r)
-      v = position on the circle (theta)
-      """
-      self.umin = 0
-      self.umax = radiusmax
-      self.vmin = 0.
-      self.vmax = 2*np.pi
+      super(Paraboloid, self).__init__(umin=0,umax=radiusmax,vmin=0.,vmax=2*np.pi)
 
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the paraboloid surface
@@ -931,12 +1117,10 @@ def to_nurbs_python(sh):
 class MonkeySaddle(ParametricSurface):
 
     def __init__(self, a = 1., n=3, umax = 1.):
+      super(MonkeySaddle, self).__init__(umin=0,umax=umax,vmin=0.,vmax=2*np.pi)
+
       self.a = a # dilation factor
       self.n = n # dilation factor
-      self.umin = 0
-      self.umax = umax
-      self.vmin = 0.
-      self.vmax = 2*np.pi
 
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
@@ -1008,10 +1192,14 @@ class Patch(ParametricSurface):
     def __init__(self, patch):
       self.patch = patch
       self.nurbssurf = to_nurbs_python(patch)
-      self.umin = min(self.nurbssurf.knotvector_u)
-      self.umax = max(self.nurbssurf.knotvector_u)
-      self.vmin = min(self.nurbssurf.knotvector_v)
-      self.vmax = max(self.nurbssurf.knotvector_v)
+
+      umin = min(self.nurbssurf.knotvector_u)
+      umax = max(self.nurbssurf.knotvector_u)
+      vmin = min(self.nurbssurf.knotvector_v)
+      vmax = max(self.nurbssurf.knotvector_v)
+
+      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
+
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
@@ -1115,15 +1303,17 @@ class Patch(ParametricSurface):
 '''
 
 class Revolution(ParametricSurface):
+    """
+    u = theta - azimuthal position around the symmetry axis
+    v = z - altitude on the symmetry axis
+
+    r is a function of z (i.e. v) that defines in 3D the radius of the point at altitude z
+    The first and second derivatives are computed automatically
+    """
 
     def __init__(self, rfunc, args = None, zmin = -2*np.pi, zmax = 2*np.pi):
-      """
-      u = theta - azimuthal position around the symmetry axis
-      v = z - altitude on the symmetry axis
+      super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STAY_ON_BOUNDARY_V=True) # only keep z in the domain
 
-      r is a function of z (i.e. v) that defines in 3D the radius of the point at altitude z
-      The first and second derivatives are computed automatically
-      """
       #print('args = ', args)
       #print('rfunc(2.,args)', rfunc(2.,args))
       f = gen_func(rfunc, args)
@@ -1131,10 +1321,6 @@ class Revolution(ParametricSurface):
       ddf = gen_second_deriv(rfunc, args)
       #print(rfunc(2.,args), df(0.1), ddf(0.1))
 
-      self.umin = 0
-      self.umax = 2*np.pi
-      self.vmin = zmin
-      self.vmax = zmax
       self.rfunc = f        # care this are functions
       self.args = args
       self.rprime = df      # first derivative of the radius with respect to z
@@ -1224,24 +1410,38 @@ class Revolution(ParametricSurface):
 
         return RCS
 
-    def geodesic_eq(self,uvpq,s):
-      u,v,p,q = uvpq
-      r = self.rfunc(v)
-      r1 = self.rprime(v)
-      r2 = self.rsecond(v)
-      den = 1+r1**2
-      return [p,q, -2*p*q*r1/r, -r1*r2*(q**2)/den + r*r1*(p**2)/den]
+    def geodesic_eq(self, uvpq, s):
+        u, v, p, q = uvpq
+        r = self.rfunc(v)
+        r1 = self.rprime(v)
+        r2 = self.rsecond(v)
+        den = 1 + r1 ** 2
+
+        # Are we on a degenerated point (Gamma coeff diverging)
+        if np.isclose(r, 0.):
+            # If yes slightly approximates the equation to avoid divergence at the pole
+            # by pretending that p keeps constant while the point is in the narrow
+            # degenerated region.
+
+            print("Surface of revolution: Degenerated point detected ...")
+
+            # makes the approximation that p does not change close to this very narrow region this avoids the
+            # divergence of p at the poles
+
+            return [p, q, p, -r1 * r2 * (q ** 2) / den + r * r1 * (p ** 2) / den]
+        else:  # standard equation
+            return [p, q, -2 * p * q * r1 / r, -r1 * r2 * (q ** 2) / den + r * r1 * (p ** 2) / den]
 
 
-def tractrix(x, R = 10):
-    if math.isclose(x,0.0):
+def tractrix(x, R=10):
+    if math.isclose(x, 0.0):
         return math.inf
     else:
         try:
-            b = math.sqrt(R**2 - x**2)
-            res = R*math.log((R+b)/x) - b
+            b = math.sqrt(R ** 2 - x ** 2)
+            res = R * math.log((R + b) / x) - b
         except ValueError:
-            print("tractrix curve: bad domain for x=",x, " (should be 0 < x <=", R, ")" )
+            print("tractrix curve: bad domain for x=", x, " (should be 0 < x <=", R, ")")
         else:
             return res
 
@@ -1259,7 +1459,7 @@ class ChineseHat(Revolution):
 # For plotting any surface defined by an explicit equation S(u,v) with Quads
 ##############################################################################
 
-def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
+def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01, REVERSE_NORMALS = False):
     '''
     Computes a quad representation of the surface defined as surface(u,v) --> scalar
     u is in [umax, umin], varies by steps of size Du
@@ -1290,7 +1490,11 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
 
     # Constructs the list of quad indexes pointing to the 3D points
     # in the previous list
-    quadindexlist = [ (N*i+j-N-1,N*i+j-1,N*i+j,N*i+j-N)
+    if not REVERSE_NORMALS :
+        quadindexlist = [ (N*i+j-N-1,N*i+j-1,N*i+j,N*i+j-N)
+            for i in range(1,M) for j in range(1,N)]
+    else:
+        quadindexlist = [ (N*i+j-N-1,N*i+j-N,N*i+j,N*i+j-1)
             for i in range(1,M) for j in range(1,N)]
 
     return grid3Dpoints, quadindexlist
