@@ -235,7 +235,7 @@ f(length):
 
   # TURTLE FRAME:
   # Compute shitf tensor at u,v,
-  S1,S2, velocity = turtle.space.covariant_basis_and_velocity(u,v,p,q)
+  velocity = turtle.space.shift_vector(u,v,p,q)
   head = velocity / np.linalg.norm(velocity)
   up = np.array(turtle.space.normal(u,v))
   #print ("head = ",head, " head norm = ", np.linalg.norm(head))
@@ -246,13 +246,34 @@ f(length):
   nproduce @R(head,up)
 
 +(angle):
-  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+
+  u,v,p,q = turtle.uvpq
+  # COVARIANT BASIS
+  # Compute shitf tensor at u,v,
+  velocity = turtle.space.shift_vector(u, v, p, q)
+  head = velocity / np.linalg.norm(velocity)
+  up = np.array(turtle.space.normal(u,v))
+  # print ("head = ",head, " head norm = ", np.linalg.norm(head))
+  # print ("up = ",up, " up norm = ", np.linalg.norm(up))
+
   turtle.cumrotation += angle
   # print("Total turtle rotation during the path = ", turtle.cumrotation)
+
   nproduce @R(head,up)
 
 -(angle):
-  turtle.uvpq, head, up, S1, S2 = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
+  turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
+
+  u,v,p,q = turtle.uvpq
+  # COVARIANT BASIS
+  # Compute shitf tensor at u,v,
+  velocity = turtle.space.shift_vector(u, v, p, q)
+  head = velocity / np.linalg.norm(velocity)
+  up = np.array(turtle.space.normal(u, v))
+  # print ("head = ",head, " head norm = ", np.linalg.norm(head))
+  # print ("up = ",up, " up norm = ", np.linalg.norm(up))
+
   turtle.cumrotation -= angle
   nproduce @R(head,up)
 

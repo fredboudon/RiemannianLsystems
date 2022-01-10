@@ -257,25 +257,33 @@ class RiemannianSpace2D:
       g = self.metric_tensor(u,v)
       return np.sqrt(du*du*g[0,0]+du*dv*g[0,1]+dv*du*g[1,0]+dv*dv*g[1,1])
 
-    def J2orthonormal(self,u,v):
+    def passage_matrix_cb2ortho(self,u,v):
       """
-      defines the Jacobian to pass from the covariant basis to an orthomormal
-      basis constructed using Gram-Schmidt method starting with S1
-      (useful to make rotation in the tangent plane defined by u,v)
+      defines the passage matrix to pass from the covariant basis (cv) to an orthomormal
+      basis. The latter is constructed using Gram-Schmidt method starting with S1
+      (useful for example to make rotation in the tangent plane defined by u,v)
       """
       S1,S2 = self.covariant_basis(u,v)
-      a = 1/np.linalg.norm(S1)
+      len1 = np.linalg.norm(S1)
+
+      if np.isclose(len1,0.):
+        # Build the orthonormal basis using the normal vector and
+        print("length basis vector 1 is 0 !!!")
+
+      a = 1/len1
       g12 = self.metric_tensor(u,v)[0,1]
       S22 = S2 - g12 * S1
       b = 1/np.linalg.norm(S22)
+
       # print("J2orthonormal")
       # print("covariant S1 = ", S1)
       # print("covariant S2 = ", S2)
       # print("         S22 = ",S22)
       # print("g12 = ", g12, " a = ", a, " b = ", b)
+
       return np.array([[a,-g12*b],[0,b]])
 
-    def Jfromorthonormal(self,u,v):
+    def passage_matrix_cb2ortho_inverse(self,u,v):
       S1,S2 = self.covariant_basis(u,v)
       a = np.linalg.norm(S1)
       g12 = self.metric_tensor(u,v)[0,1]
@@ -287,6 +295,94 @@ class RiemannianSpace2D:
       #print("         S22 = ",S22)
       #print("g12 = ", g12, " a = ", a, " b = ", b)
       return np.array([[a,g12*a],[0,b]])
+
+    def is_degenerate_point(self, u,v,p,q):
+        """
+        Procedure to detect a degenerated point. By default checks if
+        none of the basis vectors is a null vector
+        """
+        S1, S2 = self.covariant_basis(u, v)
+        len1 = np.linalg.norm(S1)
+        len2 = np.linalg.norm(S2)
+
+        return np.isclose(len1, 0.) or np.isclose(len2, 0.)
+
+    def rotation_mat(self, a):
+        """
+        returns a matrix rotation for an angle a.
+        a should be given in radians
+        """
+        # note that the matrix is a set of line vectors
+        # first array = first line of the matrix,
+        # second array = second line.
+        return np.array([[np.cos(a), -np.sin(a)], [np.sin(a), np.cos(a)]])
+
+    def rotate_surface_vector_degenerate_basis(self, u, v, vectpq,angle):
+        '''
+        rotation in case of a degenerated covariant basis (eg. at the poles of a sphere.
+        This class must be implemented by the daughter classes depending on their specificities
+        '''
+
+        print("Abstract class: RiemannianSpace2D. Method should be implemented on the daugther classes that need to handle degenerated covariant basis")
+
+        vectpqy = [u,v,vectpq[0],vectpq[1]]
+
+        return vectpqy
+
+    def rotate_surface_vector_apply_matrixes(self,u, v, vectpq,angle_rad):
+        '''
+        Assuming that the covariant basis is sound (independent vectors),
+        this function applies the matrix R = P R' P^-1 to vector vectpq = (p,q) to get rotated vector vectpqy.
+        - R' is the known rotation matrix in the orthonormal basis (angle is in radians)
+        - P is the passage matrix from the covariant basis to the orthonormal basis
+
+        IMPORTANT: This assumes that the covariant basis exists at point u,v (i.e. u,v is
+        not a degenerated point).
+        '''
+
+        vectpq1 = self.passage_matrix_cb2ortho_inverse(u, v).dot(vectpq)   # application of P^-1
+        vectpq2 = self.rotation_mat(angle_rad).dot(vectpq1)                # application of R'
+        vectpqy = self.passage_matrix_cb2ortho(u, v).dot(vectpq2)          # application of P
+
+        # P = surf.passage_matrix_cb2ortho(u,v)
+        # Pinv = surf.passage_matrix_cb2ortho_inverse(u,v)
+        # Id = np.dot(P,Pinv)
+        # print ("P :", P)
+        # print ("Pinv :", Pinv)
+        # print ("P*Pinv = ", Id)
+        return [u,v,vectpqy[0],vectpqy[1]]
+
+    def rotate_surface_vector(self,u,v,p,q,angle):
+        '''
+        This function rotates a vector X whose coordinates are given in the covariant
+        basis at (u,v) and transforms it into a vector Y whose coordinates (py,qy) are given
+        in the covariant basis.
+
+        IMPORTANT: This assumes that the covariant basis exists at point u,v (i.e. u,v is
+        not a degenerated point). If this is not the case, e.g. poles of the sphere,
+        the function must be overloaded in the corresponding daughter class.
+        '''
+        if not np.isclose(angle, 0.):
+            vectpq = np.array([p, q])
+            # 1. computes an orthogonal frame from the local covariant basis using Gram-Schmidt orthog. principle)
+            # 2. computes the components of the direction vector (given in the local covariant basis as [pp,qq]),
+            # in the orthonormal frame
+            # 3. then perform the rotation of the vector by an angle deviation_angle
+            # 4. finally, transforms back the resulting vector in the covariant basis
+
+            if self.is_degenerate_point(u,v,p,q):
+                # determine new p,q using geodesic equ.
+                # print("length basis vector is 0 !!!")
+                vectuvpqy = self.rotate_surface_vector_degenerate_basis(u, v, vectpq, angle)
+            else:
+                # the returned vector is of the form [u,v,p,q]
+                vectuvpqy = self.rotate_surface_vector_apply_matrixes(u, v, vectpq, angle)
+        else:
+            # if no turn, nothing changes
+            vectuvpqy = np.array([u,v,p,q])
+
+        return vectuvpqy
+
 
     def RiemannChristoffelSymbols(self,u,v,printflag = False):
         """
@@ -392,11 +488,22 @@ class ParametricSurface(RiemannianSpace2D):
 
 
     def normal(self,u,v):
+      '''
+      the choice of a + sign must be make consistent parameterizing of the surface
+      and its orientation (if orientable)
+      Here we assume
+      - a + sign is consistent with the parameterization
+      - both covariant vectors are not null
+      if len1 becomes to close to 0, a specific method must be written
+      in the corresponding daughter class
+      '''
       S_u, S_v = self.covariant_basis(u,v)
-      #FIXME: Check why - sign ???
-      N1 = - np.cross(S_u,S_v)
 
-      return N1/np.linalg.norm(N1)
+      N1 = + np.cross(S_u,S_v)
+      len1 = np.linalg.norm(N1)
+      assert(not is_close(len1, 0))
+
+      return N1/len1
 
     '''
     def covariant_basis(self,u,v):
@@ -631,10 +738,44 @@ class Sphere(ParametricSurface):
       return np.array([[guu,guv],[gvu,gvv]])
 
     def normal(self,u,v):
+      '''
+      Note: this normal is well defined everywhere despite the fact that the poles
+      are degenerated. This comes that in the computation cos(v) appears as a global
+      factor, that cancels out in the normed vector.
+      '''
       nx = np.cos(u)*np.cos(v)
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
+
       return np.array([nx,ny,nz])
+
+    def rotate_surface_vector_degenerate_basis(self, u, v, vectpq, angle):
+        '''
+        rotation in case of a degenerated covariant basis (eg. at the poles of a sphere.
+        This class must be implemented by the daughter classes depending on their specificities
+        '''
+
+        print("!!! Degenerated covariant basis detected ...")
+
+        # At the poles, (u,v) = (u,+/-pi/2), u being the value of the azimuth
+        # of the great circle passing at the pole that conducted to the pole
+        # therefore, at the poles, turning means changing the value of u by the
+        # turning angle!
+        # The value of the parameter u is the value when arriving at the pole from previous
+        # points on the trajectory. It therefore represents the heading of the turtle
+        # Then turning by an angle  means adding an angle to this heading direction
+        #print ("BEFORE: u,v = ", u,v,vectpq)
+        u += angle
+        v = np.pi/2 if v >=0 else -np.pi/2
+        #print ("AFTER : u,v = ", u,v,vectpq)
+
+
+        # In adition, the velocity needs be reinitiated in the new direction of u
+        # FIXME: at speed one by default, but should be able to use any figure
+        vectpqy = [u, np.pi/2, 0., 1.]
+
+        # Note that u has been changed by this rotation in the retured vector
+        return vectpqy
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
@@ -885,6 +1026,12 @@ class EllipsoidOfRevolution(ParametricSurface):
       return np.array([[guu,guv],[gvu,gvv]])
 
     def normal(self,u,v):
+      '''
+      Note: this normal is well defined everywhere despite the fact that the poles
+      are degenerated. This comes that in the computation cos(v) appears as a global
+      factor, that cancels out in the normed vector.
+      '''
+
       den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
       nx = self.b*np.cos(u)*np.cos(v)
       ny = self.b*np.sin(u)*np.cos(v)
@@ -992,6 +1139,7 @@ class Torus(ParametricSurface):
       u,v,p,q = uvpq
 
       # checks the equality of Riemmann Christoffel coefs -------
+      ''' Uncomment to check if the different ways to compute RC symbols are consistent
       if False:
           Gamma = self.RiemannChristoffelSymbols(u,v)
           print ("u,v=",u,v)
@@ -1015,7 +1163,8 @@ class Torus(ParametricSurface):
           if not np.isclose(Gamma[1,0,1],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,0,1] = ", Gamma[1,0,1], "instead of: ", 0.)
           if not np.isclose(Gamma[1,1,0],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,1,0] = ", Gamma[1,1,0], "instead of: ", 0.)
           if not np.isclose(Gamma[1,1,1],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[1,1,1] = ", Gamma[1,1,1], "instead of: ", 0.)
-      # end test equality of coefs -------
+      # end test equality of coefs -------     
+      '''
 
       return [p,q,2*(self.r*np.sin(v)/(self.R+self.r*np.cos(v)))*p*q,-((self.R+self.r*np.cos(v))*np.sin(v)/self.r)*p**2]
 
@@ -1085,6 +1234,11 @@ class Paraboloid(ParametricSurface):
       return np.array([[guu,guv],[gvu,gvv]])
 
     def normal(self,u,v):
+      '''
+      FIXME: This normal is degenerated in u = 0
+      The trick from the 09/01/22 should be used here to estimate
+      the normal at u = 0 from neighboring normals
+      '''
       nx = -2*np.cos(v)/(4*u**2 + 1)
       ny = -2*np.sin(v)/(4*u**2 + 1)
       nz = 1/(u * (4*u**2 + 1) )
@@ -1381,6 +1535,9 @@ class Revolution(ParametricSurface):
       return np.array([[guu,guv],[gvu,gvv]])
 
     def normal(self,u,v):
+      '''
+      Note: the normal is always defined for all u and v.
+      '''
       factor = 1/(np.sqrt(1+self.rprime(v)**2))
       nx = factor * np.cos(u)
       ny = factor * np.sin(u)
@@ -1446,7 +1603,8 @@ def tractrix(x, R=10):
             return res
 
 class ChineseHat(Revolution):
-    ''' This surface is made with a tractrix revoluting around its x-axis (instead of y as in the PseudoSphere)
+    '''
+    This surface is made with a tractrix revoluting around its x-axis (instead of y as in the PseudoSphere)
     '''
     def __init__(self, R, zmin = 0.1, zmax = 0.99):
         super(ChineseHat,self).__init__(tractrix, args = (R), zmin = zmin, zmax = zmax)

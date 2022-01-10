@@ -104,7 +104,7 @@ Axiom:
     nproduce ;(3)InitTurtle([0.1,0.01,1.0,0.00])
   nproduce ;(6)_(LINEWIDTH)A(0)
  
-derivation length: 6
+derivation length: 7
 production:
 
 A(n):

@@ -79,8 +79,8 @@ Axiom:
   u0= 0 #np.pi/6
   v0= 0 #np.pi/6
   a = np.pi/3. # to orient the turtle's head at the beginning
-  #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
-  nproduce InitTurtle([u0,v0,0,1])
+  nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+  #nproduce InitTurtle([u0,v0,0,1])
   nproduce ;(1)_(LINEWIDTH)A(0)
 
 derivation length: int(length_geodesic/seglen)
