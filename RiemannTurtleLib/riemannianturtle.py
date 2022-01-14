@@ -2,132 +2,115 @@
     Classes and functions for manipulating a Riemannian Turtle in LP-y
 
     Author: C. Godin, Inria
-    Date: 2019-2021
+    Date: 2019-2022
     Lab: RDP ENS de Lyon, Mosaic Inria Team
 
 """
 from surfaces import *
 
 from scipy.integrate import odeint
-
-def riemannian_turtle_init(uvpq,space):
-  u,v,p,q = uvpq
-
-  # Compute shitf tensor at u,v, then use it to transform p,q vector
-  # representing the coordinates of the covariant basis on the curve
-  # expressed in the surface covariant basis
-  h = space.shift_vector(u,v,p,q)
-  head = h / np.linalg.norm(h)
-  up = np.array(space.normal(u,v))
-  #print('head,up=',(head,up))
-  return head,up
-
-def riemannian_turtle_move_forward(p_uvpq,surf,ds,SUBDIV = 10):
-
-  uu,vv,pp,qq = p_uvpq
-  # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
-
-  npq = np.array([pp,qq])
-
-  #if endflag and deviation_angle != 0 :
-  #  print ("uvpq just after turning = ", [uu,vv,npq[0:2]] )
-  #  print ("pq norm before rot = ", surf.norm(uu,vv,np.array([pp,qq])))
-  #  print ("pq norm after rot  = ", surf.norm(uu,vv,npq[0:2]) )
-
-  # NEXT POS: compute turtle's next position and orientation
-  # and update the turtle's current state
-
-  # to express the distance to move forward from coords expressed in the curve covariant basis
-
-  n_ds = ds / surf.norm(uu,vv,npq[0:2])
-  #print("*** ds = ",ds, " n_ds = ", n_ds)
-
-  s = np.linspace(0,n_ds,SUBDIV)
-
-  # computes the new state by integration of the geodesic equation
-  # uvpq_s = odeint(pturtle_state.surf.geodesic_eq,pturtle_state.uvpq,s)
-  #print("BEFORE: ", np.array([uu,vv,npq[0],npq[1]]))
-  #print("s (len = ", len(s),"):", s)
-
-  uvpq_s = odeint(surf.geodesic_eq,np.array([uu,vv,npq[0],npq[1]]),s)
-
-  '''
-  #print("AFTER(len = ", len(uvpq_s),"): ", uvpq_s[SUBDIV-1])
-  #stores in u,v,p,q
-  uvpq = uvpq_s[SUBDIV-1]
-  u,v,p,q = uvpq
-
-  # COVARIANT BASIS
-  # Compute shitf tensor at u,v,
-  A = surf.Shift(u,v) # Compute shitf tensor at the new u,v
-  S1 = A[:,0] # first colum of A = first surface covariant vector in ambiant space
-  S2 = A[:,1] # second column of A = second surface covariant vector in ambiant space
-
-  # TURTLE FRAME:
-  # uses the shift tensor to transform the p,q vector
-  # representing the coordinates of the covariant basis "on the curve" (one vector)
-  # expressed in the "surface" covariant basis
-  h = A.dot(np.array([p,q]))
-  head = h / np.linalg.norm(h)
-  up = np.array(surf.normal(u,v))
-  #print ("head = ",head, " head norm = ", np.linalg.norm(head))
-  #print ("up = ",up, " up norm = ", np.linalg.norm(up))
-  '''
-
-  return uvpq_s
+from scipy.integrate import solve_ivp
 
 
-def riemannian_turtle_turn(p_uvpq,surf,deviation_angle):
+def riemannian_turtle_init(uvpq, space):
+    u, v, p, q = uvpq
 
-  u,v,p,q = p_uvpq
-  # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
-
-  # ROTATION : Turn turtle with deviation angle
-  angle_rad = np.radians(deviation_angle)
-
-  # a surface vector is defined by (pp,qq) at point (uu,vv)
-  # the primitive returns
-  uu,vv,pp,qq = surf.rotate_surface_vector(u,v,p,q,angle_rad)
-
-  '''
-  if not np.isclose(deviation_angle, 0.):
-    p_npq = np.array([pp,qq])
-    # FIXME: test and handle the case where the covariant basis is not degenerated (det = 0). This can occur if one of the basis vector for instance get to 0 (case of the sphere at the poles)
-    # 1. computes an orthogonal frame from the local covariant basis using Gram-Schmidt orthog. principle)
-    # 2. computes the components of the direction vector (given in the local covariant basis as [pp,qq]),
-    # in the orthonormal frame
-    # 3. then perform the rotation of the vector by an angle deviation_angle
-    # 4. finally, transforms back the resulting vector in the covariant basis
+    # Compute shitf tensor at u,v, then use it to transform p,q vector
+    # representing the coordinates of the covariant basis on the curve
+    # expressed in the surface covariant basis
+    h = space.shift_vector(u, v, p, q)
+    head = h / np.linalg.norm(h)
+    up = np.array(space.normal(u, v))
+    # print('head,up=',(head,up))
+    return head, up
 
 
-    # Note: due to the contravariance of vector components,
-    # the matrix transformation R = P R' P^-1
-    # where R' is the known rotation matrix in the orthonormal basis
-    # and P is the passage matrix from the covariant basis to the orthonormal basis
-    S1, S2 = self.covariant_basis(u, v)
-    len1 = np.linalg.norm(S1)
-    if np.isclose(len1, 0.):
-      # determine new p,q using geodesic equ.
-      print("length basis vector is 0 !!!")
-      npq1 = surf.passage_matrix_cb2ortho_inverse(uu, vv).dot(p_npq)
-      npq2 = rotation_mat(angle_rad).dot(npq1)
-      npq = surf.passage_matrix_cb2ortho(uu, vv).dot(npq2)
-    else:
-      npq1 = surf.passage_matrix_cb2ortho_inverse(uu,vv).dot(p_npq)
-      npq2 = rotation_mat(angle_rad).dot(npq1)
-      npq  = surf.passage_matrix_cb2ortho(uu,vv).dot(npq2)
+def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = True):
+    uu, vv, pp, qq = p_uvpq
+    # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
 
-    #J1 = surf.passage_matrix_cb2ortho(uu,vv)
-    #J2 = surf.passage_matrix_cb2ortho_inverse(uu,vv)
-    #Jprod = np.dot(J1,J2)
-    #print ("J1 :", J1)
-    #print ("J2 :", J2)
-    #print ("J1*J2 = ", Jprod)
-  else:
-    npq = np.array([pp,qq])
-  '''
+    # if endflag and deviation_angle != 0 :
+    #  print ("uvpq just after turning = ", [uu,vv,npq[0:2]] )
+    #  print ("pq norm before rot = ", surf.norm(uu,vv,np.array([pp,qq])))
+    #  print ("pq norm after rot  = ", surf.norm(uu,vv,npq[0:2]) )
 
-  uvpq = np.array([uu,vv,pp,qq])
+    # NEXT POS: compute turtle's next position and orientation
+    # and update the turtle's current state
 
-  return uvpq
+    # Two slightly different methods to perform the integration:
+    # In both cases the norm of the surface velocity does not impact the result (as it should be)
+    #
+    # to express the distance to move forward from coords expressed in the curve covariant basis
+    # The surface vector (p,q) defines the initial velocity of the turtle on its geodesic path.
+    # Let us call v the norm of this velocity. s is assumed to be the curvilinear abscissa on the curve
+    # Hence |dC/ds| = 1 (rate of change of the distance on the curve with a change in the curvilinear abscissa
+    # is constant and = 1).
+    # Let us call C_v(s) the same curve traversed at a speed v. This curve results from a reparametrerization
+    # of C: r = vs. The initial curve is then C(s) = C_1(s) and we have Cv(s) = C_1(sv)
+    # Then, progressing from Cv(s0) to Cv(s) (i.e. at speed v on C) can be done in two ways
+    # 1. by going to C_v(s0 + delta_s), with delta_s = s-s0
+    # 2. by going to C_1(s0 + delta_s*v)
 
+    # In the instruction F(delta_s) the fact that we get to point C(s0 + delta_s) must be independent of the speed v
+    # this can be done in two ways. In the geodesic this displacement is made at rate v = 1.
+    #
+    # 1. normalizing the velocity first to a speed v = 1, and then move to C_1(delta_s)
+    # 2. keeping the original velocity v, but then moving to C_1(delta_s/v) (one goes artificially faster, then one must go less far)
+
+    # 1. First method (v is set to 1, original delta_s is kept)
+    if SPEED1:
+        v = surf.norm(uu, vv, [pp,qq])
+        npp = pp/v
+        nqq = qq/v
+
+        # normalized velocity (v = 1)
+        npq = np.array([npp, nqq])
+
+        # Now we can compute the time tics at which the geodesic equation must be integrated
+        # over the entire delta_s
+        s = np.linspace(0, delta_s, SUBDIV)
+
+    # 2. second method (v != 1, delta_s is scaled by 1/v)
+    else :
+        npq = np.array([pp, qq])
+        v = surf.norm(uu, vv, npq[0:2])
+
+        # the distance is reduced  if the speed is increased (and vice versa)
+        ds = delta_s / v
+        # print("*** ds = ",ds, " dt = ", dt)
+
+        # Now we can compute the time tics at which the geodesic equation must be integrated
+        s = np.linspace(0, ds, SUBDIV)
+
+    # computes the new state by integration of the geodesic equation
+    # the equation takes into account the original velocity and
+    # integrates a trajectory travelled with speed v = |velocity|
+
+    # print("BEFORE: ", np.array([uu,vv,npq[0],npq[1]]))
+    # print("s (len = ", len(s),"):", s)
+    # scipy.integrate.odeint(func, y0, t, args=(), Dfun=None, col_deriv=0, full_output=0, ml=None, mu=None, rtol=None, atol=None, tcrit=None, h0=0.0, hmax=0.0, hmin=0.0, ixpr=0, mxstep=0, mxhnil=0, mxordn=12, mxords=5, printmessg=0, tfirst=False)
+    uvpq_s = odeint(surf.geodesic_eq, np.array([uu, vv, npq[0], npq[1]]), s)
+
+    # scipy.integrate.solve_ivp(fun, t_span, y0, method='RK45', t_eval=None, dense_output=False, events=None, vectorized=False, args=None, **options)
+    # t_eval = s
+    # t = [s[0],s[-1]]
+    # sol = solve_ivp(surf.geodesic_eq, s, np.array([uu, vv, npq[0], npq[1]]))
+    #uvpq_s = sol.y
+
+    return uvpq_s
+
+
+def riemannian_turtle_turn(p_uvpq, surf, deviation_angle):
+    u, v, p, q = p_uvpq
+    # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
+
+    # ROTATION : Turn turtle with deviation angle
+    angle_rad = np.radians(deviation_angle)
+
+    # a surface vector is defined by (pp,qq) at point (uu,vv)
+    # the primitive returns
+    uu, vv, pp, qq = surf.rotate_surface_vector(u, v, p, q, angle_rad)
+
+    uvpq = np.array([uu, vv, pp, qq])
+
+    return uvpq

@@ -2,16 +2,16 @@
     Classes and functions for manipulating a Riemannian Turtle in LP-y
 
     Author: C. Godin, Inria
-    Date: 2019-2021
+    Date: 2019-2022
     Lab: RDP ENS de Lyon, Mosaic Inria Team
 
-TODO: add the automatic construction of derivative functions
-TODO: add PseudoSphere to list of available surface classes
 TODO: add Extrusions (i.e. generalized cylinders) to list of available surface classes
 TODO: compute principal curvatures, gauss curvature for the mother class
 """
 import math
 import numpy as np
+
+# To install: pip install pynverse
 from pynverse import inversefunc
 
 def derivatives(surf, u, v, order):
@@ -55,14 +55,6 @@ def gen_func(func, *args):
     def ff(x):
         return func(x, *args)
     return ff
-
-'''
-
-def gen_prime_deriv(func, args):
-    def prime_derive(x):
-        return derivative(func, x, dx = 1e-6, n = 1, args=args)
-    return prime_derive
-'''
 
 # function defined as
 def gen_prime_deriv(func, *args):
@@ -501,7 +493,7 @@ class ParametricSurface(RiemannianSpace2D):
 
       N1 = + np.cross(S_u,S_v)
       len1 = np.linalg.norm(N1)
-      assert(not is_close(len1, 0))
+      assert(not np.isclose(len1, 0))
 
       return N1/len1
 
@@ -1037,6 +1029,34 @@ class EllipsoidOfRevolution(ParametricSurface):
       ny = self.b*np.sin(u)*np.cos(v)
       nz = self.a*np.sin(v)
       return np.array([nx,ny,nz])
+
+    def rotate_surface_vector_degenerate_basis(self, u, v, vectpq, angle):
+        '''
+        rotation in case of a degenerated covariant basis (eg. at the poles of a sphere.
+        This class must be implemented by the daughter classes depending on their specificities
+        Same procedure as for the sphere.
+        '''
+
+        print("!!! Degenerated covariant basis detected ...")
+
+        # At the poles, (u,v) = (u,+/-pi/2), u being the value of the azimuth
+        # of the great circle passing at the pole that conducted to the pole
+        # therefore, at the poles, turning means changing the value of u by the
+        # turning angle!
+        # The value of the parameter u is the value when arriving at the pole from previous
+        # points on the trajectory. It therefore represents the heading of the turtle
+        # Then turning by an angle  means adding an angle to this heading direction
+        #print ("BEFORE: u,v = ", u,v,vectpq)
+        u += angle
+        v = np.pi/2 if v >=0 else -np.pi/2
+        #print ("AFTER : u,v = ", u,v,vectpq)
+
+        # In adition, the velocity needs be reinitiated in the new direction of u
+        # FIXME: at speed one by default, but should be able to use any figure
+        vectpqy = [u, np.pi/2, 0., 1.]
+
+        # Note that u has been changed by this rotation in the retured vector
+        return vectpqy
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq

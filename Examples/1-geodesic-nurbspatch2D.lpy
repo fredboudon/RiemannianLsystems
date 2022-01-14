@@ -80,25 +80,40 @@ nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
 
 length_geodesic = 1.0 
 
+AXIOMTEST = 1
+
 module SetSpace(surface), InitTurtle(turtle_state)
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Patch(patch1))
+  nproduce SetSpace(Patch(patch1),True)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0.5 #np.pi/6
   v0= 0.0 #np.pi/6
-  # show pi/2, 0 then different values between pi/2 and pi/3
-  a = 0 #np.pi/2.3 # to orient the turtle's head at the beginning
-  # First option: dram a simple geodesic
-  #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
-  #nproduce ;(1)A(0)
-  # Second option:draw 10 geodesics with different initial directions
-  nb = 0
-  #for i in range(nb+1):  
-  #  a += np.pi/(nb+1)
-  nproduce InitTurtle([u0,v0,0,1])
-  nproduce ;(1)_(LINEWIDTH)A(0)
+  
+  if AXIOMTEST == 0:
+    nproduce InitTurtle([u0,v0,0,1])
+    nproduce ;(1)_(LINEWIDTH)A(0)
+  elif AXIOMTEST == 1:
+    # show pi/2, 0 then different values between pi/2 and pi/3
+    a = 0 #np.pi/2.3 # to orient the turtle's head at the beginning
+    # First option: dram a simple geodesic
+    #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+    #nproduce ;(1)A(0)
+    # Second option:draw 10 geodesics with different initial directions
+    nb = 0
+    #for i in range(nb+1):  
+    #  a += np.pi/(nb+1)
+    
+    nb = 10
+    for i in range(nb):  
+      a += 2*np.pi/nb
+      nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+  else:
+     nproduce InitTurtle([u0,v0,0,1])
+     nproduce ;(1)_(LINEWIDTH)A(0)
+
+
 
 derivation length: int(nb_seg)
 production:

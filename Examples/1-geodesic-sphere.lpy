@@ -78,8 +78,8 @@ seglen = length_greatcircle/nb_seg
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
-AXIOMTEST = 4
-TEST      = 4  
+AXIOMTEST = 1
+TEST      = 1  
 
 
 Axiom:
