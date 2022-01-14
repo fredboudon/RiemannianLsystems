@@ -2,7 +2,7 @@
 	L-systems in Riemannian geometry
 
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
+		Date: 2019-2022
 	Simulates geodesics on a sphere with a riemannian implementation of
 	the main turtle primitives: F, f, + and -
 
@@ -79,7 +79,7 @@ seglen = length_greatcircle/nb_seg
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
 AXIOMTEST = 1
-TEST      = 1  
+TEST      = 3  
 
 
 Axiom:

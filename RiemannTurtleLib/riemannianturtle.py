@@ -25,7 +25,7 @@ def riemannian_turtle_init(uvpq, space):
     return head, up
 
 
-def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = True):
+def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = True, INT_METHOD = 1):
     uu, vv, pp, qq = p_uvpq
     # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
 
@@ -88,14 +88,28 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
 
     # print("BEFORE: ", np.array([uu,vv,npq[0],npq[1]]))
     # print("s (len = ", len(s),"):", s)
-    # scipy.integrate.odeint(func, y0, t, args=(), Dfun=None, col_deriv=0, full_output=0, ml=None, mu=None, rtol=None, atol=None, tcrit=None, h0=0.0, hmax=0.0, hmin=0.0, ixpr=0, mxstep=0, mxhnil=0, mxordn=12, mxords=5, printmessg=0, tfirst=False)
-    uvpq_s = odeint(surf.geodesic_eq, np.array([uu, vv, npq[0], npq[1]]), s)
 
-    # scipy.integrate.solve_ivp(fun, t_span, y0, method='RK45', t_eval=None, dense_output=False, events=None, vectorized=False, args=None, **options)
-    # t_eval = s
-    # t = [s[0],s[-1]]
-    # sol = solve_ivp(surf.geodesic_eq, s, np.array([uu, vv, npq[0], npq[1]]))
-    #uvpq_s = sol.y
+    # We tested two different scipy methods for integration: odeint and solve_ivp
+    # solve_ivp seems to be more rapid TODO: compare efficiency of both method in time.
+    # however when degenerated points are encountered apparently odeint behaves better in some cases than solve_ivp
+    # (see for instance file: 1-geodesic-sphere.lpy, AXIOMTEST = 1 and TEST = 3 (spherical triangle))
+    if INT_METHOD == 1:    # integration method = odeint
+        # scipy.integrate.odeint(func, y0, t, args=(), Dfun=None, col_deriv=0, full_output=0, ml=None, mu=None, rtol=None, atol=None, tcrit=None, h0=0.0, hmax=0.0, hmin=0.0, ixpr=0, mxstep=0, mxhnil=0, mxordn=12, mxords=5, printmessg=0, tfirst=False)
+        uvpq_s = odeint(surf.geodesic_eq, np.array([uu, vv, npq[0], npq[1]]), s)
+        #print(uvpq_s)
+    else:                 # integration method = solve_ivp
+        # scipy.integrate.solve_ivp(fun, t_span, y0, method='RK45', t_eval=None, dense_output=False, events=None, vectorized=False, args=None, **options)
+        # by default uses RungeKutta of order 4/5
+        # Warning, signature of fun must be fun(t,y) (and not fun(y,t)), and the result is transposed compared to that returned by odeint.
+        t_span = [s[0],s[-1]]
+        # to get the right signature for the geodesic equation
+        def fun(t,y):
+            return surf.geodesic_eq(y,t)
+
+        y0 = [uu, vv, npq[0], npq[1]]
+        sol = solve_ivp(fun, t_span, y0, t_eval = s)
+        #print(sol.y)
+        uvpq_s = np.transpose(sol.y)
 
     return uvpq_s
 
