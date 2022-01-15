@@ -125,7 +125,7 @@ TEST = 1
 
 Axiom: 
   global source
-  if TEST == 1: # FIXME: it seems that the segments are much longuer close to the source and that on the left there is repulsion while attraction on the right !! 
+  if TEST == 1: # FIXME: it seems that the segments are much longer close to the source and that on the left there is repulsion while attraction on the right !!
     source = (-0.1,2)
   else:
     source = (0.5,1.5)
