@@ -1,17 +1,11 @@
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
+		Date: 2019-2022
 
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-
+	Geodesics on a 2D nurbs patch.
 """
-
-# To import libs from other directories
-#(append dynamically other dirs to PYTHONPATH variable)
 import sys
 sys.path.append("../RiemannTurtleLib")
 
@@ -27,19 +21,12 @@ from riemannianturtle import *
 
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
-PRINT_CURVATURES = True
-PLOTDS2 = False
-
 #from openalea.plantgl.scenegraph.nurbsshape import nurbsSphere
 from nurbsshape import nurbsSphere
 
 
-# To import libs from other directories
-#(append dynamically other dirs to PYTHONPATH variable)
 %pastefile riemannianrules.lpy
 
-
-#patch1 = nurbsSphere()
 
 #######################
 # Units
@@ -68,51 +55,59 @@ MAXSTEPLEN = 1 * cm  # Should be > 0.0
 LINEWIDTH  = 1. * cm
 
 # To control the Frame size
-FRAMESIZE  = 0.3 * meter
+FRAMESIZE  = 0.1 * meter
 FRAMEWIDTH = 1 * cm
 
 #######################
 # SIMULATION PARAMETERS
 #######################
 
-nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
+nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
 length_geodesic = 1.0 
 
-AXIOMTEST = 1
+AXIOMTEST = 2
 
 module SetSpace(surface), InitTurtle(turtle_state)
 
 Axiom:
+  global length_geodesic
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Patch(patch1),True)
-  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  u0= 0.5 #np.pi/6
-  v0= 0.0 #np.pi/6
-  
-  if AXIOMTEST == 0:
+  # FIXME: nproduce ^(90)SetSpace(Patch(patch1),None) does not work as the InitTurtle 
+  # positions the Turtle in the frame of the LPy space (assuming that the suface is mapped strainght here with no rotation or translation) 
+  if AXIOMTEST == 0: 
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    u0= 0.5 #np.pi/6
+    v0= 0.0 #np.pi/6
     nproduce InitTurtle([u0,v0,0,1])
     nproduce ;(1)_(LINEWIDTH)A(0)
   elif AXIOMTEST == 1:
-    # show pi/2, 0 then different values between pi/2 and pi/3
-    a = 0 #np.pi/2.3 # to orient the turtle's head at the beginning
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    u0= 0.5 #np.pi/6
+    v0= 0.0 #np.pi/6    # show pi/2, 0 then different values between pi/2 and pi/3
+    a = -np.pi/3 #np.pi/2.3 # to orient the turtle's head at the beginning
     # First option: dram a simple geodesic
     #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
     #nproduce ;(1)A(0)
     # Second option:draw 10 geodesics with different initial directions
-    nb = 0
     #for i in range(nb+1):  
     #  a += np.pi/(nb+1)
-    
+    length_geodesic = 1.0 
     nb = 10
     for i in range(nb):  
-      a += 2*np.pi/nb
+      a += np.pi/(1.5*nb)
       nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
-  else:
-     nproduce InitTurtle([u0,v0,0,1])
-     nproduce ;(1)_(LINEWIDTH)A(0)
-
+  elif AXIOMTEST == 2:
+    # FIXME: if nb_seg = 1 and length_geodesic > 2*np.pi, it seems that the integration slightly drifts. Check this.
+    patch1 = nurbsSphere()
+    dictarg = {'CCW' : False}
+    nproduce SetSpace(Patch(patch1),dictarg)
+    u0= 0.5 
+    v0= 0.0    
+    length_geodesic =2*np.pi 
+    nproduce InitTurtle([u0,v0,-0.5,0.5])
+    nproduce ;(1)_(LINEWIDTH)A(0)
 
 
 derivation length: int(nb_seg)

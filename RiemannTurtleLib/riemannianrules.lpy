@@ -29,7 +29,7 @@ riemannian_turtle = reload(riemannianturtle)
 from surfaces import *
 from riemannianturtle import *
 
-module SetSpace(surface)
+module SetSpace(surface, argdict)
 module InitTurtle(turtle_state)
 module ParallelTransportedArrow(angleRelHead,size)
 module CovariantBasis(size)
@@ -52,13 +52,23 @@ interpretation:
 # Plots the ds2 field if required
 # A second argument is an array of optional parameters:
 # args[0] --> DS2_SCALEFACTOR  (= 4 by default) to display the metrics ds2
-SetSpace(surface,*args):
 
-  #print(args)
-  if args != []:# To plot the surface with normals oriented correctly.
-    reverse_normals = args[0]
-  else:
-    reverse_normals = False
+# TODO: currently no optinal argument can be passed to LPy modules. Making it possible will simplify this call with a dict
+SetSpace(surface, argdict):
+
+  #print(argdict)
+  CCW = True
+  DS2_SCALEFACTOR = 10.
+  PLOTDS2 = False
+  if not argdict == None:
+    if 'CCW' in argdict:
+      # if additional argments are given, the first is ccw
+      # ccw = boolean to plot quads counter clockwise or not
+      CCW = argdict['CCW']
+    if 'PLOTDS2' in argdict:
+      PLOTDS2 = argdict['PLOTDS2']
+    if 'DS2_SCALEFACTOR' in argdict:
+      DS2_SCALEFACTOR = argdict['DS2_SCALEFACTOR']
 
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
@@ -69,12 +79,12 @@ SetSpace(surface,*args):
     umin,umax,vmin,vmax = surface.uv_domain()
     Du = 0.1
     Dv = 0.1
-    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du,Dv, REVERSE_NORMALS = reverse_normals)
+    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du,Dv)
     # Option ccw: (counter-clockwise)
     # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
     #S1 = surf.patch.getUTangentAt(u,v)
     #S2 = surf.patch.getVTangentAt(u,v)
-    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
+    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = CCW))]
 
     if PLOTDS2:
       ilist = np.arange(umin, umax, Du)
@@ -82,11 +92,6 @@ SetSpace(surface,*args):
       # print("ilist after  = ", ilist)
       jlist = np.arange(vmin, vmax, Dv)
       jlist = np.append(jlist, vmax)  # case of a periodic list
-
-      if len(args) != 0:
-        DS2_SCALEFACTOR = args[0]
-      else:
-        DS2_SCALEFACTOR = 4. # default value
 
       nproduce [
       for i in ilist:

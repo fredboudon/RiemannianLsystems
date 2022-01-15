@@ -1,10 +1,13 @@
-# L-systems in Riemannian geometry
-# Ch. Godin, Inria, 2019-2020
-#
-# Second prototype: 
-# uses the new possibility immplemented by Fred Boudon to manipulate the turtle from interpretation rules
-#
-# Step 0: movements on a sphere - example of a tree-like structure 
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Illustrates the notion of parallel transport and holonomy on a sphere
+	
+"""
+
 
 
 import numpy as np
@@ -90,10 +93,6 @@ LINEWIDTH = 0.01
 # transported arrow
 AngleRelativeToTurtleHead = 0 #0, 30
 
-def Start():
-  flag = True
-  pass #print (">>>> R =  ", R, " CIRCUM = ", CIRCUM, "STEPSIZE = ", STEPSIZE)
-
 # Initialize the surface coordinate and speed [u0,v0,p0,q0]
 # passed as the argument to Param. The second argument is the chosen parametric surface
 # Default = Sphere.
@@ -106,14 +105,10 @@ def Start():
 # must be of norm 1/R if one wants to adapt the movement to the sphere radius
 # (as on a sphere of radius R, on the equator for example s = R.theta and dtheta/ds = 1/R
 
-def StartInterpretation(turtle):
-  
-  pass
 
 def End():
-  # How to get the turtle object in the end ?
-  pass 
-  #print("Total turrtle rotation during the path = ", turtle.cumrotation)
+  
+  print("Total turrtle rotation during the path = ", turtle.cumrotation)
 
 # Arrow(length, cap_size_ratio=0.2, cap_radius_ratio=2)
 # draws a vector at the current position of the turtle in the direction of the turtle's head
@@ -126,7 +121,7 @@ def End():
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   #nproduce SetSpace(Revolution(rfunc1,rprime1,rsecond1, 8*np.pi))
-  nproduce SetSpace(Sphere())
+  nproduce SetSpace(Sphere(), None)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   #nproduce InitTurtle([0,0,1/np.sqrt(2)/R,1/np.sqrt(2)/R])
   if GREATCIRCLES == True:

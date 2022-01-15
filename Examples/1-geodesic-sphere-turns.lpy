@@ -1,14 +1,11 @@
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
+		Date: 2019-2022
 
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
-
+	Draw latitudes on the sphere as deviations from geodesics
+	Test the influence of degenerate points (poles) on turning (see TEST = 0)
 """
 
 import numpy as np
@@ -75,29 +72,28 @@ length = 1. * tour
 
 nb_seg = length / seglen
 
-AXIOMTEST = 1
-TEST = 1  
+TEST = 0  
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Sphere(R))
+  nproduce SetSpace(Sphere(R),None)
   
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  if AXIOMTEST == 0: # Draw a circle on the sphere by turning a constant angle
+  if TEST == 0: # Draw a circle on the sphere by turning a constant angle
     u0= 0.
     v0= 0.
     p0 = 0.0 
     q0 = 0.3
     nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(90)]
 
-  if AXIOMTEST == 1: # Draw a circle on the sphere by turning a constant angle
+  if TEST == 1: # Draw a circle on the sphere by turning a constant angle
     u0= 0.
     v0= 0.
     p0 = 0.0 # 0.001 # 0.03
     q0 = 0.1
     nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(20)]
 
-  if AXIOMTEST == 2: # draw n circles with different diameters
+  if TEST == 2: # draw n circles with different diameters
     u0= 0.
     v0= 0.
     p0 = 0.0 # 0.001 # 0.03
@@ -111,11 +107,11 @@ production:
 
 A(angle):
   global seglen
-  if TEST == 0 and AXIOMTEST == 0:  # Great circle
+  if TEST == 0:  # Great circle
     seglen = np.pi / 2 * R # to stop just at the pole
     nproduce F(seglen) +(angle) 
     
-  if TEST == 1 :  # Great circle
+  if TEST == 1 or TEST == 2:  # Great circle
     nproduce F(seglen) +(angle) 
   
   nproduce A(angle)

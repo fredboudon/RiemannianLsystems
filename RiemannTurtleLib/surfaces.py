@@ -747,7 +747,7 @@ class Sphere(ParametricSurface):
         This class must be implemented by the daughter classes depending on their specificities
         '''
 
-        print("!!! Degenerated covariant basis detected ...")
+        #print("!!! Degenerated covariant basis detected ...")
 
         # At the poles, (u,v) = (u,+/-pi/2), u being the value of the azimuth
         # of the great circle passing at the pole that conducted to the pole
@@ -1037,7 +1037,7 @@ class EllipsoidOfRevolution(ParametricSurface):
         Same procedure as for the sphere.
         '''
 
-        print("!!! Degenerated covariant basis detected ...")
+        #print("!!! Degenerated covariant basis detected ...")
 
         # At the poles, (u,v) = (u,+/-pi/2), u being the value of the azimuth
         # of the great circle passing at the pole that conducted to the pole
@@ -1485,7 +1485,7 @@ class Revolution(ParametricSurface):
     The first and second derivatives are computed automatically
     """
 
-    def __init__(self, rfunc, args = None, zmin = -2*np.pi, zmax = 2*np.pi):
+    def __init__(self, rfunc, args = [], zmin = -2*np.pi, zmax = 2*np.pi):
       super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STAY_ON_BOUNDARY_V=True) # only keep z in the domain
 
       #print('args = ', args)
@@ -1600,7 +1600,7 @@ class Revolution(ParametricSurface):
             # by pretending that p keeps constant while the point is in the narrow
             # degenerated region.
 
-            print("Surface of revolution: Degenerated point detected ...")
+            #print("Surface of revolution: Degenerated point detected ...")
 
             # makes the approximation that p does not change close to this very narrow region this avoids the
             # divergence of p at the poles
@@ -1637,7 +1637,7 @@ class ChineseHat(Revolution):
 # For plotting any surface defined by an explicit equation S(u,v) with Quads
 ##############################################################################
 
-def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01, REVERSE_NORMALS = False):
+def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
     '''
     Computes a quad representation of the surface defined as surface(u,v) --> scalar
     u is in [umax, umin], varies by steps of size Du
@@ -1668,11 +1668,16 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01, REV
 
     # Constructs the list of quad indexes pointing to the 3D points
     # in the previous list
+    quadindexlist = [(N * i + j - N - 1, N * i + j - 1, N * i + j, N * i + j - N)
+                     for i in range(1, M) for j in range(1, N)]
+
+    '''
     if not REVERSE_NORMALS :
         quadindexlist = [ (N*i+j-N-1,N*i+j-1,N*i+j,N*i+j-N)
             for i in range(1,M) for j in range(1,N)]
     else:
         quadindexlist = [ (N*i+j-N-1,N*i+j-N,N*i+j,N*i+j-1)
             for i in range(1,M) for j in range(1,N)]
+    '''
 
     return grid3Dpoints, quadindexlist

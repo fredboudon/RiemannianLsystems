@@ -1,14 +1,10 @@
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
+		Date: 2019-2022
 
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-
-   - TODO: Checks that MonkeySaddle works with geodesics properly ...
+	Geodesics on a Monkey saddle.
 """
 
 import numpy as np
@@ -67,28 +63,32 @@ FRAMEWIDTH = 0.1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-# Tighten the nec of the pin form structure to see that the geodesic 
-# at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
-            # To draw one geodesic, set it to 1 and set dashed to False
-
+            
 slen = 0.015 # 0.7
 
-seed(0)
+TEST = 1
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(MonkeySaddle(a = 0.1, n=3, umax = 1.))
-  nproduce InitTurtle([0.7,0.0,0.0,1.0])
+  nproduce SetSpace(MonkeySaddle(a = 0.1, n=3, umax = 1.), None)
+  if TEST == 1: # pure geodesic
+    nproduce InitTurtle([0.7,1.0,-0.1,1.0])    
+  elif TEST == 2: # Turning in addition of going straight
+    nproduce InitTurtle([0.7,0.0,0.0,1.0])
   nproduce ;(6)_(LINEWIDTH)A(0)@O(0.003)
  
 
 derivation length: 15
 production:
 
+
 A(n):
-  a = 21 #360*random()
-  nproduce +(a)F(slen)A(n+1)
+  if TEST == 1:
+    nproduce F(slen)A(n+1)
+  elif TEST == 2:
+    a = 21 
+    nproduce +(a)F(slen)A(n+1)
 
 interpretation:
 

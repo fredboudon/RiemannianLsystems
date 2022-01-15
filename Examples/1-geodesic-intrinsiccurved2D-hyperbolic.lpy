@@ -1,14 +1,12 @@
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
+		Date: 2019-2022
 
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-
-   - TODO: Checks that MonkeySaddle works with geodesics properly ...
+	Example of a 2D intrinsic Riemaniann space
+	
+	
 """
 
 import numpy as np
@@ -109,8 +107,8 @@ Axiom:
   metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
 
   # Note the second argument is optional and set the display 
-  
-  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0.12, vmax = 2), DS2_SCALEFACTOR)
+  argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR' : 20,'CCW' : True}
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0.12, vmax = 2), argdict)
   nproduce InitTurtle([-0.7,0.12,0.15,0.9])
 
   #nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)

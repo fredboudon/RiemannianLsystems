@@ -1,3 +1,12 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Random walk in flat space
+"""
+
 from random import random 
 
 Axiom: ;(2)@O(0.4);(1)A(0) Frame

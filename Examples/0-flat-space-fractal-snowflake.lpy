@@ -1,5 +1,13 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	A von Koch snowflake in flat space
+"""
 N = 5.
-e = 0.2 / (3.)**(N-1)
+e = 0.2 / (2.)**(N-1)
 
 Axiom: _(e)-(90)  F(1.) -(120)F(1.) -(120)F(1.)
 

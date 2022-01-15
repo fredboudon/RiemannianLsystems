@@ -3,10 +3,10 @@
 
 		Author: Ch. Godin, Inria
 		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
-
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+		
+	Simulates geodesics on a surface of revolution looking like a sphere
+	
+	Note that depending on the negative curvature at the neck, geodesics can be trapped in the lower part for instance
 
 """
 # To import libs from other directories
@@ -79,7 +79,7 @@ length_geodesic = 20.0
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   #nproduce SetSpace(Revolution(rfunc1,rprime1,rsecond1, 8*np.pi))
-  nproduce SetSpace(Revolution(profile,zmin = 0, zmax = 10))
+  nproduce SetSpace(Revolution(profile,zmin = 0, zmax = 10), None)
   #nproduce SetSpace(PseudoSphere(profile,profile_prime,profile_second,zmin = 0, zmax = 10.))
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   #nproduce InitTurtle([0,0,1/np.sqrt(2)/R,1/np.sqrt(2)/R])

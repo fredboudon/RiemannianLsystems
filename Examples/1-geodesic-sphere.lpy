@@ -3,6 +3,7 @@
 
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
+		
 	Simulates geodesics on a sphere with a riemannian implementation of
 	the main turtle primitives: F, f, + and -
 

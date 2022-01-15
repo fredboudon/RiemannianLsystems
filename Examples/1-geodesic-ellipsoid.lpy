@@ -1,13 +1,10 @@
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
+		Date: 2019-2022
 
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-
+	Geodesics of an ellipsoid of revolution 
 """
 
 import numpy as np
@@ -74,7 +71,7 @@ length_geodesic =  10*ra*2*np.pi
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
+  nproduce SetSpace(EllipsoidOfRevolution(ra,rb),None)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0 #np.pi/6
   v0= 0 #np.pi/6

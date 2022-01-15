@@ -2,11 +2,9 @@
 	L-systems in Riemannian geometry
 
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
+		Date: 2019-2022
 
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+	- Chinese hat (using a tractrix as the generator of a surface of revolution 
 
 """
 
@@ -82,41 +80,41 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 
 length_geodesic = 3.5 
 
+AXIOMTEST = 2
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   #nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
-  nproduce SetSpace(ChineseHat(radius, zmin = 0.1, zmax = radius-0.001))
+  nproduce SetSpace(ChineseHat(radius, zmin = 0.1, zmax = radius-0.001), None)
   nproduce _(LINEWIDTH)
-  # test 1: Parallel geodesics from close points
-  # first group
-  nproduce [;(1)InitTurtle([0,0.15,0.5,0.5])A(0)]
-  # geodesique parallele
-  nproduce [;(2)InitTurtle([0.05,0.15,0.5,0.5])A(0)]
-  
-  # second group
-  nproduce [;(3)InitTurtle([0,0.15,0.1,0.9])A(0)]
-  # geodesique parallele
-  nproduce [;(4)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
-
-  # third group
-  nproduce [;(5)InitTurtle([0,0.15,0.7,0.3])A(0)]
-  # geodesique parallele
-  nproduce [;(6)InitTurtle([0.05,0.15,0.7,0.3])A(0)]
-
-  #test 2: several geodesics from one point
-  #nb = 6
-  #a = np.pi/20 # to orient the turtle's head at the beginning
-  #for i in range(nb):  
-  #  b = np.pi/2-0.1 - a * i
-  #  nproduce [;(1+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
+  if AXIOMTEST == 1:
+    # test 1: Parallel geodesics from close points
+    # first group
+    nproduce [;(1)InitTurtle([0,0.15,0.5,0.5])A(0)]
+    # geodesique parallele
+    nproduce [;(2)InitTurtle([0.05,0.15,0.5,0.5])A(0)]
+    # second group
+    nproduce [;(3)InitTurtle([0,0.15,0.1,0.9])A(0)]
+    # geodesique parallele
+    nproduce [;(4)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
+    # third group
+    nproduce [;(5)InitTurtle([0,0.15,0.7,0.3])A(0)]
+    # geodesique parallele
+    nproduce [;(6)InitTurtle([0.05,0.15,0.7,0.3])A(0)]
+  elif AXIOMTEST == 2:
+    #test 2: several geodesics from one point
+    nb = 6
+    a = np.pi/20 # to orient the turtle's head at the beginning
+    for i in range(nb):  
+      b = np.pi/2-0.1 - a * i
+      nproduce [;(1+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
 
 
 derivation length: int(nb_seg)
 production:
 
 A(n):
-  #global turtle
+
   nproduce F(length_geodesic/nb_seg)
   nproduce A(n+1)
 

@@ -6,7 +6,7 @@
 		
 	Simulates geodesics on a pseudo sphere 
 
-
+   FIXME: The normals of the pseudo sphere and of the turtle segments seem inconsistent between them. Check this
 """
 
 import numpy as np
@@ -77,13 +77,13 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 length_geodesic = 3.5 
 
 #Select Axiom here
-AXIOMTEST = 1
+AXIOMTEST = 2
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   # u = control of z (the bigger u the highest z (warning it is not directly z)
   # v = azimuth
-  nproduce SetSpace(PseudoSphere(R, zmin = -3, zmax = 3),(True))
+  nproduce SetSpace(PseudoSphere(R, zmin = -3, zmax = 3),None)
   nproduce _(LINEWIDTH)
 
   if AXIOMTEST == 1:
