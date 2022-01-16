@@ -4,7 +4,7 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Example of geodesics in a 2D intrinsic Riemaniann space (Beltrami-Poincare hyperbolic space)
+	Example of a growing tree in 2D intrinsic Riemaniann space
 	
 	
 """
@@ -100,34 +100,39 @@ DS2_SCALEFACTOR = 12.
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-slen = 3 # 
-TEST = 2
+slen = 0.5  # segment length
+TREE = True
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
 
-  if TEST == 1:
-    # Note the second argument is optional and set the display 
-    argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR' : 20,'CCW' : True}
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0.12, vmax = 2), argdict)
-    nproduce InitTurtle([-0.7,0.12,0.15,0.9])
-    nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
-  elif TEST == 2: # analyze here the effect of original orientation on geodesic 
-    argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR': 20.}
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -3, umax = 3., vmin = 0, vmax = 10),argdict)
-    a = 40
-    for i in range(a+1):
-      nproduce [InitTurtle([0.1,0.1,np.sin(-np.pi/2 + np.pi/a*i),np.cos(-np.pi/2 + np.pi/a*i)])
-      nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)]    
+  # Note the second argument is optional and set the display 
+  argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR' : 20,'CCW' : True}
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.5, umax = 1.5, vmin = 0.12, vmax = 2.2), argdict)
+  nproduce InitTurtle([-0.1,0.12,0.15,0.9])
 
+  nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
 
-derivation length: 4
+derivation length: 6
 production:
 
-A(n):
-  nproduce F(slen)A(n+1)
 
+A(n):
+  # branching angle
+  if n % 2 == 0:
+    ba = 30
+  else:
+    ba = -30
+  nproduce F(slen) 
+  if TREE:
+    nproduce [+(ba)A(n+1)]
+  nproduce A(n+1)
+
+interpretation:
+
+A(n):
+  produce ;(2)@O(0.03)
   
 interpretation:
 
