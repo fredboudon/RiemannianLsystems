@@ -111,17 +111,14 @@ Axiom:
   nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0.12, vmax = 2), argdict)
   nproduce InitTurtle([-0.7,0.12,0.15,0.9])
 
-  #nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
-  nproduce ;(6)_(LINEWIDTH)F(slen)-(120)F(slen)-(120)F(slen)
+  nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
 
 derivation length: 4
 production:
 
-#A(n):
-#  nproduce F(slen)A(n+1)
+A(n):
+  nproduce F(slen)A(n+1)
 
-F(x):
-  nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
   
 interpretation:
 
