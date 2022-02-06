@@ -441,6 +441,34 @@ class RiemannianSpace2D:
         lhs2 = - Gamma[1,0,0]*p**2 - 2*Gamma[1,0,1]*p*q - Gamma[1,1,1]*q**2
         return [p,q,lhs1,lhs2]
 
+    def geodesic_to_point(self,u,v,ut,vt,m = 10):
+        """
+        Computes a series of surface coordinates corresponding to a geodesic between
+        curved space point (u,v) and a target curved space point (ut,vt)
+        - m is the total number of points on the geodesic path, thus indexed by (s0,s1, ...,s_(m-1) )
+        """
+
+        # Checks that (ut,vt) is valid
+        if not self.check_coords_domain(ut,vt):
+            print("geodesic_to_point: target point out of space coord domain: ", ut,vt)
+            return None
+
+        Gamma = self.RiemannChristoffelSymbols(u,v)
+
+        # The returned value is a vector of size 4m whose columns have been swapped for stability reasons
+        path = compute_geodesic_path_to_target_point(u,v,ut,vt,Gamma,m)
+
+        #recovering the standard uvpq order: make an array of upvq values of size m
+        geodesic_path = np.full((m,4), 0.)
+        # the first 4 terms
+        geodesic_path[0] = path[0:4]
+        for k in range(1,m):
+            geodesic_path[k][0] = path[4*k+2]
+            geodesic_path[k][1] = path[4*k+3]
+            geodesic_path[k][2] = path[4*k]
+            geodesic_path[k][3] = path[4*k+1]
+
+        return geodesic_path
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface(RiemannianSpace2D):

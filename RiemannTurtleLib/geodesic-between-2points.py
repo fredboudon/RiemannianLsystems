@@ -130,14 +130,18 @@ def build_jacobian_csc(m):
 
     # fills the jacobian matrix with non-null elements from Ak and Bk k = 1 .. m-1
     for k in range(1,m):
+        # first compute the Ak and Bk+1 matrices
+        Ak = Aswapped(s, k, Xk, RCSk)
+        Bkp1 = Bswapped(s, k+1, Xk, RCSk)
         for j in range(4):
             # indexes present in the blocks Ak, Bk:
             h  = 4*(k-1) + j + 2 # line index in the jacobian
             c  = 4*(k-1) + j     # col index is non-null
             c2 = 4*(k) + j       # second column on the same line that is also non-null for this j
 
-            d  = A(s, k, j, Xk, RCSk)
-            d2 = B(s, k+1, j, Xk, RCSk)
+            # Now fills in the correct data
+            d  = Ak[j]
+            d2 = Bkp1[j]
 
             # add two entries on line h corresponding to non-null j entries in both Ak and Bk
             row.append(h)
@@ -160,7 +164,7 @@ def build_jacobian_csc(m):
     return csc_matrix((dat, (row, col)), shape=(4*m, 4*m))
 
 
-def compute_DeltaX(res_vec):
+def compute_residual_vec(res_vec):
     '''
     Computes the path increment on the current path to lead to the genodesic path
     res_mat = matrix of residuals at step k
@@ -179,6 +183,63 @@ def compute_DeltaX(res_vec):
     delta_X = spsolve(j_mat, res_vec)
 
     return delta_X
+
+def standardized_norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
+    '''
+    v is assumed to be a swapped vector over the indexes k =  1 .. m-1 (note that 0 is missing)
+    MU, MV, MP and MQ are factors corresponding to the magnitude of variables delta_u,delta_v,delta_p,delta_q
+    '''
+    dim = v.shape[0] # dimension of v should be one column of 4*m coordinates
+    assert(len(v.shape == 1))
+
+    m, r = divmod(dim,4)
+    assert(r == 0)   # the vector dim should be a multiple of 4
+
+    # the sum is initialized with the first 4 terms in the order u,v,p,q (not swapped)
+    sum = abs(v[0]/MU) + abs(v[1]/MV) + abs(v[2]/MP) + abs(v[3]/MQ)
+    for k in range(1,m): # now taking into account the fact that terms are swapped in the order p,q,u,v
+        sum += abs(v[4*k]) / MP
+        sum += abs(v[4*k+1]) / MQ
+        sum += abs(v[4*k+2]) / MU
+        sum += abs(v[4*k+3]) / MV
+
+    return sum
+
+def compute_geodesic_path_to_target_point(u,v,ut,vt,Gamma,m=20, max_iter = 100, mu = 0.2)
+    '''
+    Computes the geodesic path from point (u,v) to target point (ut,vt)
+    - Gamma are the Riemann-Christoffel symbols
+    - m is the number of discretization points 
+    - max_iter is the maximum number of iteration of the newton method
+    '''
+
+    #1. Find an initial path --> X(0) for all k in 0,..,m
+    X = ...
+
+    #2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
+    end_test = False
+    i = 0
+    while not end_test:
+        # Compute the jacobian
+        j_mat = build_jacobian_csc(X, m)
+
+        residual_vec =
+
+        deltaX = compute_residual_vec(residual_vec)
+
+        deltaXnorm = standardized_norm(deltaX)
+
+        i += 1
+
+        # Test if loop must stop, if not updates the path values with deltaX
+        if deltaXnorm < epsilon or i > max_iter:
+            end_test = True
+        else:
+            X = X + mu * deltaX
+
+
+
+
 
 
 
