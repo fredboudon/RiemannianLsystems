@@ -67,7 +67,7 @@ def gen_second_deriv(func, *args):
         return derivative(func, x, dx = 1e-6, n = 2, args=args)
     return second_derive
 
-
+# TODO: Split this class in a purely abstract class and a class IntrinsicRiemannianSpace2D that creates a branch different from the Riemaniann 2D surface one
 class RiemannianSpace2D:
     '''
     This class represents an intrinsic 2D space with coordinates u,v
@@ -249,6 +249,19 @@ class RiemannianSpace2D:
       g = self.metric_tensor(u,v)
       return np.sqrt(du*du*g[0,0]+du*dv*g[0,1]+dv*du*g[1,0]+dv*dv*g[1,1])
 
+    def firstFundFormCoef(self,u,v):
+      """
+      Returns the coefficients of the fondamental forms I and II at point (u,v)
+      - E,F,G: First fundamental form = metric (I = ds^2 = E du^2 + 2F dudv + G dv2)
+      """
+      g = self.metric_tensor(u,v)
+
+      E = g[0,0]
+      F = g[1,0]
+      G = g[1,1]
+
+      return (E,F,G)
+
     def passage_matrix_cb2ortho(self,u,v):
       """
       defines the passage matrix to pass from the covariant basis (cv) to an orthomormal
@@ -376,7 +389,7 @@ class RiemannianSpace2D:
         return vectuvpqy
 
 
-    def RiemannChristoffelSymbols(self,u,v,printflag = False):
+    def ChristoffelSymbols(self, u, v, printflag = False):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
@@ -391,8 +404,8 @@ class RiemannianSpace2D:
         # inverse metric tensor ig
         ig = self.inverse_metric_tensor(u,v)
 
-        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
-        # Gamma^a_bc  = RCS[a,b,c]
+        # Christoffel symbols (CS) that is an array of 2x2x2 = 8 numbers
+        # Gamma^a_bc  = CS[a,b,c]
 
         # Computation of the derivatives of the metric to prepare the RC coef computation
         args = self.metric_tensor_params
@@ -414,21 +427,21 @@ class RiemannianSpace2D:
         d1g22 = d1g22f(u)
         d2g22 = d2g22f(v)
 
-        RCS = np.zeros((2,2,2))
-        RCS[0,0,0] = 0.5*ig[0][0]*d1g11 + 0.5*ig[0][1]*(2*d1g12 - d2g11)
-        RCS[1,0,0] = 0.5*ig[1][0]*d1g11 + 0.5*ig[1][1]*(2*d1g12 - d2g11)
-        RCS[0,1,0] = 0.5*ig[0][0]*d2g11 + 0.5*ig[0][1]*d1g22
-        RCS[1,1,0] = 0.5*ig[1][0]*d2g11 + 0.5*ig[1][1]*d1g22
-        RCS[0,0,1] = RCS[0,1,0]
-        RCS[1,0,1] = RCS[1,1,0]
-        RCS[0,1,1] = 0.5*ig[0][0]*(2*d2g21-d1g22) + 0.5*ig[0][1]*d2g22
-        RCS[1,1,1] = 0.5*ig[1][0]*(2*d2g21-d2g22) + 0.5*ig[1][1]*d2g22
+        CS = np.zeros((2, 2, 2))
+        CS[0, 0, 0] = 0.5 * ig[0][0] * d1g11 + 0.5 * ig[0][1] * (2 * d1g12 - d2g11)
+        CS[1, 0, 0] = 0.5 * ig[1][0] * d1g11 + 0.5 * ig[1][1] * (2 * d1g12 - d2g11)
+        CS[0, 1, 0] = 0.5 * ig[0][0] * d2g11 + 0.5 * ig[0][1] * d1g22
+        CS[1, 1, 0] = 0.5 * ig[1][0] * d2g11 + 0.5 * ig[1][1] * d1g22
+        CS[0, 0, 1] = CS[0, 1, 0]
+        CS[1, 0, 1] = CS[1, 1, 0]
+        CS[0, 1, 1] = 0.5 * ig[0][0] * (2 * d2g21 - d1g22) + 0.5 * ig[0][1] * d2g22
+        CS[1, 1, 1] = 0.5 * ig[1][0] * (2 * d2g21 - d2g22) + 0.5 * ig[1][1] * d2g22
 
         if printflag:
-            print("Riemann Christoffel coefs:")
-            print(RCS)
+            print("Christoffel coefs:")
+            print(CS)
 
-        return RCS
+        return CS
 
     def geodesic_eq(self,uvpq,s):
         """
@@ -436,39 +449,86 @@ class RiemannianSpace2D:
         expressing the tangent components in the surface covariant basis.
         """
         u,v,p,q = uvpq
-        Gamma = self.RiemannChristoffelSymbols(u,v)
+        Gamma = self.ChristoffelSymbols(u, v)
         lhs1 = - Gamma[0,0,0]*p**2 - 2*Gamma[0,0,1]*p*q - Gamma[0,1,1]*q**2
         lhs2 = - Gamma[1,0,0]*p**2 - 2*Gamma[1,0,1]*p*q - Gamma[1,1,1]*q**2
         return [p,q,lhs1,lhs2]
 
-    def geodesic_to_point(self,u,v,ut,vt,m = 10):
-        """
-        Computes a series of surface coordinates corresponding to a geodesic between
-        curved space point (u,v) and a target curved space point (ut,vt)
-        - m is the total number of points on the geodesic path, thus indexed by (s0,s1, ...,s_(m-1) )
-        """
+    def geodesic_to_target_point(self, uv, uvt, m, max_iter=100, mu=0.2)
+        '''
+        Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described 
+        in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
+        - Gamma are the Christoffel symbols
+        - m is the number of discretization points (including both extremities)
+        - max_iter is the maximum number of iteration of the newton method
+        '''
 
-        # Checks that (ut,vt) is valid
-        if not self.check_coords_domain(ut,vt):
-            print("geodesic_to_point: target point out of space coord domain: ", ut,vt)
-            return None
+        # Initialization : computes a first the sequence of u,v indexes and their velocity values p,q .
+        # An efficient initialization consists of taking the straight line joining u,v to ut,vt in the parameter space
+        u,v = uv
+        ut,vt = uvt
 
-        Gamma = self.RiemannChristoffelSymbols(u,v)
+        # u,v values
+        u_initseq = np.linspace(u, ut, nbpoints)
+        v_initseq = np.linspace(v, vt, nbpoints)
+
+        # p,q values
+        assert (not (np.isclose(u,ut) and np.isclose(v,vt)) ) # the two points should be different
+        uv_slope = (vt-v)/(ut-u)
+
+        p_initseq = np.zeros(m)
+        q_initseq = np.zeros(m)
+        for k in range(m):
+            Ek,Fk,Gk = self.firstFundFormCoef(u_initseq[k],v_initseq[k])
+            a = 1/np.sqrt(Ek + 2*Fk*uv_slope + Gk*uv_slope**2)
+            p_initseq[k] = a
+            q_initseq[k] = uv_slope * a
+
+        # combine these 1D array as a 4*m array
+        uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
 
         # The returned value is a vector of size 4m whose columns have been swapped for stability reasons
-        path = compute_geodesic_path_to_target_point(u,v,ut,vt,Gamma,m)
+
+        Gamma = self.ChristoffelSymbols(u, v)
+
+        # 1. Find an initial path --> X(0) for all k in 0,..,m
+        X = uvpq_init_seq
+
+        # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
+        end_test = False
+        i = 0
+        while not end_test:
+            # Compute the jacobian
+            j_mat = build_jacobian_csc(X, Gamma, m)
+
+            residual_vec =
+
+            deltaX = compute_residual_vec(residual_vec)
+
+            deltaXnorm = standardized_norm(deltaX)
+
+            i += 1
+
+            # Test if loop must stop, if not updates the path values with deltaX
+            if deltaXnorm < epsilon or i > max_iter:
+                end_test = True
+            else:
+                X = X + mu * deltaX
 
         #recovering the standard uvpq order: make an array of upvq values of size m
         geodesic_path = np.full((m,4), 0.)
         # the first 4 terms
         geodesic_path[0] = path[0:4]
+        # then the rest of the vector
         for k in range(1,m):
-            geodesic_path[k][0] = path[4*k+2]
-            geodesic_path[k][1] = path[4*k+3]
-            geodesic_path[k][2] = path[4*k]
-            geodesic_path[k][3] = path[4*k+1]
+            geodesic_path[k][0] = X[4*k+2]
+            geodesic_path[k][1] = X[4*k+3]
+            geodesic_path[k][2] = X[4*k]
+            geodesic_path[k][3] = X[4*k+1]
 
         return geodesic_path
+
+
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface(RiemannianSpace2D):
@@ -558,11 +618,7 @@ class ParametricSurface(RiemannianSpace2D):
       II = 2 * d
       (See for instance A. Gray p282)
       """
-      g = self.metric_tensor(u,v)
-
-      E = g[0,0]
-      F = g[1,0]
-      G = g[1,1]
+      E,F,G = self.firstFundFormCoef(u,v)
 
       Suu = self.secondsuu(u,v)
       Suv = self.secondsuv(u,v)
@@ -606,7 +662,7 @@ class ParametricSurface(RiemannianSpace2D):
 
         return K, H, kappa_min, kappa_max
 
-    def RiemannChristoffelSymbols(self,u,v,printflag = False):
+    def ChristoffelSymbols(self, u, v, printflag = False):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
@@ -628,7 +684,7 @@ class ParametricSurface(RiemannianSpace2D):
         S_vv = self.secondsvv(u,v)
 
         # compute the dot product ...
-        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
+        # Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
         # Gamma^a_bc  = RCS[a,b,c]
 
         RCS = np.zeros((2,2,2))
@@ -1189,13 +1245,13 @@ class Torus(ParametricSurface):
       # checks the equality of Riemmann Christoffel coefs -------
       ''' Uncomment to check if the different ways to compute RC symbols are consistent
       if False:
-          Gamma = self.RiemannChristoffelSymbols(u,v)
+          Gamma = self.ChristoffelSymbols(u,v)
           print ("u,v=",u,v)
           coef010 = coef001 = -(self.r*np.sin(v)/(self.R+self.r*np.cos(v)))
           coef100 = (self.R+self.r*np.cos(v))*np.sin(v)/self.r
           if not np.isclose(Gamma[0,0,0],0.,rtol=1e-03, atol=1e-05): print("  Error: Gamma[0,0,0] = ", Gamma[0,0,0], "instead of: ", 0.)
           if not np.isclose(Gamma[0,0,1],coef001,rtol=1e-03, atol=1e-05):
-              Gamma = self.RiemannChristoffelSymbols(u,v,True)
+              Gamma = self.ChristoffelSymbols(u,v,True)
               S_u, S_v = self.covariant_basis(u,v)
               ig = self.inverse_metric_tensor(u,v)
               Su = ig[0][0] * S_u + ig[0][1] * S_v
@@ -1460,7 +1516,7 @@ class Patch(ParametricSurface):
       return np.array(skl[0][2])
 
 ''' Use instead mother class implementation
-    def RiemannChristoffelSymbols(self,u,v):
+    def ChristoffelSymbols(self,u,v):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
@@ -1488,7 +1544,7 @@ class Patch(ParametricSurface):
         #S_vv = S_vv[0:3]
 
         # compute the dot product ...
-        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
+        # Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
         # Gamma^a_bc  = RCS[a,b,c]
 
         RCS = np.zeros((2,2,2))
@@ -1596,11 +1652,11 @@ class Revolution(ParametricSurface):
     #  u,v,p,q = uvpq
     #  return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
-    def RiemannChristoffelSymbols(self,u,v,printflag = False):
+    def ChristoffelSymbols(self, u, v, printflag = False):
         """
         defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
         """
-        # Riemann-Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
+        # Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
         # Gamma^a_bc  = RCS[a,b,c]
         den = 1+self.rprime(v)**2
         RCS = np.zeros((2,2,2))

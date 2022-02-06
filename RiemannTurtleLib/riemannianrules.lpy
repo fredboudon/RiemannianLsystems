@@ -32,6 +32,7 @@ from riemannianturtle import *
 module SetSpace(surface, argdict)
 module InitTurtle(turtle_state)
 module ParallelTransportedArrow(angleRelHead,size)
+module LineTo(uvcoords, stepnb)
 module CovariantBasis(size)
 #module DrawVect(vect) #FIXME: we should be able to declare same module with different signatures
 module DrawVect(vect,size)
@@ -137,6 +138,7 @@ InitTurtle(gencoords):
 # of the movement (defined by p,q in the current state)
 # - The Up direction that is a unit vector that coincides with the surface normal
 
+#TODO: Factorize codes of F(), f() and LineTo() as a large part of the code is common to these functions
 F(length):
   #0. Test if argument is null
   if length < 1e-100:
@@ -199,14 +201,19 @@ F(length):
   # according to what was computed for the mast point
   nproduce @R(head,up)
 
-# Exactly the same algorithm as for F, but with a MoveTo instead of LineTo
-LineTo(target_coords):
+# To plot a geodesic from a point (u,v) to a point (ut,vt)
+# Note after step 3. the algorithm is common with F and f
+LineTo(target_coords, stepnb):
+
+  # 1. Decode args
   ut,vt = target_coords
-  stepnb = 20 # by default
 
   u,v,p,q = turtle.uvpq
   space = turtle.space
-  uvpq_s = space.geodesic_to_point(u,v,ut,vt,stepnb)
+
+  # 2. Call the algorithm to compute the geodesic
+  uvpq_s = geodesic_to_point(space, (u,v), (ut,vt), stepnb)
+
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
 

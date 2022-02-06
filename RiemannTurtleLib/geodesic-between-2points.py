@@ -166,12 +166,12 @@ def build_jacobian_csc(m):
 
 def compute_residual_vec(res_vec):
     '''
-    Computes the path increment on the current path to lead to the genodesic path
+    Computes the path increment on the current path to lead to the geodesic path
     res_mat = matrix of residuals at step k
     res_vec = column vector of residuals
     '''
 
-    # 1. Compute the set of matrixes Aswapped_k, B_swapped_k
+    # 1. Compute the set of matrices Aswapped_k, B_swapped_k
 
     A_array = [Aswapped(...) for k in range(1,m)]
     B_array = [Bswapped(...) for k in range(1,m)]
@@ -204,38 +204,6 @@ def standardized_norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
         sum += abs(v[4*k+3]) / MV
 
     return sum
-
-def compute_geodesic_path_to_target_point(u,v,ut,vt,Gamma,m=20, max_iter = 100, mu = 0.2)
-    '''
-    Computes the geodesic path from point (u,v) to target point (ut,vt)
-    - Gamma are the Riemann-Christoffel symbols
-    - m is the number of discretization points 
-    - max_iter is the maximum number of iteration of the newton method
-    '''
-
-    #1. Find an initial path --> X(0) for all k in 0,..,m
-    X = ...
-
-    #2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
-    end_test = False
-    i = 0
-    while not end_test:
-        # Compute the jacobian
-        j_mat = build_jacobian_csc(X, m)
-
-        residual_vec =
-
-        deltaX = compute_residual_vec(residual_vec)
-
-        deltaXnorm = standardized_norm(deltaX)
-
-        i += 1
-
-        # Test if loop must stop, if not updates the path values with deltaX
-        if deltaXnorm < epsilon or i > max_iter:
-            end_test = True
-        else:
-            X = X + mu * deltaX
 
 
 
