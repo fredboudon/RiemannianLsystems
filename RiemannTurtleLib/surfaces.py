@@ -458,21 +458,21 @@ class RiemannianSpace2D:
         '''
         Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described 
         in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
-        - Gamma are the Christoffel symbols
+        - uv are the u,v coordinates of the source point
+        - uvt are the u,v coordinates of the target point
         - m is the number of discretization points (including both extremities)
         - max_iter is the maximum number of iteration of the newton method
         '''
 
         # Initialization : computes a first the sequence of u,v indexes and their velocity values p,q .
-        # An efficient initialization consists of taking the straight line joining u,v to ut,vt in the parameter space
         u,v = uv
         ut,vt = uvt
 
-        # u,v values
+        # u,v values: an efficient initialization consists of taking the straight line joining u,v to ut,vt in the parameter space
         u_initseq = np.linspace(u, ut, nbpoints)
         v_initseq = np.linspace(v, vt, nbpoints)
 
-        # p,q values
+        # p,q values: use the first fundamental form to compute du/ds and then deduce dv/ds = uv_slope * du/ds
         assert (not (np.isclose(u,ut) and np.isclose(v,vt)) ) # the two points should be different
         uv_slope = (vt-v)/(ut-u)
 
@@ -480,14 +480,13 @@ class RiemannianSpace2D:
         q_initseq = np.zeros(m)
         for k in range(m):
             Ek,Fk,Gk = self.firstFundFormCoef(u_initseq[k],v_initseq[k])
-            a = 1/np.sqrt(Ek + 2*Fk*uv_slope + Gk*uv_slope**2)
-            p_initseq[k] = a
-            q_initseq[k] = uv_slope * a
+            duds = 1/np.sqrt(Ek + 2*Fk*uv_slope + Gk*uv_slope**2)
+            p_initseq[k] = duds
+            q_initseq[k] = uv_slope * duds
 
         # combine these 1D array as a 4*m array
         uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
 
-        # The returned value is a vector of size 4m whose columns have been swapped for stability reasons
 
         Gamma = self.ChristoffelSymbols(u, v)
 
@@ -515,7 +514,8 @@ class RiemannianSpace2D:
             else:
                 X = X + mu * deltaX
 
-        #recovering the standard uvpq order: make an array of upvq values of size m
+        # The resulting value X is a vector of size 4m whose columns have been swapped for stability reasons
+        # recovering the standard uvpq order: make an array of upvq values of size m
         geodesic_path = np.full((m,4), 0.)
         # the first 4 terms
         geodesic_path[0] = path[0:4]

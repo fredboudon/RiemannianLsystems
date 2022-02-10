@@ -171,7 +171,7 @@ def compute_residual_vec(res_vec):
     res_vec = column vector of residuals
     '''
 
-    # 1. Compute the set of matrices Aswapped_k, B_swapped_k
+    # 1. Compute the set of matrices A_swapped_k, B_swapped_k
 
     A_array = [Aswapped(...) for k in range(1,m)]
     B_array = [Bswapped(...) for k in range(1,m)]
@@ -179,7 +179,7 @@ def compute_residual_vec(res_vec):
     # Computes the residuals jacobian matrix from ... in a csc format
     j_mat = build_jacobian_csc()
 
-    # solves:    delta_X . jmat = res_vec  in delta_X
+    # solves:    delta_X . jmat = res_vec    (delta_X is the unknown var)
     delta_X = spsolve(j_mat, res_vec)
 
     return delta_X
@@ -197,6 +197,7 @@ def standardized_norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
 
     # the sum is initialized with the first 4 terms in the order u,v,p,q (not swapped)
     sum = abs(v[0]/MU) + abs(v[1]/MV) + abs(v[2]/MP) + abs(v[3]/MQ)
+
     for k in range(1,m): # now taking into account the fact that terms are swapped in the order p,q,u,v
         sum += abs(v[4*k]) / MP
         sum += abs(v[4*k+1]) / MQ
