@@ -29,7 +29,7 @@ riemannian_turtle = reload(riemannianturtle)
 from surfaces import *
 from riemannianturtle import *
 
-module SetSpace(surface), InitTurtle(turtle_state), ParallelTransportedArrow(angleRelHead,size), CovariantBasis(size)
+module SetSpace(surface), InitTurtle(turtle_state), ParallelTransportedArrow(angleRelHead,size), CovariantBasis(size), ClosedPolygon(polyline_uv, resolution)
 
 #Default values --> can be redefined below in the main file if needed
 PLOTSPACE = True
@@ -54,7 +54,6 @@ SetSpace(surface,*args):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
   turtle.add_parameter('cumrotation', 0) # for parallel transport
-
   # Then plot the space surface
   if PLOTSPACE:
     umin,umax,vmin,vmax = surface.uv_domain()
@@ -66,19 +65,16 @@ SetSpace(surface,*args):
     #S1 = surf.patch.getUTangentAt(u,v)
     #S2 = surf.patch.getVTangentAt(u,v)
     nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
-
     if PLOTDS2:
       ilist = np.arange(umin, umax, Du)
       ilist = np.append(ilist, umax)  # add the last bound as it is not done by arange
       # print("ilist after  = ", ilist)
       jlist = np.arange(vmin, vmax, Dv)
       jlist = np.append(jlist, vmax)  # case of a periodic list
-
       if len(args) != 0:
         DS2_SCALEFACTOR = args[0]
       else:
         DS2_SCALEFACTOR = 4. # default value
-
       nproduce [
       for i in ilist:
         for j in jlist:
@@ -104,12 +100,10 @@ InitTurtle(gencoords):
   # in this way the geodesic equation will use parameter s that corresponds
   # to the curvilinear abscissa
   # nvelocity = turtle.space.normalize(pos,dir)
-
   turtle.add_parameter('uvpq',gencoords)
   head, up = riemannian_turtle_init(gencoords, turtle.space)
   u,v,p,q = gencoords
   #print("head = ", head)
-
   nproduce @M( turtle.space.S(u,v) )
   nproduce @R(head,up)
 
@@ -135,17 +129,14 @@ F(length):
   #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
   #     - if len = 0.6 and MAXSTEPLEN = 1.0
   #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
-
   # 2. Integrates the curve along the given length in stepnb steps
   uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
-
   # 3. draw all the small subsegments (that were returned by the integration)
   for i in range(segnb):
     # draw a line from the last visited point to the next one in abs coordinates
     nproduce LineTo(turtle.space.S(uvpq_s[i][0], uvpq_s[i][1]))
-
   '''
   delta_s = 0
   u = turtle.uvpq[0]
@@ -156,12 +147,10 @@ F(length):
     nproduce LineTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
     u = uvpq_s[i][0]
     v = uvpq_s[i][1]
-
   print("Input length = ", length, " Drawn segment length = ", delta_s)
   '''
   # 4. update the turtle's state with the last point of the computed curve
   turtle.uvpq = uvpq_s[-1]
-
   # 5. Finally, orient the head of the turtle
   # according to what was computed for the mast point
   nproduce @R(head,up)
@@ -180,12 +169,10 @@ f(length):
   #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
   #     - if len = 0.6 and MAXSTEPLEN = 1.0
   #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
-
   # 2. Integrates the curve along the given length in stepnb steps
   uvpq_s, head, up, S1, S2 = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
-
   # 3. Move to the end of the last segment u,v (that were returned by the integration)
   nproduce MoveTo(turtle.space.S(uvpq_s[segnb-1][0],uvpq_s[segnb-1][1]))
   ''' 
@@ -194,10 +181,8 @@ f(length):
     # draw a line from the last visited point to the next one in abs coordinates
     nproduce MoveTo(turtle.space.S([uvpq_s[i][0],uvpq_s[i][1]]))
   '''
-
   # 4. update the turtle's state with the last point of the computed curve
   turtle.uvpq = uvpq_s[-1]
-
   # 5. Finally, orient the head of the turtle
   # according to what was computed for the mast point
   nproduce @R(head,up)
@@ -223,7 +208,7 @@ CovariantBasis(size):
   surf = turtle.space
   u,v,p,q = turtle.uvpq
   S1, S2 = surf.covariant_basis(u, v)
-  print("Coucou1", S1,S2)
+  #print("Coucou1", S1,S2)
   #nproduce [;(1)DrawVectnp(S1)][;(4)DrawVectnp(S2)]
   nproduce [_(0.01);(2)LineRel(size*S1)@O(0.01)][_(0.01);(3)LineRel(size*S2)@O(0.01)]
 
@@ -236,7 +221,35 @@ DrawVect(coord):
 DrawVectnp(coord):
   # draw a line from the current position of the Turtle to the indicated position
   #print(coord)
-  print("Coucou2")
+  #print("Coucou2")
   nproduce _(0.01)LineRel(coord);(1)@O(0.01)
+
+ClosedPolygon(polyline_uv, *args):
+  
+  resolution = 1.
+  reverse = False
+  
+  if len(args) > 0:
+    resolution = args[0]
+  if len(args) > 1:
+    reverse = args[1]
+  
+  if reverse:
+    polyline_uv = list(reversed(polyline_uv))
+    print(polyline_uv)
+  if np.isclose(polyline_uv[0][0], polyline_uv[-1][0]) and np.isclose(polyline_uv[0][1], polyline_uv[-1][1]) :
+    del polyline_uv[-1]
+  
+  quads, minres, maxres = meshPolygon(polyline_uv, resolution)
+  #print(quads)
+  space = turtle.space
+  for q in quads:
+    #print("quad0=",q[0])
+    pos0 = space.S(*q[0])
+    pos1 = space.S(*q[1])
+    pos2 = space.S(*q[2])
+    pos3 = space.S(*q[3])
+    #print("pos0", pos0)
+    nproduce {MoveTo(pos0).MoveTo(pos1).MoveTo(pos2).MoveTo(pos3).}
 
 endlsystem

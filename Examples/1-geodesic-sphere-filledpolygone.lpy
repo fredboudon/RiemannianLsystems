@@ -1,3 +1,4 @@
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
 """
 	L-systems in Riemannian geometry
 	
@@ -29,10 +30,10 @@ riemannian_turtle = reload(riemannianturtle)
 from surfaces import *
 from riemannianturtle import *
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
 PRINT_CURVATURES = True
 PLOTDS2 = False
+
 
 #######################
 # Units
@@ -71,59 +72,37 @@ FRAMEWIDTH = 1 * cm
 length_geodesic = R*2*np.pi
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
-nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
+nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
            # To draw one geodesic, set it to 1 and set dashed to False
 
-TEST1 = False
-TEST2 = True
-TEST3 = False
+ulen = 2*np.pi*R / 10
+vlen = 2*np.pi*R / 20
 
-GREAT_CIRCLE = True
-QUARTER_CIRCLE = False
+TEST = 2
 
+# u in [0,2*pi]
+# v in [-pi/2,pi/2]
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   nproduce SetSpace(Sphere(R))
-  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  # Test 1
-  if TEST1:
-    u0= 0.
-    v0= 0.
-    p0 = 0.0
-    q0 = 0.1
-    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
-  
-  # Test 1.1: Bug: the rotation is not in the correct sense (as the covariant basis changes directness)
-  if TEST2:
-    u0= 0.
-    v0= 1.
-    p0 = 0.0
-    q0 = 0.1
-    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
-  
-  # Test 2 draw a series of geodesics from a point
-  if TEST3:
-    u0= 0 #np.pi/6
-    v0= 0 #np.pi/6
-    a = np.pi/3. # to orient the turtle's head at the beginning
-    #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
-    #nproduce ;(1)A(0)
-    nb = 8
-    for i in range(nb):  
-      a += 2*np.pi/nb
-      nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+  u0,v0 = (0.,0.)
+  p0,q0 = (0.,1.)
+  nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0])A(0)]
 
 derivation length: int(nb_seg)
 production:
 
 A(n):
-  seglen = 2*np.pi*R/4. # -0.01 is still Ok, but -0.001 creates the bug
-  if GREAT_CIRCLE : 
-    nproduce F(length_geodesic/nb_seg)
-  elif QUARTER_CIRCLE:
-    nproduce F(length_geodesic/(4*nb_seg))
-  else: # Triangle
-    nproduce F(seglen)+(90) #F(seglen)+(90)F(seglen)
+  # first and last points should be the same (closed polygon)
+  if TEST == 1:
+    # NOTE: the polyline can have a duplicated ending point or not. 
+    # in any case the polyline will be considered as closed.
+    polyline_uv = [[0.0,0.0],[0,vlen],[ulen,vlen],[ulen,0],[0.0,0.0]]
+  elif TEST == 2:
+    h = 10.
+    polyline_uv = [[1.0,0.0],[1/h,1/h],[0.,1.],[-1/h,1/h],[-1.0,0.0],[-1/h,-1/h],[0.,-1.], [1/h,-1/h]]
+  resolution = R/100.
+  nproduce [;(3)ClosedPolygon(polyline_uv, resolution, True)]
   nproduce A(n+1)
 
 interpretation:
@@ -131,12 +110,6 @@ interpretation:
 #maximum depth : 2
 
 A(n):
-  if PRINT_CURVATURES:
-    u,v,p,q = turtle.uvpq 
-    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
-    print("Courbures: Gauss = ", "{:.3f}".format(K), \
-    ", Mean = ", "{:.3f}".format(H), \
-    ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
   nproduce _(FRAMEWIDTH)Frame(FRAMESIZE)
   nproduce CovariantBasis(0.3)
 
