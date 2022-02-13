@@ -3,12 +3,10 @@
 	L-systems in Riemannian geometry
 	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
-
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
+		Date: 2022
+      
+      Filling polygons drawn in curved spaces
+      
 """
 
 import numpy as np
@@ -78,7 +76,7 @@ nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
 ulen = 2*np.pi*R / 10
 vlen = 2*np.pi*R / 20
 
-TEST = 2
+TEST = 3
 
 # u in [0,2*pi]
 # v in [-pi/2,pi/2]
@@ -99,8 +97,21 @@ A(n):
     # in any case the polyline will be considered as closed.
     polyline_uv = [[0.0,0.0],[0,vlen],[ulen,vlen],[ulen,0],[0.0,0.0]]
   elif TEST == 2:
-    h = 10.
+    h = 10
     polyline_uv = [[1.0,0.0],[1/h,1/h],[0.,1.],[-1/h,1/h],[-1.0,0.0],[-1/h,-1/h],[0.,-1.], [1/h,-1/h]]
+  elif TEST == 3:
+    N=32   # Star with N/2 arms
+    h = 3  # depth of the arms
+    polyline_uv = []
+    for n in range(N):
+      if n%2 == 0:
+        u = np.cos(n*2*np.pi/N)
+        v = np.sin(n*2*np.pi/N)
+      else:
+        b = 1./h
+        u = b*np.cos(n*2*np.pi/N)
+        v = b*np.sin(n*2*np.pi/N)
+      polyline_uv.append([u,v])        
   resolution = R/100.
   nproduce [;(3)ClosedPolygon(polyline_uv, resolution, True)]
   nproduce A(n+1)

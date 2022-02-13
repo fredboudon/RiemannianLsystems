@@ -236,7 +236,7 @@ ClosedPolygon(polyline_uv, *args):
   
   if reverse:
     polyline_uv = list(reversed(polyline_uv))
-    print(polyline_uv)
+    # print(polyline_uv)
   if np.isclose(polyline_uv[0][0], polyline_uv[-1][0]) and np.isclose(polyline_uv[0][1], polyline_uv[-1][1]) :
     del polyline_uv[-1]
   
