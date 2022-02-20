@@ -1,3 +1,4 @@
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
 """
 	L-systems in Riemannian geometry
 
@@ -27,7 +28,6 @@ riemannian_turtle = reload(riemannianturtle)
 from surfaces import *
 from riemannianturtle import *
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
 
 # Flags to control the display
 PLOTSPACE = True

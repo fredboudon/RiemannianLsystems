@@ -202,8 +202,8 @@ F(length):
   nproduce @R(head,up)
 
 # To plot a geodesic from a point (u,v) to a point (ut,vt)
-# Note after step 3. the algorithm is common with F and f
-LineTo(target_coords, stepnb):
+# Note step 3 to 5. are common with F and f
+LineTo(target_coords, np_points):
 
   # 1. Decode args
   ut,vt = target_coords
@@ -211,12 +211,15 @@ LineTo(target_coords, stepnb):
   u,v,p,q = turtle.uvpq
   space = turtle.space
 
-  # 2. Call the algorithm to compute the geodesic
-  uvpq_s = geodesic_to_point(space, (u,v), (ut,vt), stepnb)
+  # 2. Call the algorithm to compute the geodesic between (u,v) and (ut,vt)
+  # nb_
+  uvpq_s = geodesic_to_point(space, (u,v), (ut,vt), nb_points)
 
+  # TODO: the returned list can be None. This case should be handled.
   segnb = len(uvpq_s) # should be equal to stepnb
-  assert stepnb == segnb
+  assert segnb == nb_points-1  # 1 more points than segments in the returned list
 
+  #BELOW IS A CODE THAT SHOULD BE SHARED WITH F and f ...
   # 3. draw all the small subsegments (that were returned by the integration)
   for i in range(segnb):
     flag = False
