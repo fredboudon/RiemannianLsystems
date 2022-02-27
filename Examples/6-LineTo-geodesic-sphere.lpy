@@ -1,0 +1,144 @@
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+		
+	Simulates geodesics on a sphere with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
+
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
+
+"""
+
+import numpy as np
+from math import ceil
+from random import random
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
+
+from surfaces import *
+from riemannianturtle import *
+
+
+PRINT_CURVATURES = False
+PLOTDS2 = False
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+length_greatcircle = 2*np.pi*R
+
+nb_seg    = 10
+seglen = length_greatcircle/nb_seg
+
+
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+
+AXIOMTEST = 1
+TEST      = 3  
+
+LINETO_MAXITER = 1
+Axiom:
+  # Sets the Riemannian space in which the turtle will move
+  nproduce SetSpace(Sphere(R),None)
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v 
+  # (and p,q their first derivatives)
+  u0= 0.
+  v0= 0.
+  p0 = 0.0 # 0.001 # 0.03
+  q0 = 1.
+  nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
+
+
+derivation length: 1 #nb_seg
+production:
+
+A(n):  
+  uv_target = [0,np.pi/4]
+  nproduce RiemannLineTo(uv_target,10)
+  #nproduce F(1,20)
+  nproduce A(n+1)
+
+
+interpretation:
+
+maximum depth: 2
+
+A(n):
+
+  nproduce CovariantBasis(0.3)
+  
+  # second parameter is a scaling factor
+  #nproduce _(0.03)DrawVect(velocity,0.3)
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
