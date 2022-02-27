@@ -13,33 +13,8 @@ import numpy as np
 
 #from scipy.linalg import solve_banded # works for symmetric or hermitian matrices
 
-from sparse.linalg import spsolve      # sparse matrix solver
-
-
-# A curve on a parametric surface defined explicitly
-#
-# notations with respect to paper Maekawa 1996:
-# - m --> K (nb points of the curve)
-# - points are indexed from 0 to K-1 instead of 1 to K (python compliance)
-class ExplicitCurveByEndPoints:
-
-    def __init__(self, surf, K, A, B, X):
-      self.surf = surf  # Parametric surface on which the curve runs
-      self.K = K        # nb of points of the curve (including extremities)
-      self.A = A        # Origin of the curve = (uA,vA)
-      self.B = B        # End of the curve = (ub,vb)
-
-      self.X = X        # array of dim K containing [uk,vk,pk,qk] for each curve point
-
-
-def InitialCurve(surf,K, A, B):
-    # compute a first series of K uvpg values from A to B
-
-    X = np.zeros(K*4).reshape(K,4) # create a matrix with K lines of 4 values each
-    for k in range(K):
-
-    intial_curve = ExplicitCurveByEndPoints(surf, A, B, X)
-    return
+from scipy.sparse import csc_matrix      # sparse matrix solver
+from scipy.sparse.linalg import spsolve      # sparse matrix solver
 
 
 
@@ -94,24 +69,33 @@ def B_swapped(s, k, j, Xk, CSk):
     return np.array([B0,B1,B2,B3])
 '''
 
+def A(h,omega0,omega1,theta0,theta1):
+
+    A0 = np.array([-1,0,-h/2.,0])
+    A1 = np.array([0,-1,0,-h/2.])
+    A2 = np.array([0, 0,h*omega0-1, h*theta0])
+    A3 = np.array([0, 0,h*omega1  , h*theta1-1])
+
+    return np.array([A0,A1,A2,A3])
+
 def A_swapped(h,omega0,omega1,theta0,theta1):
 
-    A0 = np.array([-h/2.,-1,0]))
+    A0 = np.array([-h/2.,0,-1,0])
     A1 = np.array([0,-h/2.,0,-1])
     A2 = np.array([h*omega0-1, h*theta0, 0, 0])
     A3 = np.array([h*omega1  , h*theta1-1, 0, 0])
 
-    return np.array([A2,A3,A0,A1])
+    return np.array([A0,A1,A2,A3])
 
 
 def B_swapped(h,omega0,omega1,theta0,theta1):
 
-    B0 = np.array([-h/2.,1,0]))
+    B0 = np.array([-h/2.,0,1,0])
     B1 = np.array([0,-h/2.,0,1])
     B2 = np.array([h*omega0+1, h*theta0, 0, 0])
     B3 = np.array([h*omega1  , h*theta1+1, 0, 0])
 
-    return np.array([B2,B3,B0,B1])
+    return np.array([B0,B1,B2,B3])
 
 
 def Bfirst_swapped():
@@ -138,49 +122,102 @@ def compute_residual_vec(space, X_swapped, delta_s):
     '''
     Compute the residual of the newton equation (function that should become 0)
 
-    - X is the state of the current path: a 4*m vector of the form
-    [u0,v0,p0,q0,u1,v1,p1,q1, ..., u_4m-1,v_4m-1,p_4m-1,q_4m-1]
-    - delta_s is an array of dim (m-1) of approximated distances ds_k between
+    - X_swapped is the state of the current path: a 4*m vector of the form
+    [u0,v0,p0,q0,p1,q1,u1,v1, ...,p_m-1,q_m-1,u_m-1,v_m-1]
+    - delta_s is an array of dimension (m-1) of approximated distances ds_k between
     consecutive points P_k, P_k+1 contained in X
-    [ds_0,ds_1,..., ds_m-2], where ds_k = |S(uk,vk)-S(uk-1,vk-1)|
+    [ds_0,ds_1,..., ds_m-2], where ds_k = |S(u_k+1,v_k+1)-S(u_k,v_k)|
     '''
-    m = len(X)/4
+    m, r = divmod(len(X_swapped),4)
+    assert(r == 0)   # the vector dim should be a multiple of 4
 
-    G = np.zeros(4*m)
-    R = np.zeros(4*m)
+    G = np.zeros(4*m)  # array of derivatives (corresponds to differential equations)
+    R = np.zeros(4*m)  # array of residuals between consecutive points in the curve
 
     # Initialization of the G array for k = 0.
     # The first 2 components of X_swapped are not swapped in the swapped vector X_swapped,
     # (hence treated separately here).
     uvpq = (X_swapped[0], X_swapped[1], X_swapped[2], X_swapped[3])
+    # Compute G from the geodesic equations (second argument is not used --> set to 0)
     new_uvpq = space.geodesic_eq(uvpq, 0)
     G[0],G[1],G[2],G[3] = new_uvpq
 
-    # Initialization of the R array for k = 0
+    # Initialization of the R array for k = 0 at u,v (and not p,q)
+    # residuals at u,v corresponds to boundary conditions, i.e should be 0
     R[0] = R[1] = 0.
 
     # then compute the rest of the vectors G (derivatives, used internally) and R (residuals)
-    for k in range(1,m): # k = 1,.., m-1
-        i = 4*k
-        pquv = (X_swapped[i],X_swapped[i+1],X_swapped[i+2],X_swapped[i+3])
-        # unswap before calling geodesic
-        uvpq = [pquv[2],pquv[3],pquv[0],pquv[1]]
+    for k in range(1,m): # k = 0,.., m-1
+        i = 4*k    # index corresponding to kth uvpq set in vector X
+
+        pquv = (X_swapped[i], X_swapped[i + 1], X_swapped[i + 2], X_swapped[i + 3])
+
         # Compute the discretization of G using the geodesic equations
         # Note: the second argument is not used by the function geodesic_eq
         # (0 here after is not used by the function but required in the signature).
+
+        uvpq = [pquv[2],pquv[3],pquv[0],pquv[1]] # unswap pquv before calling geodesic equation
         new_uvpq = space.geodesic_eq(uvpq, 0)
-        # swap back the returned uvpq value to use them in the swapped vectors G and R
-        new_pquv = [new_uvpq[2],new_uvpq[3],new_uvpq[0],new_uvpq[1]]
+
+        # Then swap back the returned uvpq value to use them in the swapped vectors G and R
+        new_uvpq_swapped = [new_uvpq[2],new_uvpq[3],new_uvpq[0],new_uvpq[1]]
+
         for h in range(4):
             j = i+h
             # ex: k = 1, h = 0, => j = 4, j-2 = 2;
             # ex: k = 2, h = 0, => j = 8, j-2 = 6
-            G[j] = new_pquv[h]
-            R[j-2] = (X[j] - X[j - 4]) / delta_s[k-1] - 0.5*(G[j] + G[j - 4])
+            G[j] = new_uvpq_swapped[h]
+            if k==1: # to account for the fact that values at k == 0 are not swapped
+                if h < 2:# h = 0,1 (i.e. j = 4,5)
+                    R[j - 2] = (X_swapped[j] - X_swapped[j - 2]) / delta_s[k - 1] - 0.5 * (G[j] + G[j - 2])
+                else:    # h = 2,3 (i.e. j = 6,7)
+                    R[j - 2] = (X_swapped[j] - X_swapped[j - 6]) / delta_s[k - 1] - 0.5 * (G[j] + G[j - 6])
+            else:
+                R[j - 2] = (X_swapped[j] - X_swapped[j - 4]) / delta_s[k - 1] - 0.5 * (G[j] + G[j - 4])
 
     # R has dimension 4*m, according to the loop above, two values are missing
-    # They corrrespond to the boundary conditions at the target point
+    # They correspond to the boundary conditions at the target point
+    # [p_4m-1,q_4m-1,u_4m-1,v_4m-1] where the curve should pass through point (u_m-1,v_m-1)
+    # corresponding to indexes 4*m-2 (u) and 4*m-1 (v) in swapped vectors of dim 4*m.
     R[4*m-2] = R[4*m-1] = 0.
+
+    # This means that:
+    #   R[0] = 0 # imposed as a boundary condition
+    #   R[1] = 0 # imposed as a boundary condition
+    # k = 1, h=0, (j=4) (corresponding to residual at p1) is
+    #   R[2] = (X[4]-X[2])/delta_s[0]-0.5*(G[4]+G[2])
+    # k = 1, h=1, (j=5) (corresponding to residual at q1) is
+    #   R[3] = (X[5]-X[3])/delta_s[0]-0.5*(G[5]+G[3])
+    # k = 1, h=2, 3, (j=6, 7) (corresponding to residual at u1 then v1) is
+    #   R[4] = (X[6]-X[0])/delta_s[0]-0.5*(G[6]+G[0])
+    #   R[5] = (X[7]-X[1])/delta_s[0]-0.5*(G[7]+G[1])
+    # k = 2, h=0, 1  (j=8, 9) (corresponding to residual at p2 then q2) is
+    #   R[6] = (X[8]-X[4])/delta_s[1]-0.5*(G[8]+G[4])
+    #   R[7] = (X[9]-X[5])/delta_s[1]-0.5*(G[9]+G[5])
+    # ...
+    # k = m-1, h=3, (j=4(m-1)+3=4m-1) (corresponding to residual at v_m-1) is
+    #   R[4*m-3] = (X[4*m-1]-X[4*m-5])/delta_s[m-2]-0.5*(G[4*m-1]+G[4*m-5])
+    #
+    # Note that p0,q0,pm-1 and qm-1 have no residuals in R
+    # R[0] --> u0 residuals (forced to 0)
+    # R[1] --> v0 residuals (forced to 0)
+    # R[2] --> p1 residuals
+    # R[3] --> q1 residuals
+    # R[4] --> u1 residuals
+    # R[5] --> v1 residuals
+    # R[6] --> p2 residuals
+    # R[7] --> q2 residuals
+    # R[8] --> u2 residuals
+    # R[9] --> v2 residuals
+    # R[10] --> q3 residuals
+    # ...
+    # R[4m-7] --> v_m-2 residuals
+    # R[4m-6] --> p_m-1 residuals
+    # R[4m-5] --> q_m-1 residuals
+    # R[4m-4] --> u_m-1 residuals
+    # R[4m-3] --> v_m-1 residuals
+    # R[4m-2] --> u_m residuals (forced to 0 as the m+1th point is considered as the given target values )
+    # R[4m-1] --> v_m residuals (forced to 0 as the m+1th point is considered as the given target values )
 
     return R
 
@@ -188,7 +225,7 @@ def compute_residual_vec(space, X_swapped, delta_s):
 def build_jacobian_swapped_csc(space, X_swapped, delta_s):
     '''
     Builds the jacobian as a sparse matrix in csc format (list of (row,col) indexes of non-null entries)
-    The jacobian matrix is computed with swapped columns to optimize pivot algotithm
+    The jacobian matrix is computed with swapped columns to optimize pivot algorithm
     as follows:
     for k = 1..m-1,
       - column (4k-3) is interchanged with column (4k-1)
@@ -196,6 +233,9 @@ def build_jacobian_swapped_csc(space, X_swapped, delta_s):
 
 
     '''
+
+    m, r = divmod(len(X_swapped),4)
+    assert(r == 0)   # the vector dim should be a multiple of 4
 
     # To state that elements (0,0) and (1,1) of Jacobian matrix are non null:
     row = [0,1]  # list of row indexes of non-null elements
@@ -236,7 +276,11 @@ def build_jacobian_swapped_csc(space, X_swapped, delta_s):
         theta1 = theta(pk1,qk1,CSk1[1,1,0],CSk1[1,1,1])
 
         # first compute the Ak and Bk+1 matrices
-        Ak_swapped = A_swapped(h,omega0,omega1,theta0,theta1)
+        # WARNING: A1 should not be swapped !!!!!!!!!!!!!!!!!
+        if k == 1: # A should not be swapped
+            Ak_swapped = A(h, omega0, omega1, theta0, theta1)
+        else:
+            Ak_swapped = A_swapped(h,omega0,omega1,theta0,theta1)
 
         # A l'appel pour B
         omega0 = omega(pk,qk,CSk[0,0,0],CSk[0,0,1])
@@ -246,39 +290,60 @@ def build_jacobian_swapped_csc(space, X_swapped, delta_s):
 
         Bk_swapped = B_swapped(h,omega0,omega1,theta0,theta1)
 
-        for j in range(4):
-            # indexes present in the blocks Ak, Bk:
-            h  = 4*(k-1) + j + 2 # line index in the jacobian
-            c  = 4*(k-1) + j     # col index is non-null
-            c2 = 4*(k) + j       # second column on the same line that is also non-null for this j
+        for n in range(4): # line in Ak
+            for j in range(4):
+                # indexes present in the blocks Ak, Bk:
+                h  = 4*(k-1) + n + 2  # line index in the jacobian
+                c  = 4*(k-1) + j      # col index is non-null
+                c2 = 4*(k) + j        # second column on the same line that is also non-null for this j
 
-            # Now fills in the correct data (swapped columns)
-            d  = Ak_swapped[j]
-            d2 = Bk_swapped[j]
+                # Now fills in the correct data (swapped columns)
+                d  = Ak_swapped[n][j]
+                d2 = Bk_swapped[n][j]
 
-            # add two entries on line h corresponding to non-null j entries in both Ak and Bk
-            row.append(h)
-            col.append(c)
-            dat.append(d)
+                # add two entries on line h corresponding to non-null j entries in both Ak and Bk
+                row.append(h)
+                col.append(c)
+                dat.append(d)
 
-            row.append(h)
-            col.append(c2)
-            dat.append(d2)
+                row.append(h)
+                col.append(c2)
+                dat.append(d2)
 
     # in the end add the 2 non-null elements of array Am
-    row.append(4*m-4)
+    row.append(4*m-2)
     col.append(4*m-2)
     dat.append(1)
 
-    row.append(4*m-3)
+    row.append(4*m-1)
     col.append(4*m-1)
     dat.append(1)
 
-    return csc_matrix((dat, (row, col)), shape=(4*m, 4*m))
+    #print('BEFORE Jacobian row = ', row, len(row))
+    #print('BEFORE Jacobian col = ', col, len(col))
+    #print('BEFORE Jacobian dat = ', dat, len(dat))
+    jacobian = csc_matrix((dat, (row, col)), shape=(4*m, 4*m))
+    #print(' AFTER Jacobian jac = ')
+    #print(jacobian.toarray())
+
+    return jacobian
 
 def swap_columns(X):
+    '''
+    swaps the indexes of vector X of dimension 4m as follows:
+    - The first 4 values are not swapped
+    - For the rest, values at swapped according to index rule:
+    4k+2 <--> 4k
+    4k+3 <--> 4k+1
 
-    Xswapped = np.zeros(len(X))
+    precond: X is a vector of dim 4*m (m integer >= 1)
+    '''
+
+    dim = len(X)
+    m, r = divmod(dim,4)
+    assert(r == 0)   # the vector dim should be a multiple of 4
+
+    Xswapped = np.zeros(dim)
 
     # First quadruplet is not swapped
     Xswapped[0] = X[0]
@@ -308,10 +373,12 @@ def compute_deltaX(space, X_swapped, R_swapped, delta_s):
 
     J_mat_swapped = build_jacobian_swapped_csc(space, X_swapped, delta_s)
 
-    # solves:    delta_X_swapped . J_mat_swapped = R_swapped (delta_X_swapped is the unknown var)
+    # solves:    delta_X_swapped . J_mat_swapped = - R_swapped
+    # (delta_X_swapped is the unknown var)
     # Note that this inversion is carried out directly on swapped quantities
-    delta_X_swapped = spsolve(J_mat_swapped, R_swapped)
-
+    delta_X_swapped = spsolve(J_mat_swapped, - R_swapped)
+    print('Delta_X_swapped')
+    print(delta_X_swapped)
     return delta_X_swapped
 
 def standardized_L1norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
@@ -341,7 +408,7 @@ def standardized_L1norm_swapped(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
     MU, MV, MP and MQ are factors corresponding to the magnitude of variables delta_u,delta_v,delta_p,delta_q
     '''
     dim = v.shape[0] # dimension of v should be one column of 4*m coordinates
-    assert(len(v.shape == 1))
+    assert(len(v.shape) == 1)
 
     m, r = divmod(dim,4)
     assert(r == 0)   # the vector dim should be a multiple of 4

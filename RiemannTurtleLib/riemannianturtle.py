@@ -129,7 +129,7 @@ def riemannian_turtle_turn(p_uvpq, surf, deviation_angle):
 
     return uvpq
 
-def geodesic_to_point(space,uv,uvt,nb_points):
+def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20, mu=0.2):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 
@@ -144,6 +144,9 @@ def geodesic_to_point(space,uv,uvt,nb_points):
         print("geodesic_to_point: target point out of space coord domain: ", ut, vt)
         return None
 
-    uvpq_s = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter=100, mu=0.2)
+    # the returned value may be None if the preconditions are not respected
+    # e.g. (u,v) must be different from (ut,vt)
+    uvpq_s = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter, mu)
+
 
     return uvpq_s
