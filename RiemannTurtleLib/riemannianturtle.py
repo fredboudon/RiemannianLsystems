@@ -146,6 +146,7 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20, mu=0.2):
 
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
+    #uvpq_s = space.geodesic_to_target_point_swapped(uv, uvt, nb_points, max_iter, mu)
     uvpq_s = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter, mu)
 
 

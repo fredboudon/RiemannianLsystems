@@ -72,9 +72,8 @@ FRAMEWIDTH = 1 * cm
 
 length_greatcircle = 2*np.pi*R
 
-nb_seg    = 10
-seglen = length_greatcircle/nb_seg
-
+ra = 1.
+rb = 0.5
 
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
@@ -82,39 +81,45 @@ seglen = length_greatcircle/nb_seg
 AXIOMTEST = 1
 TEST      = 3  
 
-LINETO_MAXITER = 1
+origin_pt = [0., 0.]    # in (u,v) coordinates
+target_pt = [1., 0.7]  # in (u,v) coordinates
+
+LINETO_MAXITER = 3
+
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Sphere(R),None)
+  #nproduce SetSpace(Sphere(R),None)
+  nproduce SetSpace(EllipsoidOfRevolution(ra,rb),None)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v 
   # (and p,q their first derivatives)
-  u0= 0.
-  v0= 0.
-  p0 = 0.0 # 0.001 # 0.03
-  q0 = 1.
-  nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1)A(0)]
+  turtle_init = origin_pt + [1., 1.1] # needed to initialize the turtle on the surface
+  nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
+  # plots the point at the origin
+  nproduce Frame(0.2)
+  # plots the target point as a sphere on the surface
+  nproduce ;(3)DrawPoint(target_pt,0.05)
+  nproduce S
 
 
 derivation length: 1 #nb_seg
 production:
 
-A(n):  
-  uv_target = [0,np.pi/4]
-  nproduce RiemannLineTo(uv_target,10)
-  #nproduce F(1,20)
-  nproduce A(n+1)
+S:  
+  #nproduce [;(4)F(1)]
+  nproduce RiemannLineTo(target_pt,10)
 
 
 interpretation:
 
 maximum depth: 2
 
-A(n):
+A:
+  u,v,p,q = turtle.uvpq
+  A = turtle.space.Shift(u,v)
+  velocity = A.dot(np.array([p,q]))
+  nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
+  #nproduce CovariantBasis(0.3)
 
-  nproduce CovariantBasis(0.3)
-  
-  # second parameter is a scaling factor
-  #nproduce _(0.03)DrawVect(velocity,0.3)
 
 endlsystem
 ###### INITIALISATION ######

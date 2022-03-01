@@ -460,7 +460,7 @@ class RiemannianSpace2D:
         lhs2 = - Gamma[1,0,0]*p**2 - 2*Gamma[1,0,1]*p*q - Gamma[1,1,1]*q**2
         return [p,q,lhs1,lhs2]
 
-    def geodesic_to_target_point(self, uv, uvt, m, max_iter=20, mu=0.6, epsilon_conv=1e-3):
+    def geodesic_to_target_point_swapped(self, uv, uvt, m, max_iter=20, mu=0.6, epsilon_conv=1e-3):
         '''
         Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described 
         in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
@@ -503,7 +503,7 @@ class RiemannianSpace2D:
             Ek,Fk,Gk = self.firstFundFormCoef(u_initseq[k],v_initseq[k])
             if not UEQ:
                 uv_slope = (vt - v) / (ut - u)
-                duds = 1/np.sqrt(Ek + 2 * Fk * uv_slope + Gk*uv_slope**2)
+                duds = 1/np.sqrt(Ek + 2 * Fk * uv_slope + Gk * uv_slope**2)
                 p_initseq[k] = duds
                 q_initseq[k] = uv_slope * duds
             else:
@@ -512,6 +512,11 @@ class RiemannianSpace2D:
 
         # combine these 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
         uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
+
+        #if max_iter == 0:
+        #    print('****** Intitial path ...')
+        #    return uvpq_init_seq
+
         # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
         uvpq_init_seq = uvpq_init_seq.reshape((4*m,))
 
@@ -525,7 +530,7 @@ class RiemannianSpace2D:
 
         # 1. Sets an initial path --> X at iteration 0 (in swapped form)
         X_swapped = swap_columns(uvpq_init_seq)
-        print('Initial X:', X_swapped)
+        #print('Initial X:', X_swapped)
 
         # --> Initialization completed here.
 
@@ -560,29 +565,35 @@ class RiemannianSpace2D:
 
             # 2. Compute the residual vector R corresponding to state X
             # Result R is a 4*m vector (in swapped form as well).
-            print('Xswapped = ', X_swapped)
-            print('delta_s = ', delta_s)
-            R_swapped = compute_residual_vec(self, X_swapped, delta_s)
-            print('Rswapped = ', R_swapped)
+            #print('Xswapped = ', X_swapped)
+            #print('delta_s = ', delta_s)
+            R_swapped = compute_residual_vec_swapped(self, X_swapped, delta_s)
+            print('Rswapped norm = ', standardized_L1norm_swapped(R_swapped))
+            print(R_swapped)
 
             # 3. Compute deltaX of the Newton method
-            # This method builds the Jacobian to perform the Newton's method and compute
+            # This method builds the Jacobian to perform the Newton's method and computes
             # delta_X_swapped as a 4*m vector
-            delta_X_swapped = compute_deltaX (self, X_swapped, R_swapped, delta_s)
+            delta_X_swapped = compute_deltaX_swapped(self, X_swapped, R_swapped, delta_s)
 
             # 4. Check deltaX norm
             # The standardization might be tuned using MU,MV,MP,MQ parameters
             # standardized_L1norm_swapped(v, MU = 1., MV = 1., MP = 10., MQ = 10.)
             delta_X_swapped_norm = standardized_L1norm_swapped(delta_X_swapped)
-            print(' ----> ERROR NORM :',delta_X_swapped_norm)
-            i += 1
+            print(' ----> DELTA_X NORM :', delta_X_swapped_norm)
 
-            # 5. Test if loop must stop, if not updates the path values with delta_X
+            # 5. Test the norm of delta_X
+            # If sufficiently small exit the loop (or if maximum iteration number is reached)
+            # othewise Updates X_swapped, increment loop number and continue
+            # note if maxiter = 0, this means that the user wants the initial path.
             if delta_X_swapped_norm < epsilon_conv or i >= max_iter:
+                if i == 0:
+                    print ('******* Initial PATH was successful')
                 end_test = True
             else:
-                # all are 4*m vectors
-                X_swapped = X_swapped + mu * delta_X_swapped
+                i += 1
+                #mu= 0.05
+                X_swapped = X_swapped + (mu * delta_X_swapped)
 
         # The resulting value X is a vector of size 4m make an array of upvq values
         # of size m. This vector will unswap the X_swapped vector.
@@ -597,6 +608,135 @@ class RiemannianSpace2D:
             geodesic_path[k][1] = X_swapped[4*k+3]
             geodesic_path[k][2] = X_swapped[4*k]
             geodesic_path[k][3] = X_swapped[4*k+1]
+
+        return geodesic_path
+
+
+    def geodesic_to_target_point(self, uv, uvt, m, max_iter=20, mu=0.6, epsilon_conv=1e-3):
+        '''
+        Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described
+        in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
+        - uv are the u,v coordinates of the source point
+        - uvt are the u,v coordinates of the target point
+        - m is the number of discretization points nb_points (including endpoints (u,v) and (ut,vt))
+        - max_iter is the maximum number of iteration of the newton method
+        '''
+
+        # Initialization : computes a first the sequence of u,v indexes and their velocity values p,q .
+        u,v = uv
+        ut,vt = uvt
+
+        # print('Got to function geodesic_to_target_point !!!!! ')
+        # at least the two endpoints
+        assert( m >= 2 )
+
+        # u,v values: an efficient initialization consists of taking the straight line joining u,v to ut,vt in the parameter space
+        u_initseq = np.zeros(m)
+        v_initseq = np.zeros(m)
+        delta_u = (ut-u) / (m-1)
+        delta_v = (vt-v) / (m-1)
+        print('uv,utvt, m,delta_u,delta_v:', uv, uvt, m,delta_u,delta_v)
+        for k in range(m):
+            u_initseq[k] = u + delta_u * k
+            v_initseq[k] = v + delta_v * k
+
+        # p,q values: use the first fundamental form to compute du/ds and then deduce dv/ds = uv_slope * du/ds
+        if np.isclose(u,ut) and np.isclose(v,vt):
+            return None # the two points should be different
+
+        p_initseq = np.zeros(m)
+        q_initseq = np.zeros(m)
+
+        # test if u = ut
+        UEQ = np.isclose(u, ut)
+
+        # Initialize the value (p,q) for each point m (u,v) points.
+        for k in range(m):
+            Ek,Fk,Gk = self.firstFundFormCoef(u_initseq[k],v_initseq[k])
+            if not UEQ:
+                uv_slope = (vt - v) / (ut - u)
+                duds = 1/np.sqrt(Ek + 2 * Fk * uv_slope + Gk * uv_slope**2)
+                p_initseq[k] = duds
+                q_initseq[k] = uv_slope * duds
+            else:
+                p_initseq[k] = 0
+                q_initseq[k] = 1/np.sqrt(Gk)
+
+        # combine these 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
+        uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
+
+        #if max_iter == 0:
+        #    print('****** Intitial path ...')
+        #    return uvpq_init_seq
+
+        # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
+        X = uvpq_init_seq.reshape((4*m,))
+
+        # --> Initialization completed here.
+
+        # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
+        end_test = False
+        i = 0
+        while not end_test:
+            print('##############  MAIN LOOP i = ', i)
+            # 1. Evaluate Delta_s = (distance) between curve points.
+            # X being defined (a set of (uvpq) values along the path of size m
+            # we approximate the distance between consecutive points
+            # in the Riemannian space by the euclidean chord between these points:
+            # There are m points and m-1 segments indexed 0 .. m-2 in delta_s
+            # with delta_s[k] being the distance P_k+1 - P_k on the curve.
+            # Note: delta_s has no notion of swapping as it is a vector of dim k
+            delta_s = np.zeros(m-1)
+            for k in range(m-1):
+                # extracts u,v coords of consecutive points on the curve
+                u1, v1 = X[4 * k], X[4 * k + 1]
+                u2, v2 = X[4 * (k+1)], X[4*(k+1) +1]
+                # computes the corresponding points (np arrays) in the physical space
+                P1 = self.S(u1,v1)
+                P2 = self.S(u2,v2)
+                # the norm is euclidean as a proxy, relying on the fact
+                # that if the points are close enough, we can consider them
+                # almost in a locally euclidean space.
+                # Note that delta_s[k] contains P_k+1 - P_k on the curve
+                delta_s[k] = np.linalg.norm(P2-P1)
+
+            # 2. Compute the residual vector R corresponding to state X
+            # Result R is a 4*m vector (in swapped form as well).
+            #print('Xswapped = ', X_swapped)
+            #print('delta_s = ', delta_s)
+            R = compute_residual_vec(self, X, delta_s)
+            print('R norm = ', standardized_L1norm(R))
+            print(R)
+
+            # 3. Compute deltaX of the Newton method
+            # This method builds the Jacobian to perform the Newton's method and computes
+            # delta_X_swapped as a 4*m vector
+            delta_X = compute_deltaX(self, X, R, delta_s)
+
+            # 4. Check deltaX norm
+            # The standardization might be tuned using MU,MV,MP,MQ parameters
+            # standardized_L1norm_swapped(v, MU = 1., MV = 1., MP = 10., MQ = 10.)
+            delta_X_norm = standardized_L1norm(delta_X)
+            print(' ----> DELTA_X NORM :', delta_X_norm)
+
+            # 5. Test the norm of delta_X
+            # If sufficiently small exit the loop (or if maximum iteration number is reached)
+            # othewise Updates X_swapped, increment loop number and continue
+            # note if maxiter = 0, this means that the user wants the initial path.
+            if delta_X_norm < epsilon_conv or i >= max_iter:
+                if i == 0:
+                    print ('******* Initial PATH was successful')
+                end_test = True
+            else:
+                i += 1
+                mu= 0.1
+                X = X + (mu * delta_X)
+
+        # The resulting value X is a vector of size 4m make an array of upvq values
+        # of size m. This vector will unswap the X_swapped vector.
+
+        # the first 4 terms
+        geodesic_path = X.reshape((m,4))
 
         return geodesic_path
 
