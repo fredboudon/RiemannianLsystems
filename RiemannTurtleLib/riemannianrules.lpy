@@ -74,6 +74,7 @@ SetSpace(surface, argdict):
       DS2_SCALEFACTOR = argdict['DS2_SCALEFACTOR']
 
   # Set the space in the turtle
+  print("add space")
   turtle.add_parameter('space', surface)
   turtle.add_parameter('cumrotation', 0) # for parallel transport
 
