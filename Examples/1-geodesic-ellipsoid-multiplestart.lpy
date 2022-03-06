@@ -81,7 +81,7 @@ Axiom:
   q0 = 0
   nproduce ;(1)_(LINEWIDTH)InitTurtle([u0,v0,p0,q0])
   # angles are in degrees to invoke rotation using +.
-  angles = np.linspace(0, 360, nb_angles)
+  angles = np.linspace(0, 360, nb_angles+1)
   for alpha in angles[:-1]:
     # Starting from an initial direction defined by (p0,q0) in the InitTurtle
     # turns the turtle of an angle in the tangent plane at the local (u,v)
