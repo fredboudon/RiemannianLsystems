@@ -222,44 +222,6 @@ def compute_residual_vec(space, X, delta_s):
     # corresponding to indexes 4*m-2 (u) and 4*m-1 (v) in swapped vectors of dim 4*m.
     R[4*m-2] = R[4*m-1] = 0.
 
-    # This means that:
-    #   R[0] = 0 # imposed as a boundary condition
-    #   R[1] = 0 # imposed as a boundary condition
-    # k = 1, h=0, (j=4) (corresponding to residual at p1) is
-    #   R[2] = (X[4]-X[2])/delta_s[0]-0.5*(G[4]+G[2])
-    # k = 1, h=1, (j=5) (corresponding to residual at q1) is
-    #   R[3] = (X[5]-X[3])/delta_s[0]-0.5*(G[5]+G[3])
-    # k = 1, h=2, 3, (j=6, 7) (corresponding to residual at u1 then v1) is
-    #   R[4] = (X[6]-X[0])/delta_s[0]-0.5*(G[6]+G[0])
-    #   R[5] = (X[7]-X[1])/delta_s[0]-0.5*(G[7]+G[1])
-    # k = 2, h=0, 1  (j=8, 9) (corresponding to residual at p2 then q2) is
-    #   R[6] = (X[8]-X[4])/delta_s[1]-0.5*(G[8]+G[4])
-    #   R[7] = (X[9]-X[5])/delta_s[1]-0.5*(G[9]+G[5])
-    # ...
-    # k = m-1, h=3, (j=4(m-1)+3=4m-1) (corresponding to residual at v_m-1) is
-    #   R[4*m-3] = (X[4*m-1]-X[4*m-5])/delta_s[m-2]-0.5*(G[4*m-1]+G[4*m-5])
-    #
-    # Note that p0,q0,pm-1 and qm-1 have no residuals in R
-    # R[0] --> u0 residuals (forced to 0)
-    # R[1] --> v0 residuals (forced to 0)
-    # R[2] --> p1 residuals
-    # R[3] --> q1 residuals
-    # R[4] --> u1 residuals
-    # R[5] --> v1 residuals
-    # R[6] --> p2 residuals
-    # R[7] --> q2 residuals
-    # R[8] --> u2 residuals
-    # R[9] --> v2 residuals
-    # R[10] --> q3 residuals
-    # ...
-    # R[4m-7] --> v_m-2 residuals
-    # R[4m-6] --> p_m-1 residuals
-    # R[4m-5] --> q_m-1 residuals
-    # R[4m-4] --> u_m-1 residuals
-    # R[4m-3] --> v_m-1 residuals
-    # R[4m-2] --> u_m residuals (forced to 0 as the m+1th point is considered as the given target values )
-    # R[4m-1] --> v_m residuals (forced to 0 as the m+1th point is considered as the given target values )
-
     return R
 
 

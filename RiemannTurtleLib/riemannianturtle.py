@@ -46,13 +46,13 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
     # Hence |dC/ds| = 1 (rate of change of the distance on the curve with a change in the curvilinear abscissa
     # is constant and = 1).
     # Let us call C_v(s) the same curve traversed at a speed v. This curve results from a reparametrerization
-    # of C: r = vs. The initial curve is then C(s) = C_1(s) and we have Cv(s) = C_1(sv)
+    # of C: r = vs. The initial curve is then C(s) = C_1(s) and we have C_v(s) = C_1(sv)
     # Then, progressing from Cv(s0) to Cv(s) (i.e. at speed v on C) can be done in two ways
     # 1. by going to C_v(s0 + delta_s), with delta_s = s-s0
     # 2. by going to C_1(s0 + delta_s*v)
 
     # In the instruction F(delta_s) the fact that we get to point C(s0 + delta_s) must be independent of the speed v
-    # this can be done in two ways. In the geodesic this displacement is made at rate v = 1.
+    # this can be done in two ways:
     #
     # 1. normalizing the velocity first to a speed v = 1, and then move to C_1(delta_s)
     # 2. keeping the original velocity v, but then moving to C_1(delta_s/v) (one goes artificially faster, then one must go less far)
