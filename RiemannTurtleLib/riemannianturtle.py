@@ -6,10 +6,143 @@
     Lab: RDP ENS de Lyon, Mosaic Inria Team
 
 """
+from math import dist
 from surfaces import *
 
 from scipy.integrate import odeint
 from scipy.integrate import solve_ivp
+from openalea.plantgl.all import triangulation,eOptimalTriangulation, eStarTriangulation
+
+
+def flatten(t):
+  return [item for sublist in t for item in sublist]
+
+
+def midpoint(edge):
+  '''
+  edge is a pair of two points (uO,v0), (u1,v1)
+  '''
+  # print("edge=",edge)
+  u0, v0 = edge[0]
+  u1, v1 = edge[1]
+
+  return (u0 + u1) / 2., (v0 + v1) / 2.
+
+
+def center(polyline):
+  '''
+  polyline is a list of n points (u_i,v_i)
+  '''
+  # print('Polyline = ', polyline)
+  dim = len(polyline)
+  c = np.zeros(2)
+  for i in range(dim):
+    c += np.array(polyline[i])
+  return tuple(c / dim)
+
+
+def quadsFromPolyline(polyline, opttrilist):
+  '''
+  returns a list of quads corresponding to a submesh of the polygone
+  '''
+
+  # print("opttrilist=",opttrilist)
+
+  quadlist = []
+
+  mind = np.inf
+  maxd = 0
+
+  for k in range(len(opttrilist)):
+
+    t = (polyline[opttrilist[k][0]], polyline[opttrilist[k][1]],
+         polyline[opttrilist[k][2]])  # triangle = list of 3 points (u,v)
+
+    # print("t=",t)
+
+    c = center(t)
+
+    m = [midpoint((t[i % 3], t[((i + 1) % 3)])) for i in range(len(t))]
+
+    a = len(t)
+    for i in range(a):
+      quadlist.append((m[i % a], t[((i + 1) % a)], m[((i + 1) % a)], c))
+      d = dist(c, m[i % a])
+      if d < mind: mind = d
+      if d > maxd: maxd = d
+
+  return quadlist, mind, maxd
+
+
+def quadsFromQuad(quad):
+  '''
+  returns a list of quads corresponding to a submesh of the quad
+  - quad is a list of 4 points (u_i,v_i) i = 0..3
+  '''
+
+  mind = np.inf
+  maxd = 0
+
+  c = center(quad)
+  m = [midpoint((quad[i % 4], quad[((i + 1) % 4)])) for i in range(len(quad))]
+
+  a = len(quad)
+  quadlist = []
+  for i in range(a):
+    quadlist.append((m[i % a], quad[((i + 1) % a)], m[((i + 1) % a)], c))
+    d = dist(c, m[i % a])
+    if d < mind: mind = d
+    if d > maxd: maxd = d
+
+  return quadlist, mind, maxd
+
+
+def meshPolygon(polyline, resolution):
+  '''
+  test:
+
+   polyline = ((0, 0), (1, 0), (1, 2), (-1,1), (0, 2))
+   meshPolygon(polyline, .05)
+
+  '''
+
+  # Computes an initial and optimal first triangle optimisation of the polygone
+  # as a list of index 3-uples pointing into the original list of points (polyline)
+  # This uses CGAL function through PlantGL wrapping
+  opttrilist = triangulation(polyline, eOptimalTriangulation)
+  #opttrilist = triangulation(polyline, eStarTriangulation)
+
+  # from this returns a first list of quads
+  # note that the function returns also the min and max values of the edge length in the quad list
+  quadlist, minseg, maxseg = quadsFromPolyline(polyline, opttrilist)
+
+  # Then, if more details are required iterate on each quad (independently)
+  # and flatten the resulting lists of quads in a single big list
+
+  midseg = (minseg + maxseg) / 2.
+  STOP = True if midseg <= resolution else False
+
+  while not STOP:
+
+    quadlist2 = []  # This list will contain the list of all subquads at the desired resolution
+    # Compute a quad list at the next resolution level
+    minseg = np.inf
+    maxseg = 0
+
+    for quad in quadlist:
+      quadsublist, minlen, maxlen = quadsFromQuad(quad)
+      quadlist2.append(quadsublist)
+      # update the min and max lengths of encountered segments
+      if minlen < minseg: minseg = minlen
+      if maxlen > maxseg: maxseg = maxlen
+
+    quadlist = flatten(quadlist2)
+
+    midseg = (minseg + maxseg) / 2.
+    STOP = True if midseg <= resolution else False
+
+  return quadlist, minseg, maxseg
+
 
 
 def riemannian_turtle_init(uvpq, space):
