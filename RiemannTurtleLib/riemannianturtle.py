@@ -46,13 +46,13 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
     # Hence |dC/ds| = 1 (rate of change of the distance on the curve with a change in the curvilinear abscissa
     # is constant and = 1).
     # Let us call C_v(s) the same curve traversed at a speed v. This curve results from a reparametrerization
-    # of C: r = vs. The initial curve is then C(s) = C_1(s) and we have Cv(s) = C_1(sv)
+    # of C: r = vs. The initial curve is then C(s) = C_1(s) and we have C_v(s) = C_1(sv)
     # Then, progressing from Cv(s0) to Cv(s) (i.e. at speed v on C) can be done in two ways
     # 1. by going to C_v(s0 + delta_s), with delta_s = s-s0
     # 2. by going to C_1(s0 + delta_s*v)
 
     # In the instruction F(delta_s) the fact that we get to point C(s0 + delta_s) must be independent of the speed v
-    # this can be done in two ways. In the geodesic this displacement is made at rate v = 1.
+    # this can be done in two ways:
     #
     # 1. normalizing the velocity first to a speed v = 1, and then move to C_1(delta_s)
     # 2. keeping the original velocity v, but then moving to C_1(delta_s/v) (one goes artificially faster, then one must go less far)
@@ -113,6 +113,29 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
 
     return uvpq_s
 
+def parameterspace_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10):
+    u, v, p, q = p_uvpq
+
+    assert(SUBDIV > 1)
+
+    theta = np.arctan2(q,p)
+
+    u_new = np.zeros(SUBDIV)
+    v_new = np.zeros(SUBDIV)
+    p_new = np.full(SUBDIV, p)
+    q_new = np.full(SUBDIV, q)
+
+    # computes intermediate points
+    d = delta_s / SUBDIV
+
+    for k in range(SUBDIV):
+        u_new[k] = u + d * k * np.cos(theta)
+        v_new[k] = v + d * k * np.sin(theta)
+
+    # combine these 1D array as a (SUBDIV,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
+    uvpq_s = np.vstack((u_new, v_new, p_new, q_new)).T
+
+    return uvpq_s
 
 def riemannian_turtle_turn(p_uvpq, surf, deviation_angle):
     u, v, p, q = p_uvpq
@@ -126,6 +149,26 @@ def riemannian_turtle_turn(p_uvpq, surf, deviation_angle):
     uu, vv, pp, qq = surf.rotate_surface_vector(u, v, p, q, angle_rad)
 
     uvpq = np.array([uu, vv, pp, qq])
+
+    return uvpq
+
+def parameterspace_turtle_turn(p_uvpq, surf, deviation_angle):
+    u, v, p, q = p_uvpq
+    # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
+
+    pq = np.array([p,q])
+    # ROTATION : Turn turtle with deviation angle
+    angle_rad = np.radians(deviation_angle)
+
+    # a surface vector is defined by (pp,qq) at point (uu,vv)
+    # the primitive returns
+    rpq = surf.rotation_mat(angle_rad).dot(pq)
+
+    pp, qq = rpq
+
+    # print('uvpq, angle', u, v, '(',p, q, pp, qq, ')', angle_rad)
+
+    uvpq = np.array([u, v, pp, qq])
 
     return uvpq
 
