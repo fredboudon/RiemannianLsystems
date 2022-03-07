@@ -103,7 +103,6 @@ A(n):
   nproduce ;(5)_(0.01)DrawVect(velocity,0.3)
 
 
-
 endlsystem
 ###### INITIALISATION ######
 
