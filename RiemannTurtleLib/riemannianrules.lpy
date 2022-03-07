@@ -159,7 +159,7 @@ F(length):
   #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
 
   # 2. Integrates the curve along the given length in stepnb steps
-  uvpq_s = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
+  uvpq_s = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb, SPEED1=False)
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
 

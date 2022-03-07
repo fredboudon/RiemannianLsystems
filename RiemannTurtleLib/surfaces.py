@@ -1654,7 +1654,7 @@ NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
 
 class Patch(ParametricSurface):
 
-    def __init__(self, patch):
+    def __init__(self, patch, utoric = False, vtoric = False):
       self.patch = patch
 
       umin = min(self.patch.uknotList)
@@ -1662,7 +1662,25 @@ class Patch(ParametricSurface):
       vmin = min(self.patch.vknotList)
       vmax = max(self.patch.vknotList)
 
+      self.utoric = utoric
+      self.vtoric = vtoric
+
       super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
+
+    def normalizeuv(self, u, v):
+      #if not (self.umin <= u <= self.umax) :
+      #  raise ValueError(u,self.umin,self.umax)
+      #if not (self.vmin <= v <= self.vmax) :
+      #  raise ValueError(v,self.vmin,self.vmax)
+      if self.utoric:
+          u = self.umin + (u-self.umin) % (self.umax-self.umin) 
+      else:
+          u = min(self.umax,max(self.umin,u))
+      if self.vtoric:
+          v = self.vmin + (v-self.vmin) % (self.vmax-self.vmin) 
+      else:
+          v = min(self.vmax,max(self.vmin,v))
+      return u,v
 
 
     # Surface position vector
@@ -1677,8 +1695,7 @@ class Patch(ParametricSurface):
       u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
       v = elevation (v in [-Pi/2,+Pi/2] )
       """
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
+      u,v = self.normalizeuv(u,v)
       p = self.patch.getPointAt(u,v)
       return np.array(p)
 
@@ -1692,8 +1709,7 @@ class Patch(ParametricSurface):
       # getDerivativeAt(u,v,nu,nv) returns the dérivative at point (u,v)
       # where nu, and nv specifies the depth of the derivative (number of time the derivative is applied)
       # print("S_u: ", self.patch.getDerivativeAt(u,v,1,0), " S_v: ", self.patch.getDerivativeAt(u,v,0,1))
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
+      u,v = self.normalizeuv(u,v)
       S_u = np.array(self.patch.getUTangentAt(u,v)) #
       S_v = np.array(self.patch.getVTangentAt(u,v))
 
@@ -1703,20 +1719,17 @@ class Patch(ParametricSurface):
       """
       second derivatives of the position vector at the surface
       """
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
+      u,v = self.normalizeuv(u,v)
       S_u = self.patch.getDerivativeAt(u,v,2,0)
       return np.array(S_u)
 
     def secondsuv(self,u,v):
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
+      u,v = self.normalizeuv(u,v)
       S_u = self.patch.getDerivativeAt(u,v,1,1)
       return np.array(S_u)
 
     def secondsvv(self,u,v):
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
+      u,v = self.normalizeuv(u,v)
       S_u = self.patch.getDerivativeAt(u,v,0,2)
       return np.array(S_u)
 
