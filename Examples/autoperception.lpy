@@ -1,0 +1,49 @@
+from openalea.plantgl.all import *
+from random import uniform
+from math import pi,radians
+
+
+l = 1
+dl = 0.1
+perceptionradius = l * 2
+perceptionangle = radians(60.0)
+
+
+# place the attractor points into a grid
+space = None
+
+def Start():
+  global space, positions
+  space = Point3Grid((1,1,1),(-100,-100,-10),(100,100,100),[])
+
+module Bud
+
+Axiom:  ?P ?H Bud()
+
+derivation length: 5
+production:
+
+
+?P(p) ?H(h) Bud() :  
+   if space: 
+     lpts = space.query_points_in_cone(p,h, perceptionradius, perceptionangle)
+     if len(lpts) == 0:
+       # produce active nodes
+       for i in range(int(l/dl)):
+           space.add_point(p+h*dl*(i+1)) 
+       nproduce F(l)
+       for i in range(4):
+           nproduce [ /(90*i) ^(45)  ?P ?H Bud() ]
+       produce ?P ?H Bud()
+     else:    
+       # remove node   
+       produce
+
+
+interpretation:
+
+Bud() --> ,(2) @O
+
+
+
+endlsystem
