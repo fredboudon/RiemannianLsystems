@@ -2034,10 +2034,11 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
     M = len(ilist)
     N = len(jlist)
 
+    uvList = [(i,j) for i in ilist for j in jlist]
     # 1D list containing the 3D points of the grid made by i,j values
     # (j varies quicker than i): kth point in the list corresponds
     # to point (i,j) such that k = i*N+j
-    grid3Dpoints = [surface(i,j) for i in ilist for j in jlist]
+    grid3Dpoints = [surface(u,v) for u,v in uvList]
 
     # Constructs the list of quad indexes pointing to the 3D points
     # in the previous list
@@ -2053,4 +2054,4 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
             for i in range(1,M) for j in range(1,N)]
     '''
 
-    return grid3Dpoints, quadindexlist
+    return grid3Dpoints, quadindexlist, uvList

@@ -40,10 +40,46 @@ module DrawVect(vect,size)
 module DrawPoint
 module StartIndirectInterpretation
 module StopIndirectInterpretation
+module ?T(parameters)
+module PlotSpace()
+module PlotDS2()
 
 #Default values --> can be redefined below in the main file if needed
 PLOTSPACE = True
 PLOTDS2 = False
+
+def plotspace(space,  colorvalfunc = None, cmap = 'jet', Du = 0.1, Dv = 0.1, CCW = True):
+    umin,umax,vmin,vmax = space.uv_domain()
+    points, quadindices, uvlist = QuadifySurfEquation(space.S,umin,umax,vmin,vmax,Du,Dv)
+    if not colorvalfunc is None:
+        from openalea.plantgl.scenegraph.colormap import PglColorMap
+        values = [colorvalfunc(u,v) for u,v in uvlist]
+        cm = PglColorMap(min(values), max(values), cmap)
+        colors = [cm(v) for v in values]
+    else:
+        colors = None
+    # Option ccw: (counter-clockwise)
+    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
+    #S1 = surf.patch.getUTangentAt(u,v)
+    #S2 = surf.patch.getVTangentAt(u,v)
+    nproduce @g(QuadSet(points,quadindices,colorList=colors, ccw = CCW))
+
+def plotds2(space, Du = 0.1, Dv = 0.1, DS2_SCALEFACTOR = 10):
+      umin,umax,vmin,vmax = space.uv_domain()
+
+      ilist = np.arange(umin, umax, Du)
+      ilist = np.append(ilist, umax)  # add the last bound as it is not done by arange
+      # print("ilist after  = ", ilist)
+      jlist = np.arange(vmin, vmax, Dv)
+      jlist = np.append(jlist, vmax)  # case of a periodic list
+
+      nproduce [
+      for i in ilist:
+        for j in jlist:
+          ds = space.ds(i, j, Du/DS2_SCALEFACTOR, Dv/DS2_SCALEFACTOR)
+          # plot ds2 at point (0,i,j)
+          nproduce @M(space.S(i,j)) @O(ds)
+      nproduce ]
 
 production:
 interpretation:
@@ -59,53 +95,20 @@ interpretation:
 # args[0] --> DS2_SCALEFACTOR  (= 4 by default) to display the metrics ds2
 
 # TODO: currently no optinal argument can be passed to LPy modules. Making it possible will simplify this call with a dict
-SetSpace(surface, argdict):
 
-  #print(argdict)
-  CCW = True
-  DS2_SCALEFACTOR = 10.
-  PLOTDS2 = False
-  if not argdict == None:
-    if 'CCW' in argdict:
-      # if additional argments are given, the first is ccw
-      # ccw = boolean to plot quads counter clockwise or not
-      CCW = argdict['CCW']
-    if 'PLOTDS2' in argdict:
-      PLOTDS2 = argdict['PLOTDS2']
-    if 'DS2_SCALEFACTOR' in argdict:
-      DS2_SCALEFACTOR = argdict['DS2_SCALEFACTOR']
-
+SetSpace(surface, *args):
   # Set the space in the turtle
   turtle.add_parameter('space', surface)
   turtle.add_parameter('cumrotation', 0) # for parallel transport
   turtle.add_parameter('indirect_interpretation', False)  # to move the turtle indirectly in the parametre space and draw the result in the 3D space
 
-  # Then plot the space surface
-  if PLOTSPACE:
-    umin,umax,vmin,vmax = surface.uv_domain()
-    Du = 0.1
-    Dv = 0.1
-    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du,Dv)
-    # Option ccw: (counter-clockwise)
-    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
-    #S1 = surf.patch.getUTangentAt(u,v)
-    #S2 = surf.patch.getVTangentAt(u,v)
-    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = CCW))]
 
-    if PLOTDS2:
-      ilist = np.arange(umin, umax, Du)
-      ilist = np.append(ilist, umax)  # add the last bound as it is not done by arange
-      # print("ilist after  = ", ilist)
-      jlist = np.arange(vmin, vmax, Dv)
-      jlist = np.append(jlist, vmax)  # case of a periodic list
+PlotSpace(*args):
+    plotspace(turtle.space, *args)
 
-      nproduce [
-      for i in ilist:
-        for j in jlist:
-          ds = turtle.space.ds(i, j, Du/DS2_SCALEFACTOR, Dv/DS2_SCALEFACTOR)
-          # plot ds2 at point (0,i,j)
-          nproduce @M(turtle.space.S(i,j)) @O(ds)
-      nproduce ]
+PlotDS2(*args):
+    plotds2(turtle.space, *args)
+
 
 
 StartIndirectInterpretation:

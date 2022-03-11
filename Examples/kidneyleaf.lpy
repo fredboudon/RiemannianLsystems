@@ -8,6 +8,7 @@ from openalea.plantgl.scenegraph.nurbsshape import nurbHalfEllipse
 
 import openalea.plantgl.all as pgl
 import nurbsswung as ns
+reload(ns)
 
 from math import *
 
@@ -26,7 +27,7 @@ cm = 0.01 * meter
 #######################
 
 # Flags to control the display
-PLOTSPACE = True
+PLOTSPACE = False
 
 # maximum len of subdivision step required to draw any line on the surface
 # this controls the resolution of the geodesic plot with respect to the
@@ -44,28 +45,33 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-nb_seg = 3 # nb of segment to draw the geodesic (defines the parameter of the F)
+nb_seg = 5 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
 length_geodesic = 1.5
 
+currentpos = []
+
 module DrawVect
 
 Axiom:
-  nproduce ,(2) _(0.01) #@g(swung.discretize())
+  nproduce ,(2) _(0.01)
   # Sets the Riemannian space in which the turtle will move
   patch = Patch(swung)
-  nproduce SetSpace(patch,{'CCW' : True})
+  def intensity(u,v):
+    return norm(swung.getVTangentAt(u,v))
+  nproduce SetSpace(patch) PlotSpace(intensity)
   #nproduce Venation(0.01)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   v0= radians(175) 
-  u0 = 0.005
+  u0 = 0.01
   
   nb = 15
   a = -150 #np.pi/2.3 # to orient the turtle's head at the beginning
   da = 280/nb
   for i in range(nb+1):  
-    nproduce [InitTurtle([u0,v0,1,0]) +(a) InterpolateColors(3,5, i/(nb)) A(nb_seg, length_geodesic*(1+cos(radians(a+20))/1.6) )]
+    nproduce [InitTurtle([u0,v0,1,0]) +(a) ,(7) # InterpolateColors(3,5, i/(nb)) 
+    nproduce A(nb_seg, length_geodesic*(1.3+cos(radians(a+20))/4) )]
     a += da
   
 
@@ -77,8 +83,9 @@ production:
 A(n,l):
   if n > 0:
     nproduce F(l/nb_seg)
-    nproduce [+(20/(nb_seg-n+1))A(n-1,l)]
-    nproduce [-(20/(nb_seg-n+1))A(n-1,l)]
+    ang = 8 #/(nb_seg-n+1)
+    nproduce [+(ang)A(n-1,l)]
+    nproduce [-(ang)A(n-1,l)]
 
 interpretation:
 maximum depth: 2
@@ -92,6 +99,10 @@ endlsystem
 __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (0,143,0) , diffuse = 0.27972 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
 	import openalea.plantgl.all as pgl
 	profile0 = pgl.NurbsCurve2D(	
 	    ctrlPointList = pgl.Point3Array([(0.159267, -0.0785046, 1),(0.246725, -0.115986, 1),(0.418886, -0.106894, 1),(0.543969, -0.0938118, 1),(0.686726, -0.0386873, 1)]) , 
