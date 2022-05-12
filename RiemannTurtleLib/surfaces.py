@@ -1564,25 +1564,6 @@ class Paraboloid(ParametricSurface):
       u,v,p,q = uvpq
       return [p,q, -4*u*p**2+ u*q**2, -2*u*p*q]
 
-def to_nurbs_python(sh):
-    from geomdl import NURBS, BSpline
-    surf = NURBS.Surface()
-    surf.degree_u = sh.udegree
-    surf.degree_v = sh.vdegree
-
-    npctrls = np.array(sh.ctrlPointMatrix)
-    shape = npctrls.shape
-    npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
-    npctrls[:,0] *= npctrls[:,3]
-    npctrls[:,1] *= npctrls[:,3]
-    npctrls[:,2] *= npctrls[:,3]
-    surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
-    surf.knotvector_u = list(sh.uknotList)
-    surf.knotvector_v = list(sh.vknotList)
-
-    surf.evaluate()
-
-    return surf
 
 class MonkeySaddle(ParametricSurface):
 
@@ -1657,7 +1638,124 @@ class MonkeySaddle(ParametricSurface):
       return np.array([nx,ny,nz])
 
 
+def nb_getSecondDerivativeUUAt(self, u,v):
+    return self.getDerivativeAt(u,v,2,0)
+
+def nb_getSecondDerivativeUVAt(self, u,v):
+    return self.getDerivativeAt(u,v,1,1)
+
+def nb_getSecondDerivativeVVAt(self, u,v):
+    return self.getDerivativeAt(u,v,0,2)
+
+from openalea.plantgl.all import NurbsPatch
+NurbsPatch.getSecondDerivativeUUAt = nb_getSecondDerivativeUUAt
+NurbsPatch.getSecondDerivativeUVAt = nb_getSecondDerivativeUVAt
+NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
+
 class Patch(ParametricSurface):
+
+    def __init__(self, patch, utoric = False, vtoric = False):
+      self.patch = patch
+
+      umin = min(self.patch.uknotList)
+      umax = max(self.patch.uknotList)
+      vmin = min(self.patch.vknotList)
+      vmax = max(self.patch.vknotList)
+
+      self.utoric = utoric
+      self.vtoric = vtoric
+
+      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
+
+    def normalizeuv(self, u, v):
+      #if not (self.umin <= u <= self.umax) :
+      #  raise ValueError(u,self.umin,self.umax)
+      #if not (self.vmin <= v <= self.vmax) :
+      #  raise ValueError(v,self.vmin,self.vmax)
+      if self.utoric:
+          u = self.umin + (u-self.umin) % (self.umax-self.umin) 
+      else:
+          u = min(self.umax,max(self.umin,u))
+      if self.vtoric:
+          v = self.vmin + (v-self.vmin) % (self.vmax-self.vmin) 
+      else:
+          v = min(self.vmax,max(self.vmin,v))
+      return u,v
+
+
+    # Surface position vector
+    # uvpq is an 1x4 array of reals where:
+    # - u,v are the coordinates on the surface of the moving point
+    # - p,q are the coordinates of the initial vector corresponding to
+    # the initial direction in the local covariant basis (at point [u,v]
+
+    def S(self,u,v):
+      """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
+      as a function of the two surface coordinates (u,v)
+      u = azimuth (u in [0,2Pi], counted from the x-axis, where u = 0)
+      v = elevation (v in [-Pi/2,+Pi/2] )
+      """
+      u,v = self.normalizeuv(u,v)
+      p = self.patch.getPointAt(u,v)
+      return np.array(p)
+
+    # the Shift tensor may be wieved as the coordinates of the surface
+    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+    def Shift(self,u,v):
+      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      It is derived from the partial derivatives of the surface equations wrt u,v
+      (may be could be computed automatically from S(u,v) ... see that later)
+      """
+      # getDerivativeAt(u,v,nu,nv) returns the dérivative at point (u,v)
+      # where nu, and nv specifies the depth of the derivative (number of time the derivative is applied)
+      # print("S_u: ", self.patch.getDerivativeAt(u,v,1,0), " S_v: ", self.patch.getDerivativeAt(u,v,0,1))
+      u,v = self.normalizeuv(u,v)
+      S_u = np.array(self.patch.getUTangentAt(u,v)) #
+      S_v = np.array(self.patch.getVTangentAt(u,v))
+
+      return np.array([[S_u[0],S_v[0]],[S_u[1],S_v[1]],[S_u[2],S_v[2]]])
+
+    def secondsuu(self,u,v):
+      """
+      second derivatives of the position vector at the surface
+      """
+      u,v = self.normalizeuv(u,v)
+      S_u = self.patch.getDerivativeAt(u,v,2,0)
+      return np.array(S_u)
+
+    def secondsuv(self,u,v):
+      u,v = self.normalizeuv(u,v)
+      S_u = self.patch.getDerivativeAt(u,v,1,1)
+      return np.array(S_u)
+
+    def secondsvv(self,u,v):
+      u,v = self.normalizeuv(u,v)
+      S_u = self.patch.getDerivativeAt(u,v,0,2)
+      return np.array(S_u)
+
+
+def to_nurbs_python(sh):
+    from geomdl import NURBS, BSpline
+    surf = NURBS.Surface()
+    surf.degree_u = sh.udegree
+    surf.degree_v = sh.vdegree
+
+    npctrls = np.array(sh.ctrlPointMatrix)
+    shape = npctrls.shape
+    npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
+    npctrls[:,0] *= npctrls[:,3]
+    npctrls[:,1] *= npctrls[:,3]
+    npctrls[:,2] *= npctrls[:,3]
+    surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
+    surf.knotvector_u = list(sh.uknotList)
+    surf.knotvector_v = list(sh.vknotList)
+
+    surf.evaluate()
+
+    return surf
+
+
+class GeomLibPatch(ParametricSurface):
 
     def __init__(self, patch):
       self.patch = patch
@@ -1670,12 +1768,6 @@ class Patch(ParametricSurface):
 
       super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
 
-
-    # Surface position vector
-    # uvpq is an 1x4 array of reals where:
-    # - u,v are the coordinates on the surface of the moving point
-    # - p,q are the coordinates of the initial vector corresponding to
-    # the initial direction in the local covariant basis (at point [u,v]
 
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
@@ -1727,50 +1819,35 @@ class Patch(ParametricSurface):
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
 
-''' Use instead mother class implementation
-    def ChristoffelSymbols(self,u,v):
-        """
-        defined as the scalar product of S^a . dS_b / dS^c, with a,b,c in {u,v}
-        """
-        u = min(self.umax,max(self.umin,u))
-        v = min(self.vmax,max(self.vmin,v))
-        # covariant basis
-        S_u, S_v = self.covariant_basis(u,v)
+class ExtrusionSurface(Patch):
 
-        # inverse metric tensor ig
-        ig = self.inverse_metric_tensor(u,v)
+    def __init__(self, extrusion):
+      extrusion.uknotList = extrusion.axis.knotList
+      extrusion.uknotList = extrusion.crossSection.knotList
 
-        # contravariant basis
-        Su = ig[0][0] * S_u + ig[0][1] * S_v
-        Sv = ig[1][0] * S_u + ig[1][1] * S_v
+      super(ExtrusionSurface, self).__init__(extrusion)
 
-        # derivatives of the covariant basis
-        skl = derivatives(self.nurbssurf, u, v, 2)
+    def secondsuu(self,u,v):
+      """
+      second derivatives of the position vector at the surface
+      """
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
+      S_u = self.patch.getSecondDerivativeUUAt(u,v)
+      return np.array(S_u)
 
-        S_uu = np.array(skl[2][0])
-        #S_uu = S_uu[0:3]
-        S_uv = S_vu = np.array(skl[1][1])
-        #S_uv = S_uv[0:3]
-        #S_vu = S_vu[0:3]
-        S_vv = np.array(skl[0][2])
-        #S_vv = S_vv[0:3]
+    def secondsuv(self,u,v):
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
+      S_u = self.patch.getSecondDerivativeUVAt(u,v)
+      return np.array(S_u)
 
-        # compute the dot product ...
-        # Christoffel symbols (RCS) that is an array of 2x2x2 = 8 numbers
-        # Gamma^a_bc  = RCS[a,b,c]
+    def secondsvv(self,u,v):
+      u = min(self.umax,max(self.umin,u))
+      v = min(self.vmax,max(self.vmin,v))
+      S_u = self.patch.getSecondDerivativeVVAt(u,v)
+      return np.array(S_u)
 
-        RCS = np.zeros((2,2,2))
-        RCS[0,0,0] = np.dot(Su,S_uu)
-        RCS[1,0,0] = np.dot(Sv,S_uu)
-        RCS[0,1,0] = np.dot(Su,S_vu)
-        RCS[1,1,0] = np.dot(Sv,S_vu)
-        RCS[0,0,1] = np.dot(Su,S_uv)
-        RCS[1,0,1] = np.dot(Sv,S_uv)
-        RCS[0,1,1] = np.dot(Su,S_vv)
-        RCS[1,1,1] = np.dot(Sv,S_vv)
-
-        return RCS
-'''
 
 class Revolution(ParametricSurface):
     """
@@ -1957,10 +2034,11 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
     M = len(ilist)
     N = len(jlist)
 
+    uvList = [(i,j) for i in ilist for j in jlist]
     # 1D list containing the 3D points of the grid made by i,j values
     # (j varies quicker than i): kth point in the list corresponds
     # to point (i,j) such that k = i*N+j
-    grid3Dpoints = [surface(i,j) for i in ilist for j in jlist]
+    grid3Dpoints = [surface(u,v) for u,v in uvList]
 
     # Constructs the list of quad indexes pointing to the 3D points
     # in the previous list
@@ -1976,4 +2054,4 @@ def QuadifySurfEquation(surface,umin=0,umax=1,vmin=0,vmax=1,Du=0.01,Dv=0.01):
             for i in range(1,M) for j in range(1,N)]
     '''
 
-    return grid3Dpoints, quadindexlist
+    return grid3Dpoints, quadindexlist, uvList
