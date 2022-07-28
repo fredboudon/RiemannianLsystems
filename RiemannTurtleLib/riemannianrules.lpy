@@ -140,6 +140,13 @@ InitTurtle(gencoords):
   # to the curvilinear abscissa
   # nvelocity = turtle.space.normalize(pos,dir)
 
+  lg=len(gencoords)
+  if not (lg == 2 or lg == 4):
+    raise ValueError('An array of size 2 or 4 is expected as an argument')
+
+  if lg == 2: # only [u,v] is given --> add values for p,q = [1,0]
+    gencoords += [1,0]
+
   turtle.add_parameter('uvpq',gencoords)
   head, up = riemannian_turtle_init(gencoords, turtle.space)
   u,v,p,q = gencoords
