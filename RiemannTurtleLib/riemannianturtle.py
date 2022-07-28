@@ -259,14 +259,16 @@ def parameterspace_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10):
     q_new = np.full(SUBDIV, q)
 
     # computes intermediate points
-    d = delta_s / SUBDIV
+    dl = delta_s / SUBDIV
 
     for k in range(SUBDIV):
-        u_new[k] = u + d * k * np.cos(theta)
-        v_new[k] = v + d * k * np.sin(theta)
+        u_new[k] = u + dl * (k+1) * np.cos(theta)
+        v_new[k] = v + dl * (k+1) * np.sin(theta)
 
     # combine these 1D array as a (SUBDIV,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
     uvpq_s = np.vstack((u_new, v_new, p_new, q_new)).T
+
+    #print('FORWARD --> u0, v0 =', u, v, 'new u, v =', u_new[-1], v_new[-1])
 
     return uvpq_s
 
@@ -299,7 +301,7 @@ def parameterspace_turtle_turn(p_uvpq, surf, deviation_angle):
 
     pp, qq = rpq
 
-    # print('uvpq, angle', u, v, '(',p, q, pp, qq, ')', angle_rad)
+    #print('TURN --> u, v =', u, v, 'angle =', angle_rad, 'p,q before(',p, q, '), p,q after(', pp, qq, ')')
 
     uvpq = np.array([u, v, pp, qq])
 

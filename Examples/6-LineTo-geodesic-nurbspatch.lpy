@@ -78,23 +78,25 @@ rb = 0.5
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
-AXIOMTEST = 1
-TEST      = 3  
-
 origin_pt = [0., 0.]    # in (u,v) coordinates
-target_pt = [1., 0.7]  # in (u,v) coordinates
+target_pt = [1.0,0.7]
+#target_pt = [0.8, 0.99]  # in (u,v) coordinates
 
-LINETO_MAXITER = 10
+## DEBUG: vary from 0 to 9 to see how the solution gets attracted towards the geodesic
+## HOWEVER, diverges after that ???
+LINETO_MAXITER = 7
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   #nproduce SetSpace(Sphere(R),None)
   dictarg = {'CCW' : True}
   nproduce SetSpace(Patch(patch1),dictarg)
+  nproduce PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v 
   # (and p,q their first derivatives)
-  turtle_init = origin_pt + [1., 0.3] # needed to initialize the turtle on the surface
+  turtle_init = origin_pt + [1., 0.0] # [1., 0.3] # needed to initialize the turtle on the surface
   nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
+  nproduce +(13.5)
   # plots the point at the origin
   nproduce Frame(0.2)
   # plots the target point as a sphere on the surface
@@ -107,7 +109,10 @@ production:
 
 S:  
   nproduce [;(5)F(2)]
-  nproduce RiemannLineTo(target_pt,10)
+  ## BUG: Very fragile:
+  ## - the number of input points is critical 
+  ## (too big --> diverge, in particular small segments at the beginning diverge)
+  nproduce RiemannLineTo(target_pt,12)
 
 
 interpretation:

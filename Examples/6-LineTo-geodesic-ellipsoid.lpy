@@ -5,12 +5,7 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 		
-	Simulates geodesics on a sphere with a riemannian implementation of
-	the main turtle primitives: F, f, + and -
-
-	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
-	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
-
+     
 """
 
 import numpy as np
@@ -78,8 +73,6 @@ rb = 0.5
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
-AXIOMTEST = 1
-TEST      = 3  
 
 origin_pt = [0., 0.]    # in (u,v) coordinates
 target_pt = [2., 0.7]  # in (u,v) coordinates
@@ -89,11 +82,13 @@ LINETO_MAXITER = 10
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   #nproduce SetSpace(Sphere(R),None)
-  nproduce SetSpace(EllipsoidOfRevolution(ra,rb),None)
+  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
+  nproduce PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v 
   # (and p,q their first derivatives)
-  turtle_init = origin_pt + [1., 1.1] # needed to initialize the turtle on the surface
+  turtle_init = origin_pt + [1., 0] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
   nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
+  nproduce +(56)
   # plots the point at the origin
   nproduce Frame(0.2)
   # plots the target point as a sphere on the surface
@@ -105,7 +100,7 @@ derivation length: 1 #nb_seg
 production:
 
 S:  
-  #nproduce [;(4)F(1)]
+  nproduce [;(2)F(2)]
   nproduce RiemannLineTo(target_pt,15)
 
 

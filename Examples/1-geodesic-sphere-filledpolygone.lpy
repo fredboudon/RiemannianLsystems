@@ -82,7 +82,7 @@ TEST = 3
 # v in [-pi/2,pi/2]
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Sphere(R))
+  nproduce SetSpace(Sphere(R),None)
   u0,v0 = (0.,0.)
   p0,q0 = (0.,1.)
   nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0])A(0)]
