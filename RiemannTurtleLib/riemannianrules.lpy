@@ -104,10 +104,16 @@ SetSpace(surface, *args):
 
 
 PlotSpace(*args):
-    plotspace(turtle.space, *args)
+    if len(args) == 1 and type(args)==dict:
+        plotspace(turtle.space, **args)
+    else:
+        plotspace(turtle.space, *args)
 
 PlotDS2(*args):
-    plotds2(turtle.space, *args)
+    if len(args) == 1 and type(args)==dict:
+        plotds2(turtle.space, **args)
+    else:
+        plotds2(turtle.space, *args)
 
 
 StartIndirectInterpretation:
