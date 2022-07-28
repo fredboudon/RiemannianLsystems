@@ -462,6 +462,14 @@ ClosedPolygon(polyline_uv, *args):
     # print("pos0", pos0)
     nproduce {MoveTo(pos0).MoveTo(pos1).MoveTo(pos2).MoveTo(pos3).}
 
+
+?T(params):
+    params['state'] = turtle.getParameters()
+    for p, c in turtle._params.items():
+        params[p] = c(getattr(turtle, p))
+    t.append(params)
+    produce ?T(params)
+
 endlsystem
 
 
