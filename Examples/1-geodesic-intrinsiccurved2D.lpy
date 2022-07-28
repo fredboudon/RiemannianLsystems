@@ -144,7 +144,7 @@ source = (0.5,1.)
 ry = 1.
 rz = 2.
 
-TEST = 2
+TEST = 3
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
@@ -153,17 +153,20 @@ Axiom:
   metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
   #metric_funcs = {'g11' : g11_psd, 'g12' : g12_psd, 'g22' : g22_psd, 'g11s' : g11s_psd, 'g12s' : g12s_psd, 'g22s' : g22s_psd}
   if TEST == 1:
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params),None)
+    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
+    nproduce ;(0)PlotSpace
     nproduce InitTurtle([0.,0.,0.,1.])
     nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
   elif TEST == 2:
-    argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR': 4.}
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params),argdict)
+    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
+    nproduce ;(0)PlotSpace
+    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
     nproduce InitTurtle([0.,0.,0.,1.])
     nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
   elif TEST == 3: # analyze here the effect of original orientation on geodesic 
-    argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR': 4.}
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = 0, vmax = 2, metric_tensor_params = params),argdict)
+    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = 0, vmax = 2, metric_tensor_params = params))
+    nproduce ;(0)PlotSpace
+    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
     nproduce S
     a = 20
     for i in range(a+1):

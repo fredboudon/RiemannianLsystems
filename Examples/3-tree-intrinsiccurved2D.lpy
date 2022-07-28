@@ -135,9 +135,9 @@ Axiom:
   # choice of functions used to define the intrinsic metric (see above their definition
   metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
   #metric_funcs = {'g11' : g11_psd, 'g12' : g12_psd, 'g22' : g22_psd, 'g11s' : g11s_psd, 'g12s' : g12s_psd, 'g22s' : g22s_psd}
-  argdict = {'PLOTDS2':True, 'DS2_SCALEFACTOR': 5}
-  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = 0, vmax = 3, metric_tensor_params = params), argdict)
-  
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = 0, vmax = 3, metric_tensor_params = params))
+  nproduce ;(0)PlotSpace
+  nproduce PlotDS2(dict(DS2_SCALEFACTOR = 5))
   nproduce InitTurtle([0.0,0.0,0.0,1.])
   # nproduce InitTurtle([0.9,1.4,-0.7,-0.2]) # Gowing away from the source ...
 

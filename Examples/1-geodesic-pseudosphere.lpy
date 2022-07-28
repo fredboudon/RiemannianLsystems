@@ -83,7 +83,8 @@ Axiom:
   # Sets the Riemanian space in which the turtle will move
   # u = control of z (the bigger u the highest z (warning it is not directly z)
   # v = azimuth
-  nproduce SetSpace(PseudoSphere(R, zmin = -3, zmax = 3),None)
+  nproduce SetSpace(PseudoSphere(R, zmin = -3, zmax = 3))
+  nproduce ;(0)PlotSpace(dict(CCW = False))
   nproduce _(LINEWIDTH)
 
   if AXIOMTEST == 1:

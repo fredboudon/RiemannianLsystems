@@ -67,12 +67,12 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 
 length_geodesic = 1.0 
 
-AXIOMTEST = 2
+AXIOMTEST = 1
 
 module SetSpace(surface), InitTurtle(turtle_state)
 
 Axiom:
-  global length_geodesic
+  global length_geodesic, patch1, patch3
   # Sets the Riemannian space in which the turtle will move
   # FIXME: nproduce ^(90)SetSpace(Patch(patch1),None) does not work as the InitTurtle 
   # positions the Turtle in the frame of the LPy space (assuming that the suface is mapped strainght here with no rotation or translation) 
@@ -80,13 +80,18 @@ Axiom:
     # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
     u0= 0.5 #np.pi/6
     v0= 0.0 #np.pi/6
+    nproduce SetSpace(Patch(patch1))
+    nproduce ;(0)PlotSpace(dict(CCW = False))
     nproduce InitTurtle([u0,v0,0,1])
     nproduce ;(1)_(LINEWIDTH)A(0)
   elif AXIOMTEST == 1:
     # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
     u0= 0.5 #np.pi/6
     v0= 0.0 #np.pi/6    # show pi/2, 0 then different values between pi/2 and pi/3
-    a = -np.pi/3 #np.pi/2.3 # to orient the turtle's head at the beginning
+    nb_curves = 10
+    da = 180/(nb_curves)
+    nproduce SetSpace(Patch(patch3))
+    nproduce ;(0)PlotSpace(dict(CCW = True))
     # First option: dram a simple geodesic
     #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
     #nproduce ;(1)A(0)
@@ -94,15 +99,34 @@ Axiom:
     #for i in range(nb+1):  
     #  a += np.pi/(nb+1)
     length_geodesic = 1.0 
-    nb = 10
-    for i in range(nb):  
-      a += np.pi/(1.5*nb)
-      nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+    nproduce InitTurtle([u0,v0,1,0])
+    for i in range(nb_curves):  
+      nproduce +(da)
+      nproduce _(LINEWIDTH)[ InterpolateColors(3,5, i/(nb_curves-1))A(0)]
   elif AXIOMTEST == 2:
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    u0= 0.5 #np.pi/6
+    v0= 0.0 #np.pi/6    # show pi/2, 0 then different values between pi/2 and pi/3
+    nb_curves = 10
+    da = np.pi/(nb_curves)
+    nproduce SetSpace(Patch(patch3))
+    nproduce ;(0)PlotSpace(dict(CCW = False))
+    # First option: dram a simple geodesic
+    #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+    #nproduce ;(1)A(0)
+    # Second option:draw 10 geodesics with different initial directions
+    #for i in range(nb+1):  
+    #  a += np.pi/(nb+1)
+    length_geodesic = 1.0 
+    a =  0
+    for i in range(nb_curves):  
+      nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(a),np.sin(a)]) InterpolateColors(3,5, i/(nb_curves-1))A(0)]
+      a += da
+  elif AXIOMTEST == 3:
     # FIXME: if nb_seg = 1 and length_geodesic > 2*np.pi, it seems that the integration slightly drifts. Check this.
-    patch1 = nurbsSphere()
-    dictarg = {'CCW' : False}
-    nproduce SetSpace(Patch(patch1),dictarg)
+    patch3 = nurbsSphere()
+    nproduce SetSpace(Patch(patch3))
+    nproduce PlotSpace(dict(CCW = False))
     u0= 0.5 
     v0= 0.0    
     length_geodesic =2*np.pi 
@@ -140,12 +164,22 @@ def __initialiseContext__(context):
 		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
 	patch1 = pgl.NurbsPatch(	
-	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0, -0.166667, 0, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (-0.355718, -0.0565335, 0.508855, 1), (-0.362102, 0.0901285, 0.405202, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.0252141, -0.515907, 0.398777, 1), (-0.352318, -0.00279236, 0.564018, 1), (-0.363668, 0.10938, 0.503837, 1), (-0.0192294, 0.499495, 0.442237, 1)], [(0, -0.5, 0.666667, 1), (-0.33306, -0.00429326, 0.663507, 1), (-0.346903, 0.154968, 0.544111, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0, 0.166667, 1, 1), (0, 0.5, 1, 1)]]) , 
-	    )
+	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0.0295491, 0.0172273, 0.0204014, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (0.325603, 0.00690836, 0.425017, 1), (0.303992, 0.200873, 0.366263, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.00441042, -0.518639, 0.489863, 1), (0.346984, -0.0268568, 0.48347, 1), (0.334252, 0.212297, 0.456407, 1), (-0.0147519, 0.496314, 0.461605, 1)], [(0, -0.5, 0.666667, 1), (0.367414, 0.0717941, 0.599293, 1), (0.325871, 0.177369, 0.550018, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0.000294821, 0.152723, 1.00003, 1), (0, 0.5, 1, 1)]]) , 
+vstride = 20 , 	    )
 	patch1.name = "patch1"
-	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1)])
+	patch2 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.166667, 1), (0, -0.5, 0.166667, 1), (0, -0.5, 0.5, 1)], [(0, -0.166667, -0.5, 1), (-0.824406, -0.0196734, -0.133783, 1), (-0.822941, 0.137089, 0.0961383, 1), (0, -0.166667, 0.5, 1)], [(0, 0.166667, -0.5, 1), (-0.77868, 0.219814, -0.190883, 1), (-0.77506, 0.262243, 0.0584105, 1), (0, 0.166667, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.166667, 1), (0, 0.5, 0.166667, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 10 , vstride = 10 , 	    )
+	patch2.name = "patch2"
+	patch3 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.25, 1), (0, -0.5, 0, 1), (0, -0.5, 0.25, 1), (0, -0.5, 0.5, 1)], [(0, -0.25, -0.5, 1), (0.643526, -0.25, -0.25, 1), (0.643526, -0.25, 0, 1), (0.643526, -0.25, 0.25, 1), (0, -0.25, 0.5, 1)], [(0, 0, -0.5, 1), (0.643526, 0, -0.25, 1), (0.643526, 0, 0, 1), (0.643526, 0, 0.25, 1), (0, 0, 0.5, 1)], [(0, 0.25, -0.5, 1), (0.643526, 0.25, -0.25, 1), (0.643526, 0.25, 0, 1), (0.643526, 0.25, 0.25, 1), (0, 0.25, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.25, 1), (0, 0.5, 0, 1), (0, 0.5, 0.25, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 10 , vstride = 10 , 	    )
+	patch3.name = "patch3"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1),('NurbsPatch',patch2),('NurbsPatch',patch3)])
 	parameterset = [panel_0,]
 	context["__functions__"] = []
 	context["__curves__"] = []
 	context["__parameterset__"] = parameterset
 	context["patch1"] = patch1
+	context["patch2"] = patch2
+	context["patch3"] = patch3

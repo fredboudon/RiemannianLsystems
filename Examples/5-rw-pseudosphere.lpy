@@ -74,8 +74,8 @@ seed(0)
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  argdict = {'CCW':False}
-  nproduce SetSpace(PseudoSphere(R),argdict)
+  nproduce SetSpace(PseudoSphere(R))
+  nproduce ;(0)PlotSpace(dict(CCW = False))
   nproduce InitTurtle([2.0,0.00,1.0,0.1])
   nproduce ;(6)_(LINEWIDTH)A(0)
  

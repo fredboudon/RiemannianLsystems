@@ -73,9 +73,11 @@ rb = 0.5
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
-
 origin_pt = [0., 0.]    # in (u,v) coordinates
-target_pt = [2., 0.7]  # in (u,v) coordinates
+#target_pt =  [2., 0.7]  # in (u,v) coordinates
+
+#target_pts = [[-1., 2.7], [-0.5, 0.7], [1., 0.7], [2., 1.8], [2., 0.7]]
+target_pts = [[1., 0.7], [2., 1.], [2., 0.7]]
 
 LINETO_MAXITER = 10
 
@@ -83,7 +85,7 @@ Axiom:
   # Sets the Riemannian space in which the turtle will move
   #nproduce SetSpace(Sphere(R),None)
   nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
-  nproduce PlotSpace
+  nproduce ;(0)PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v 
   # (and p,q their first derivatives)
   turtle_init = origin_pt + [1., 0] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
@@ -92,7 +94,8 @@ Axiom:
   # plots the point at the origin
   nproduce Frame(0.2)
   # plots the target point as a sphere on the surface
-  nproduce ;(3)DrawPoint(target_pt,0.05)
+  for tgpt in target_pts:
+    nproduce ;(3)DrawPoint(tgpt,0.05)
   nproduce S
 
 
@@ -101,8 +104,8 @@ production:
 
 S:  
   nproduce [;(2)F(2)]
-  nproduce RiemannLineTo(target_pt,15)
-
+  for tgpt in target_pts:
+    nproduce [RiemannLineTo(tgpt,15)]
 
 interpretation:
 

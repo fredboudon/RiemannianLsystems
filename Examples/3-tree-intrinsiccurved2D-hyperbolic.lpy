@@ -109,7 +109,9 @@ Axiom:
 
   # Note the second argument is optional and set the display 
   argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR' : 20,'CCW' : True}
-  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.5, umax = 1.5, vmin = 0.12, vmax = 2.2), argdict)
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.5, umax = 1.5, vmin = 0.12, vmax = 2.2))
+  nproduce ;(0)PlotSpace
+  nproduce PlotDS2(dict(DS2_SCALEFACTOR = 20))
   nproduce InitTurtle([-0.1,0.12,0.15,0.9])
 
   nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
