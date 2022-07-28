@@ -1,0 +1,165 @@
+import openalea.plantgl.scenegraph.nurbsshape as ns
+import importlib
+importlib.reload(ns)
+nurbsSphere = ns.nurbsSphere
+import numpy as np
+from numpy import arange
+from geomdl import NURBS, BSpline
+from geomdl import utilities
+from geomdl import operations
+from math import *
+
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from surfaces import Sphere as CGSphere
+
+
+if SphericalShape:
+	radius = 10
+	sh = nurbsSphere(radius)
+	cgsphere = CGSphere(radius)
+	d = 0.1
+	s = 1 #0.05
+	f = 0.01
+else:
+	sh = patch4
+	d = 0.01
+	s = 0.1
+	f = 0.05
+
+def to_nurbs_python(sh):
+	surf = NURBS.Surface()
+	surf.degree_u = sh.udegree
+	surf.degree_v = sh.vdegree
+	
+	npctrls = np.array(sh.ctrlPointMatrix)
+	shape = npctrls.shape
+	npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
+	npctrls[:,0] *= npctrls[:,3]
+	npctrls[:,1] *= npctrls[:,3]
+	npctrls[:,2] *= npctrls[:,3]
+	surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
+	surf.knotvector_u = list(sh.uknotList)
+	surf.knotvector_v = list(sh.vknotList)
+	
+	surf.evaluate()
+	
+	return surf
+
+surf = to_nurbs_python(sh)
+
+print(sh.getIsoVSectionAt(0.5).degree)
+
+order = int(ORDER)
+
+if not NORMALIZED:
+   def l(l,sc=1):
+      return l*f
+else:
+   def l(l,sc=1):
+      return s*sc
+
+extern(ExtEval = True)
+
+Axiom: 
+  # nproduce @g(sh)
+  nproduce _(d) 
+  #nproduce ,(5)@g(sh)
+  nproduce ,(5)@g(sh.getIsoUSectionAt(0))
+  nproduce ,(5)@g(sh.getIsoUSectionAt(0.5))
+  nproduce ,(5)@g(sh.getIsoUSectionAt(1))
+  nproduce ,(6)@g(sh.getIsoVSectionAt(0))
+  nproduce ,(6)@g(sh.getIsoVSectionAt(0.5))
+  nproduce ,(6)@g(sh.getIsoVSectionAt(1))
+  values = [(0.5,v) for v in arange(0.,1.1,0.1)] +[(u,0.5) for u in arange(0.,1.1,0.1)]
+  print(sh.udegree,sh.vdegree)
+  for u,v in values:
+      p = sh.getPointAt(u,v)
+      du1 = sh.getDerivativeAt(u,v,order,0)
+      dv1 = sh.getDerivativeAt(u,v,0,order)
+      
+      iso = sh.getIsoVSectionAt(v)
+      du3 = iso.getDerivativeAt(u,order)
+      iso = sh.getIsoUSectionAt(u)
+      dv3 = iso.getDerivativeAt(v,order)
+      
+      uv = [u,v]
+      skl = surf.derivatives(u,v,order)
+      du2 = skl[order][0]
+      dv2 = skl[0][order]
+      
+      nproduce [ @M(p) ,(2)@O(d*2) 
+      if DIR & 1:
+        # Red for plantgl
+        nproduce [,(3) PinpointRel(du1) Arrow(l(norm(du1),1)) ] 
+        # purple for python-nurbs
+        nproduce [,(6) PinpointRel(du2) Arrow(l(norm(du2),1.1)) ] 
+        # grey for iso line
+        nproduce [,(8) PinpointRel(du3) Arrow(l(norm(du3),1.2)) ] 
+      if DIR & 2:
+        nproduce [,(4) PinpointRel(dv1) Arrow(l(norm(dv1),1)) ]   
+        nproduce [,(7) PinpointRel(dv2) Arrow(l(norm(dv2),1.1)) ]   
+        nproduce [,(9) PinpointRel(dv3) Arrow(l(norm(dv3),1.2)) ]   
+      nproduce ]
+      
+      if False : #SphericalShape:
+         u *= 2*pi
+         v = (v -0.5)*pi
+         if order == 1:
+           du, dv = cgsphere.covariant_basis(u,v)
+         else:
+           du = cgsphere.secondsuu(u,v)
+           dv = cgsphere.secondsvv(u,v)
+         nproduce [ @M(cgsphere.S(u,v)) ,(5)@O(d*2) 
+         if DIR & 1:
+           nproduce [,(6) PinpointRel(du) Arrow(l(norm(du))) ] 
+         if DIR & 2:
+           nproduce [,(7) PinpointRel(dv) Arrow(l(norm(dv))) ]   
+         nproduce ]        
+
+derivation length: 1
+production:
+
+
+interpretation:
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_6 = pgl.Material("Color_6" , ambient = (78,16,57) , diffuse = 2.30769 , )
+	Color_6.name = "Color_6"
+	context.turtle.setMaterial(6,Color_6)
+	Color_7 = pgl.Material("Color_7" , ambient = (67,38,0) , diffuse = 2.68657 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	scalars = [('SphericalShape', 'Bool', True), ('IsoLine', 'Bool', False), ('DIR', 'Integer', 3, 1, 3), ('ORDER', 'Integer', 1, 1, 3), ('NORMALIZED', 'Bool', True)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	patch1 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.25, 1), (0, -0.5, 0, 3.9658), (0, -0.5, 0.25, 10.8266), (0, -0.5, 0.5, 27.4997)], [(0, -0.25, -0.5, 1), (0, -0.25, -0.25, 1), (0, -0.25, 0, 3.9658), (0, -0.25, 0.25, 10.8266), (0, -0.25, 0.5, 10.8266)], [(0, 0, -0.5, 1), (0, 0, -0.25, 1), (0, 0, 0, 3.9658), (0, 0, 0.25, 3.9658), (0, 0, 0.5, 3.9658)], [(0, 0.25, -0.5, 1), (0, 0.25, -0.25, 1), (0, 0.25, 0, 1), (0, 0.25, 0.25, 1), (0, 0.25, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.25, 1), (0, 0.5, 0, 1), (0, 0.5, 0.25, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 25 , vstride = 22 , 	    )
+	patch1.name = "patch1"
+	patch2 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.25, 1), (0, -0.5, 0, 1), (0, -0.5, 0.25, 1), (0, -0.5, 0.5, 1)], [(0, -0.25, -0.5, 1), (0, -0.25, -0.25, 1), (0, -0.25, 0, 1), (0, -0.25, 0.25, 1), (0, -0.25, 0.5, 1)], [(0, 0, -0.5, 1), (0, 0, -0.25, 1), (0.50213, -0.0324848, -0.0170653, 3.959), (0.0321118, 0.0279851, 0.237368, 1), (0, 0, 0.5, 1)], [(0, 0.25, -0.5, 1), (0, 0.25, -0.25, 1), (0, 0.25, 0, 1), (0, 0.25, 0.25, 1), (0, 0.25, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.25, 1), (0, 0.5, 0, 1), (0, 0.5, 0.25, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 10 , vstride = 10 , 	    )
+	patch2.name = "patch2"
+	patch4 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.25, 1), (0, -0.5, 0, 1), (0, -0.5, 0.25, 1), (0, -0.5, 0.5, 1)], [(0, -0.25, -0.5, 1), (0, -0.25, -0.25, 1), (0, -0.25, 0, 1), (0, -0.25, 0.25, 1), (0, -0.25, 0.5, 1)], [(0, 0, -0.5, 1), (0, 0, -0.25, 1), (1.64182, 0, 0, 1), (0, 0, 0.25, 1), (0, 0, 0.5, 1)], [(0, 0.25, -0.5, 1), (0, 0.25, -0.25, 1), (0, 0.25, 0, 1), (0, 0.25, 0.25, 1), (0, 0.25, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.25, 1), (0, 0.5, 0, 1), (0, 0.5, 0.25, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 10 , vstride = 10 , 	    )
+	patch4.name = "patch4"
+	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('NurbsPatch',patch1),('NurbsPatch',patch2),('NurbsPatch',patch4)])
+	parameterset = [panel_0,]
+	context["__functions__"] = []
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["patch1"] = patch1
+	context["patch2"] = patch2
+	context["patch4"] = patch4
