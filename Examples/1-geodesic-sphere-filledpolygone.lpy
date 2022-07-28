@@ -1,11 +1,12 @@
 %pastefile ../RiemannTurtleLib/riemannianrules.lpy
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
-		Date: 2019-2022
-		
-     
+		Date: 2022
+      
+      Filling polygons drawn in curved spaces
+      
 """
 
 import numpy as np
@@ -28,8 +29,9 @@ from surfaces import *
 from riemannianturtle import *
 
 
-PRINT_CURVATURES = False
+PRINT_CURVATURES = True
 PLOTDS2 = False
+
 
 #######################
 # Units
@@ -65,55 +67,62 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-length_greatcircle = 2*np.pi*R
-
-ra = 1.
-rb = 0.5
-
+length_geodesic = R*2*np.pi
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
+           # To draw one geodesic, set it to 1 and set dashed to False
 
+ulen = 2*np.pi*R / 10
+vlen = 2*np.pi*R / 20
 
-origin_pt = [0., 0.]    # in (u,v) coordinates
-target_pt = [2., 0.7]  # in (u,v) coordinates
+TEST = 3
 
-LINETO_MAXITER = 10
-
+# u in [0,2*pi]
+# v in [-pi/2,pi/2]
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  #nproduce SetSpace(Sphere(R),None)
-  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
-  nproduce PlotSpace
-  # Sets the initial position of the turtle in this space in the space coordinates: u,v 
-  # (and p,q their first derivatives)
-  turtle_init = origin_pt + [1., 0] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
-  nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
-  nproduce +(56)
-  # plots the point at the origin
-  nproduce Frame(0.2)
-  # plots the target point as a sphere on the surface
-  nproduce ;(3)DrawPoint(target_pt,0.05)
-  nproduce S
+  nproduce SetSpace(Sphere(R),None)
+  u0,v0 = (0.,0.)
+  p0,q0 = (0.,1.)
+  nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0])A(0)]
 
-
-derivation length: 1 #nb_seg
+derivation length: int(nb_seg)
 production:
 
-S:  
-  nproduce [;(2)F(2)]
-  nproduce RiemannLineTo(target_pt,15)
-
+A(n):
+  # first and last points should be the same (closed polygon)
+  if TEST == 1:
+    # NOTE: the polyline can have a duplicated ending point or not. 
+    # in any case the polyline will be considered as closed.
+    polyline_uv = [[0.0,0.0],[0,vlen],[ulen,vlen],[ulen,0],[0.0,0.0]]
+  elif TEST == 2:
+    h = 10
+    polyline_uv = [[1.0,0.0],[1/h,1/h],[0.,1.],[-1/h,1/h],[-1.0,0.0],[-1/h,-1/h],[0.,-1.], [1/h,-1/h]]
+  elif TEST == 3:
+    N=32   # Star with N/2 arms
+    h = 3  # depth of the arms
+    polyline_uv = []
+    for n in range(N):
+      if n%2 == 0:
+        u = np.cos(n*2*np.pi/N)
+        v = np.sin(n*2*np.pi/N)
+      else:
+        b = 1./h
+        u = b*np.cos(n*2*np.pi/N)
+        v = b*np.sin(n*2*np.pi/N)
+      polyline_uv.append([u,v])        
+  resolution = R/100.
+  nproduce [;(3)ClosedPolygon(polyline_uv, resolution, True)]
+  nproduce A(n+1)
 
 interpretation:
 
-maximum depth: 2
+#maximum depth : 2
 
-A:
-  u,v,p,q = turtle.uvpq
-  A = turtle.space.Shift(u,v)
-  velocity = A.dot(np.array([p,q]))
-  nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
-  #nproduce CovariantBasis(0.3)
+A(n):
+  nproduce _(FRAMEWIDTH)Frame(FRAMESIZE)
+  nproduce CovariantBasis(0.3)
 
 
 endlsystem
@@ -127,6 +136,7 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
+	context.options.setSelection('Warning with sharp module',0)
 	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
 	context["__scalars__"] = scalars
 	for s in scalars:
