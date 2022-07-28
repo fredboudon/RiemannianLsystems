@@ -1572,6 +1572,10 @@ class MonkeySaddle(ParametricSurface):
 
       self.a = a # dilation factor
       self.n = n # dilation factor
+      self.umin = 0
+      self.umax = umax
+      self.vmin = 0.
+      self.vmax = 2*np.pi
 
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface

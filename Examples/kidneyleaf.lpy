@@ -128,10 +128,13 @@ def __initialiseContext__(context):
 	    ctrlPointList = pgl.Point3Array([(0.363052, 0.00124457, 1),(0.402315, 0.00604102, 1),(0.440092, 0.0140814, 1),(0.484669, 0.0262317, 1),(0.536677, 0.0464629, 1)]) , 
 	    )
 	profile6.name = "profile6"
-	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('Curve2D',profile0),('Curve2D',profile1),('Curve2D',profile2),('Curve2D',profile3),('Curve2D',profile5),('Curve2D',profile6)])
+	profsphere = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.000652829, 0.500653, 1),(0.703638, 0.498383, 1),(0.702005, -0.493631, 1),(0.00250977, -0.498432, 1)]) , 
+	    )
+	profsphere.name = "profsphere"
+	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('Curve2D',profile0),('Curve2D',profile1),('Curve2D',profile2),('Curve2D',profile3),('Curve2D',profile5),('Curve2D',profile6),('Curve2D',profsphere)])
 	parameterset = [panel_0,]
-	context["__functions__"] = []
-	context["__curves__"] = [('profile0',profile0),('profile1',profile1),('profile2',profile2),('profile3',profile3),('profile5',profile5),('profile6',profile6),]
+	context["__curves__"] = [('profile0',profile0),('profile1',profile1),('profile2',profile2),('profile3',profile3),('profile5',profile5),('profile6',profile6),('profsphere',profsphere),]
 	context["__parameterset__"] = parameterset
 	context["profile0"] = profile0
 	context["profile1"] = profile1
@@ -139,3 +142,4 @@ def __initialiseContext__(context):
 	context["profile3"] = profile3
 	context["profile5"] = profile5
 	context["profile6"] = profile6
+	context["profsphere"] = profsphere

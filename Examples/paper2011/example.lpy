@@ -1,0 +1,21 @@
+Axiom: P
+
+derivation length: 10
+production:
+
+P --> [ RZ(30) T(0.6,0,0) A] [ RZ(150)  T(0.6,0,0) A] [ RZ(-90) T(0.6,0,0) A]
+
+A --> B [ T(0.6,0,0) RZ(60) T(0.6,0,0) A ] [T(0.6,0,0) RZ(-60) T(0.6,0,0) A]
+
+B --> S(1,1,0.6) I('torus')
+
+
+interpretation:
+
+T(x,y,z) --> f(x)
+RZ(a) --> Up(a)
+S(x,y,z) --> SetScale(x,y,z)
+I(name) --> Sphere(1)
+
+
+endlsystem
