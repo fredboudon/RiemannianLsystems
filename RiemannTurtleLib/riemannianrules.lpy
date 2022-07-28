@@ -386,7 +386,7 @@ f(length):
   # print ("head = ",head, " head norm = ", np.linalg.norm(head))
   # print ("up = ",up, " up norm = ", np.linalg.norm(up))
 
-  # TODO: Modify the following line as when the rotation takes place indirecty in the parameter space, the cumrotation is different
+  # TODO: Modify the following line as when the rotation takes place indirectly in the parameter space, the cumrotation is different
   turtle.cumrotation -= angle
 
   nproduce @R(head,up)
