@@ -4,7 +4,7 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Geodesics of an ellipsoid of revolution 
+	Computation of curvatures on different surfaces
 """
 
 import numpy as np
