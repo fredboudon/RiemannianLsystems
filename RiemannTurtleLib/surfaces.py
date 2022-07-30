@@ -1187,7 +1187,9 @@ class Sphere(ParametricSurface):
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
 
-      return np.array([nx,ny,nz])
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
     def rotate_surface_vector_degenerate_basis(self, u, v, vectpq, angle):
         '''
@@ -1328,7 +1330,11 @@ class PseudoSphere(ParametricSurface):
       nx = -np.tanh(u)*np.cos(v)
       ny = -np.tanh(u)*np.sin(v)
       nz = - 1/np.cosh(u)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
+
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
@@ -1472,11 +1478,15 @@ class EllipsoidOfRevolution(ParametricSurface):
       factor, that cancels out in the normed vector.
       '''
 
-      den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
+      #den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
       nx = self.b*np.cos(u)*np.cos(v)
       ny = self.b*np.sin(u)*np.cos(v)
       nz = self.a*np.sin(v)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
+
 
     def rotate_surface_vector_degenerate_basis(self, u, v, vectpq, angle):
         '''
@@ -1594,7 +1604,11 @@ class Torus(ParametricSurface):
       nx = np.cos(u)*np.cos(v)
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
+
 
     def metric_tensor(self,u,v):
       guu = (self.R + self.r*np.cos(v))**2
@@ -1668,7 +1682,7 @@ class Paraboloid(ParametricSurface):
       yu = np.sin(v)
       zu = 2*u
       xv = -u*np.sin(v)
-      yv = -u*np.cos(v)
+      yv = u*np.cos(v)
       zv = 0
 
       return np.array([[xu,xv],[yu,yv],[zu,zv]])
@@ -1684,7 +1698,7 @@ class Paraboloid(ParametricSurface):
 
     def secondsuv(self,u,v):
       xuv = -np.sin(v)
-      yuv =  np.cos(u)
+      yuv =  np.cos(v)
       zuv = 0
       return np.array([xuv,yuv,zuv])
 
@@ -1702,15 +1716,13 @@ class Paraboloid(ParametricSurface):
       return np.array([[guu,guv],[gvu,gvv]])
 
     def normal(self,u,v):
-      '''
-      FIXME: This normal is degenerated in u = 0
-      The trick from the 09/01/22 should be used here to estimate
-      the normal at u = 0 from neighboring normals
-      '''
-      nx = -2*np.cos(v)/(4*u**2 + 1)
-      ny = -2*np.sin(v)/(4*u**2 + 1)
-      nz = 1/(u * (4*u**2 + 1) )
-      return np.array([nx,ny,nz])
+      nx = -2*(u**2)*np.cos(v)
+      ny = -2*(u**2)*np.sin(v)
+      nz = u
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
@@ -1788,11 +1800,13 @@ class MonkeySaddle(ParametricSurface):
     '''
 
     def normal(self,u,v):
-      nx = -self.n*(self.a **2 )*(u**self.n)*np.cos((self.n-1)*v)
-      ny = -self.n*(self.a **2 )*(u**self.n)*np.cos((self.n+1)*v)
+      nx = -self.n*(self.a**2)*(u**self.n)*np.cos((self.n-1)*v)
+      ny =  self.n*(self.a**2)*(u**self.n)*np.sin((self.n-1)*v)
       nz = (self.a**2)*u
-      return np.array([nx,ny,nz])
 
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
 def nb_getSecondDerivativeUUAt(self, u,v):
     return self.getDerivativeAt(u,v,2,0)
@@ -2091,7 +2105,10 @@ class Revolution(ParametricSurface):
       nx = factor * np.cos(u)
       ny = factor * np.sin(u)
       nz = - factor * self.rprime(v)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
     #def geodesic_eq(self,uvpq,s):
     #  u,v,p,q = uvpq

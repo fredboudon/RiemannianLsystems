@@ -66,8 +66,8 @@ def vase(x, *args):
   if x < 0: 
     x = 0.
   u = (x) / 10.
-  #print ("x =", x, "u= ", u)
-  return 10*vasefunc.getValue(u)
+  radius = 10
+  return radius*vasefunc.getValue(u)
 
 
 ra = 1.
@@ -76,23 +76,40 @@ rb = 0.5
 seglen = ra/10.
 length_geodesic =  ra/5
 
-AXIOMTEST = 5
-TEST = 2
+#########################
+# Selectiong of tests
+#########################
+
+TEST = 9
+PRINT_TEST = 2
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   dic = {}
-  if AXIOMTEST == 1:
+  if TEST == 1:
     nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
-  elif AXIOMTEST == 2:
+  elif TEST == 2:
     nproduce SetSpace(Torus(1,0.5))
-  elif AXIOMTEST == 3:
+  elif TEST == 3:
     nproduce SetSpace(MonkeySaddle(a = 1, n=3, umax = 1.))
-  elif AXIOMTEST == 4:
-    dic = dict(CCW = False)
+  elif TEST == 4:
+    dic = dict(CCW = False) 
+    # Not that in this case, the normals defined from the covariant basis 
+    # are turned inside, and the colors for positive/negative curvatures
+    # are inverted
     nproduce SetSpace(Patch(patch1))
-  elif AXIOMTEST == 5:
+  elif TEST == 5:
     nproduce SetSpace(Revolution(vase,zmin = 0, zmax = 10))
+  elif TEST == 6:
+    nproduce SetSpace(Sphere(1.))
+  elif TEST == 7:
+    dic = dict(CCW = False)
+    nproduce SetSpace(Paraboloid(1))
+  elif TEST == 8:
+    dic = dict(CCW = False)
+    nproduce SetSpace(PseudoSphere(1, zmin = 0.1, zmax = 1-0.001))
+  elif TEST == 9:
+    nproduce SetSpace(ChineseHat(1))
   nproduce ;(0)PlotSpace(dic)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0.01 #np.pi/6
@@ -111,31 +128,52 @@ maximum depth: 3
 
 S:
   n = 20
-  if AXIOMTEST == 1:
+  if TEST == 1: # Ellipsoid: Ok
     ulist = np.linspace(0,2*pi,n)
     vlist = np.linspace(-pi,pi,n)
     scalefactor = 0.05
     linewidth = 0.003
-  if AXIOMTEST == 2:
+  if TEST == 2: # Torus
     ulist = np.linspace(0,2*pi,n)
     vlist = np.linspace(-pi,pi,n)
     scalefactor = 0.07
     linewidth = 0.007
-  elif AXIOMTEST == 3: # one curvature appears not in the tangent plane !!
+  elif TEST == 3: # Monkey saddle: almost ok: change of color of curvature 
     ulist = np.linspace(0,1,n)
     vlist = np.linspace(0,2*pi,n)
     scalefactor = 0.07
     linewidth = 0.01
-  elif AXIOMTEST == 4:
+  elif TEST == 4: # NurbsPatch: Ok (normal points inside)
     ulist = np.linspace(0,1,n)
     vlist = np.linspace(0,1,n)    
     scalefactor = 0.01
     linewidth = 0.002
-  elif AXIOMTEST == 5: # one curvature doex not appear !!
+  elif TEST == 5: # Revolution surface : one curvature does not appear !!
     ulist = np.linspace(0,2*pi,n)
     vlist = np.linspace(0,8,n)    
     scalefactor = 0.3
     linewidth = 0.01
+  elif TEST == 6: # Sphere: Ok
+    ulist = np.linspace(0,2*pi,n)
+    vlist = np.linspace(-pi,pi,n)    
+    scalefactor = 0.2
+    linewidth = 0.005
+  elif TEST == 7: # Paraboloid: Ok (normal points inside)
+    ulist = np.linspace(0,1,n)
+    vlist = np.linspace(0,2*pi,n)    
+    scalefactor = 0.06
+    linewidth = 0.002
+  elif TEST == 8: # Pseudosphere: Ok, but pos and neg curvatures seems inverted (normal points inside)
+    ulist = np.linspace(0.3,3,n)
+    vlist = np.linspace(0,2*pi,n)    
+    scalefactor = 0.05
+    linewidth = 0.005
+  elif TEST == 9: # Chinese hat: Does not work
+    ulist = np.linspace(0,0.99,n)
+    vlist = np.linspace(0,2*pi,n)    
+    scalefactor = 0.01
+    linewidth = 0.005
+  
   color_plus = 5
   color_minus = 6
   for u in ulist:
@@ -147,26 +185,27 @@ A(scalefactor,color_plus,color_minus,linewidth):
   u,v,p,q = turtle.uvpq
   print('uvpq',u,v,p,q)
   
-  if TEST == 1:
+  if PRINT_TEST == 1:
     # Test: computed numerical coef o the fundamental forms I and II
     E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
-    
-    # theoretical values of E,F,G,L,M,N:
-    EE = (R*np.tanh(u))**2
-    FF = 0
-    GG = (R/np.cosh(u))**2
-    
-    LL = -R*np.sinh(u)/(np.cosh(u)**2)
-    MM = 0
-    NN = -R*(1/np.cosh(u))*np.tanh(u)
-    
     print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
-    print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
+    if AXIOM_TEST == 8: # Pseudosphere
+      # theoretical values of E,F,G,L,M,N for pseudosphere :
+      EE = (R*np.tanh(u))**2
+      FF = 0
+      GG = (R/np.cosh(u))**2
     
-  if TEST == 2:
+      LL = -R*np.sinh(u)/(np.cosh(u)**2)
+      MM = 0
+      NN = -R*(1/np.cosh(u))*np.tanh(u)
+    
+      print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
+    
+  if PRINT_TEST == 2:
     K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
     if np.isnan(kmax):
       produce 
+      
     if PRINT_CURVATURES:
       print("Local curvatures:")
       print("\tGauss = ", "{:.3f}".format(K), \
@@ -198,7 +237,7 @@ A(scalefactor,color_plus,color_minus,linewidth):
     pdirmin = np.cross(pdirmax, ndir)
     print("pdirmin = ", pdirmin)
     
-    #pdir2 = A.dot(pdirs_uv[:,1])
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
     pdirs = [pdirmax,pdirmin]
     print(pdirs)
     #nproduce CovariantBasis(0.3)
@@ -207,7 +246,35 @@ A(scalefactor,color_plus,color_minus,linewidth):
     #nproduce ;(5)_(0.005)DrawVect(dir1,0.3)
     #nproduce ;(6)_(0.005)DrawVect(dir2,0.3)
     nproduce _(linewidth)DrawTensor2(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
+    normal = turtle.space.normal(u,v)
+    nproduce DrawVect(normal, 0.1)
 
+  if PRINT_TEST == 3:
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
+    # pdirs_uv are 
+    if pdirmin_uv == []:
+      produce
+    if pdirmax_uv == []:
+      produce
+      
+    # Compute the pushforward of principal direction 1 expressed in the covariant basis
+    pushforward = turtle.space.Shift(u,v)
+    pdirmax = pushforward.dot(pdirmax_uv)
+    print("pdirmax = ", pdirmax)
+    # Compute the local normal vector, and the second principal direction (perpendicular)
+    ndir = turtle.space.normal(u,v)
+    pdirmin = np.cross(pdirmax, ndir)
+    print("pdirmin = ", pdirmin)
+    
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
+    pdirs = [pdirmax,pdirmin]
+    print(pdirs)
+    #nproduce CovariantBasis(0.3)
+    pcurvs = [curvmax,curvmin]
+
+    #nproduce DrawEllipsis(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
 endlsystem
 
 
