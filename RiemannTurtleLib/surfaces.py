@@ -1642,6 +1642,7 @@ class MonkeySaddle(ParametricSurface):
       return np.array([nx,ny,nz])
 
 
+"""
 def nb_getSecondDerivativeUUAt(self, u,v):
     return self.getDerivativeAt(u,v,2,0)
 
@@ -1655,6 +1656,7 @@ from openalea.plantgl.all import NurbsPatch
 NurbsPatch.getSecondDerivativeUUAt = nb_getSecondDerivativeUUAt
 NurbsPatch.getSecondDerivativeUVAt = nb_getSecondDerivativeUVAt
 NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
+"""
 
 class Patch(ParametricSurface):
 
@@ -1686,13 +1688,29 @@ class Patch(ParametricSurface):
           v = min(self.vmax,max(self.vmin,v))
       return u,v
 
+    def getPointAt(self, u,v):
+      return self.patch.getPointAt(u,v)
+
+    def getUTangentAt(self, u,v):
+      return self.patch.getUTangentAt(u,v)
+
+    def getVTangentAt(self, u,v):
+      return self.patch.getVTangentAt(u,v)
+
+    def getSecondDerivativeUUAt(self, u,v):
+      return self.patch.getDerivativeAt(u,v,2,0)
+
+    def getSecondDerivativeUVAt(self, u,v):
+      return self.patch.getDerivativeAt(u,v,1,1)
+
+    def getSecondDerivativeVVAt(self, u,v):
+      return self.patch.getDerivativeAt(u,v,0,2)
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
     # - u,v are the coordinates on the surface of the moving point
     # - p,q are the coordinates of the initial vector corresponding to
     # the initial direction in the local covariant basis (at point [u,v]
-
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
       as a function of the two surface coordinates (u,v)
@@ -1700,8 +1718,7 @@ class Patch(ParametricSurface):
       v = elevation (v in [-Pi/2,+Pi/2] )
       """
       u,v = self.normalizeuv(u,v)
-      p = self.patch.getPointAt(u,v)
-      return np.array(p)
+      return np.array(self.getPointAt(u,v))
 
     # the Shift tensor may be wieved as the coordinates of the surface
     # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
@@ -1714,8 +1731,8 @@ class Patch(ParametricSurface):
       # where nu, and nv specifies the depth of the derivative (number of time the derivative is applied)
       # print("S_u: ", self.patch.getDerivativeAt(u,v,1,0), " S_v: ", self.patch.getDerivativeAt(u,v,0,1))
       u,v = self.normalizeuv(u,v)
-      S_u = np.array(self.patch.getUTangentAt(u,v)) #
-      S_v = np.array(self.patch.getVTangentAt(u,v))
+      S_u = np.array(self.getUTangentAt(u,v)) #
+      S_v = np.array(self.getVTangentAt(u,v))
 
       return np.array([[S_u[0],S_v[0]],[S_u[1],S_v[1]],[S_u[2],S_v[2]]])
 
@@ -1724,17 +1741,17 @@ class Patch(ParametricSurface):
       second derivatives of the position vector at the surface
       """
       u,v = self.normalizeuv(u,v)
-      S_u = self.patch.getDerivativeAt(u,v,2,0)
+      S_u = self.getSecondDerivativeUUAt(u,v)
       return np.array(S_u)
 
     def secondsuv(self,u,v):
       u,v = self.normalizeuv(u,v)
-      S_u = self.patch.getDerivativeAt(u,v,1,1)
+      S_u = self.getSecondDerivativeUVAt(u,v)
       return np.array(S_u)
 
     def secondsvv(self,u,v):
       u,v = self.normalizeuv(u,v)
-      S_u = self.patch.getDerivativeAt(u,v,0,2)
+      S_u = self.getSecondDerivativeVVAt(u,v)
       return np.array(S_u)
 
 
@@ -1823,34 +1840,70 @@ class GeomLibPatch(ParametricSurface):
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
 
+from openalea.plantgl.math import Matrix3
+
+def m3_tolist(self):
+    return [self.getColumn(v) for v in range(3)]
+
+Matrix3.tolist = m3_tolist
+
 class ExtrusionSurface(Patch):
 
     def __init__(self, extrusion):
-      extrusion.uknotList = extrusion.axis.knotList
-      extrusion.uknotList = extrusion.crossSection.knotList
+      extrusion.uknotList = [extrusion.axis.firstKnot,extrusion.axis.lastKnot]
+      extrusion.vknotList = [extrusion.axis.firstKnot,extrusion.crossSection.lastKnot]
+      self.framecache = {}
+      self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 
       super(ExtrusionSurface, self).__init__(extrusion)
 
-    def secondsuu(self,u,v):
-      """
-      second derivatives of the position vector at the surface
-      """
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
-      S_u = self.patch.getSecondDerivativeUUAt(u,v)
-      return np.array(S_u)
+      self.build_cache()
 
-    def secondsuv(self,u,v):
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
-      S_u = self.patch.getSecondDerivativeUVAt(u,v)
-      return np.array(S_u)
+    def build_cache(self):
+        frame = self.patch.getFrameAt(self.umin)
+        self.framecache[0] = frame.tolist()
+        prevu = self.umin
+        for i,u in enumerate(np.arange(self.umin+self.ducache, self.umax+self.ducache/2, self.ducache), 1):
+            frame = self.patch.getNextFrameAt(prevu, frame, u-prevu)
+            self.framecache[i] = frame.tolist()
+            prevu = u
 
-    def secondsvv(self,u,v):
-      u = min(self.umax,max(self.umin,u))
-      v = min(self.vmax,max(self.vmin,v))
-      S_u = self.patch.getSecondDerivativeVVAt(u,v)
-      return np.array(S_u)
+
+    def getFrame(self,u):
+        assert self.umin <= u <= self.umax
+        #return self.patch.getFrameAt(u)
+
+        div, mod = divmod(u-self.umin, self.ducache)
+        approxu = (div*self.ducache) + self.umin
+
+        approxframe = Matrix3(*self.framecache[int(div)])
+
+        if mod < 1e-5:
+            res = approxframe
+        else:
+            res = self.patch.getNextFrameAt(approxu, approxframe, u-approxu)
+        #print(self.patch.getFrameAt(u))
+        #print(res)
+        return res
+
+    def getPointAt(self, u,v):
+      return self.patch.getPointAt(u,v, self.getFrame(u))
+
+    def getUTangentAt(self, u,v):
+      return self.patch.getUTangentAt(u,v, self.getFrame(u))
+
+    def getVTangentAt(self, u,v):
+      return self.patch.getVTangentAt(u,v, self.getFrame(u))
+
+    def getSecondDerivativeUUAt(self, u,v):
+      return self.patch.getSecondDerivativeUUAt(u,v, self.getFrame(u))
+
+    def getSecondDerivativeUVAt(self, u,v):
+      return self.patch.getSecondDerivativeUVAt(u,v, self.getFrame(u))
+
+    def getSecondDerivativeVVAt(self, u,v):
+      return self.patch.getSecondDerivativeVVAt(u,v, self.getFrame(u))
+
 
 
 class Revolution(ParametricSurface):
