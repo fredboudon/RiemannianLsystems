@@ -1,0 +1,312 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Computation of curvatures on different surfaces
+"""
+
+import numpy as np
+import numpy.linalg as linalg
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
+
+from surfaces import *
+from riemannianturtle import *
+
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+def vase(x, *args):
+  if x < 0: 
+    x = 0.
+  u = (x) / 10.
+  radius = 10
+  return radius*vasefunc.getValue(u)
+
+
+ra = 1.
+rb = 0.5
+
+seglen = ra/10.
+length_geodesic =  ra/5
+
+#########################
+# Selectiong of tests
+#########################
+
+TEST = 9
+PRINT_TEST = 2
+
+Axiom:
+  # Sets the Riemannian space in which the turtle will move
+  dic = {}
+  if TEST == 1:
+    nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
+  elif TEST == 2:
+    nproduce SetSpace(Torus(1,0.5))
+  elif TEST == 3:
+    nproduce SetSpace(MonkeySaddle(a = 1, n=3, umax = 1.))
+  elif TEST == 4:
+    dic = dict(CCW = False) 
+    # Not that in this case, the normals defined from the covariant basis 
+    # are turned inside, and the colors for positive/negative curvatures
+    # are inverted
+    nproduce SetSpace(Patch(patch1))
+  elif TEST == 5:
+    nproduce SetSpace(Revolution(vase,zmin = 0, zmax = 10))
+  elif TEST == 6:
+    nproduce SetSpace(Sphere(1.))
+  elif TEST == 7:
+    dic = dict(CCW = False)
+    nproduce SetSpace(Paraboloid(1))
+  elif TEST == 8:
+    dic = dict(CCW = False)
+    nproduce SetSpace(PseudoSphere(1, zmin = 0.1, zmax = 1-0.001))
+  elif TEST == 9:
+    nproduce SetSpace(ChineseHat(1))
+  nproduce ;(0)PlotSpace(dic)
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  u0= 0.01 #np.pi/6
+  v0= 0 #np.pi/6
+  a = np.pi/3. # to orient the turtle's head at the beginning
+  nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+  #nproduce InitTurtle([u0,v0,0,1])
+  nproduce ;(1)_(LINEWIDTH) S
+
+derivation length: int(length_geodesic/seglen)
+production:
+
+interpretation:
+
+maximum depth: 3
+
+S:
+  n = 20
+  if TEST == 1: # Ellipsoid: Ok
+    ulist = np.linspace(0,2*pi,n)
+    vlist = np.linspace(-pi,pi,n)
+    scalefactor = 0.05
+    linewidth = 0.003
+  if TEST == 2: # Torus
+    ulist = np.linspace(0,2*pi,n)
+    vlist = np.linspace(-pi,pi,n)
+    scalefactor = 0.07
+    linewidth = 0.007
+  elif TEST == 3: # Monkey saddle: almost ok: change of color of curvature 
+    ulist = np.linspace(0,1,n)
+    vlist = np.linspace(0,2*pi,n)
+    scalefactor = 0.07
+    linewidth = 0.01
+  elif TEST == 4: # NurbsPatch: Ok (normal points inside)
+    ulist = np.linspace(0,1,n)
+    vlist = np.linspace(0,1,n)    
+    scalefactor = 0.01
+    linewidth = 0.002
+  elif TEST == 5: # Revolution surface : one curvature does not appear !!
+    ulist = np.linspace(0,2*pi,n)
+    vlist = np.linspace(0,8,n)    
+    scalefactor = 0.3
+    linewidth = 0.01
+  elif TEST == 6: # Sphere: Ok
+    ulist = np.linspace(0,2*pi,n)
+    vlist = np.linspace(-pi,pi,n)    
+    scalefactor = 0.2
+    linewidth = 0.005
+  elif TEST == 7: # Paraboloid: Ok (normal points inside)
+    ulist = np.linspace(0,1,n)
+    vlist = np.linspace(0,2*pi,n)    
+    scalefactor = 0.06
+    linewidth = 0.002
+  elif TEST == 8: # Pseudosphere: Ok, but pos and neg curvatures seems inverted (normal points inside)
+    ulist = np.linspace(0.3,3,n)
+    vlist = np.linspace(0,2*pi,n)    
+    scalefactor = 0.05
+    linewidth = 0.005
+  elif TEST == 9: # Chinese hat: Does not work
+    ulist = np.linspace(0,0.99,n)
+    vlist = np.linspace(0,2*pi,n)    
+    scalefactor = 0.01
+    linewidth = 0.005
+  
+  color_plus = 5
+  color_minus = 6
+  for u in ulist:
+    for v in vlist:
+      nproduce MoveToPoint([u,v]) @O(0.005) A(scalefactor,color_plus,color_minus,linewidth)
+      #nproduce Frame(0.1)
+      
+A(scalefactor,color_plus,color_minus,linewidth):
+  u,v,p,q = turtle.uvpq
+  print('uvpq',u,v,p,q)
+  
+  if PRINT_TEST == 1:
+    # Test: computed numerical coef o the fundamental forms I and II
+    E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
+    print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
+    if AXIOM_TEST == 8: # Pseudosphere
+      # theoretical values of E,F,G,L,M,N for pseudosphere :
+      EE = (R*np.tanh(u))**2
+      FF = 0
+      GG = (R/np.cosh(u))**2
+    
+      LL = -R*np.sinh(u)/(np.cosh(u)**2)
+      MM = 0
+      NN = -R*(1/np.cosh(u))*np.tanh(u)
+    
+      print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
+    
+  if PRINT_TEST == 2:
+    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
+    if np.isnan(kmax):
+      produce 
+      
+    if PRINT_CURVATURES:
+      print("Local curvatures:")
+      print("\tGauss = ", "{:.3f}".format(K), \
+            ", Mean = ", "{:.3f}".format(H), \
+            ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
+    
+    # principal directions returns the array of eigen-values, and the column matrix of eigen vectors
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
+    if PRINT_CURVATURES:
+      print("eigen values, eigen vectors:")
+      print(curvmin, curvmax)
+      print(pdirmin_uv, pdirmax_uv)
+    
+    #print("The norm of the eigen vectors should be 1: ", np.linalg.norm(evv[:,0]), np.linalg.norm(evv[:,1]) )
+    #produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+    
+    # pdirs_uv are 
+    if pdirmin_uv == []:
+      produce
+    if pdirmax_uv == []:
+      produce
+      
+    # Compute the pushforward of principal direction 1 expressed in the covariant basis
+    pushforward = turtle.space.Shift(u,v)
+    pdirmax = pushforward.dot(pdirmax_uv)
+    print("pdirmax = ", pdirmax)
+    # Compute the local normal vector, and the second principal direction (perpendicular)
+    ndir = turtle.space.normal(u,v)
+    pdirmin = np.cross(pdirmax, ndir)
+    print("pdirmin = ", pdirmin)
+    
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
+    pdirs = [pdirmax,pdirmin]
+    print(pdirs)
+    #nproduce CovariantBasis(0.3)
+    pcurvs = [curvmax,curvmin]
+    
+    #nproduce ;(5)_(0.005)DrawVect(dir1,0.3)
+    #nproduce ;(6)_(0.005)DrawVect(dir2,0.3)
+    nproduce _(linewidth)DrawTensor2(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
+    normal = turtle.space.normal(u,v)
+    nproduce DrawVect(normal, 0.1)
+
+  if PRINT_TEST == 3:
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
+    # pdirs_uv are 
+    if pdirmin_uv == []:
+      produce
+    if pdirmax_uv == []:
+      produce
+      
+    # Compute the pushforward of principal direction 1 expressed in the covariant basis
+    pushforward = turtle.space.Shift(u,v)
+    pdirmax = pushforward.dot(pdirmax_uv)
+    print("pdirmax = ", pdirmax)
+    # Compute the local normal vector, and the second principal direction (perpendicular)
+    ndir = turtle.space.normal(u,v)
+    pdirmin = np.cross(pdirmax, ndir)
+    print("pdirmin = ", pdirmin)
+    
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
+    pdirs = [pdirmax,pdirmin]
+    print(pdirs)
+    #nproduce CovariantBasis(0.3)
+    pcurvs = [curvmax,curvmin]
+
+    #nproduce DrawEllipsis(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
+endlsystem
+
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	patch1 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0.0295491, 0.0172273, 0.0204014, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (0.325603, 0.00690836, 0.425017, 1), (0.303992, 0.200873, 0.366263, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.00441042, -0.518639, 0.489863, 1), (0.346984, -0.0268568, 0.48347, 1), (0.334252, 0.212297, 0.456407, 1), (-0.0147519, 0.496314, 0.461605, 1)], [(0, -0.5, 0.666667, 1), (0.367414, 0.0717941, 0.599293, 1), (0.325871, 0.177369, 0.550018, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0.000294821, 0.152723, 1.00003, 1), (0, 0.5, 1, 1)]]) , 
+vstride = 20 , 	    )
+	patch1.name = "patch1"
+	import openalea.plantgl.all as pgl
+	vasefunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0160347, 0.559939, 1),(0.440107, -0.0643654, 1),(0.905046, 0.267064, 1),(1, 0.135477, 1),(1, 0.00596927, 1)]) , 
+	    )
+	vasefunc.name = "vasefunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1),('Function',vasefunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('vasefunc',vasefunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["patch1"] = patch1
+	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+__references__ = '#'

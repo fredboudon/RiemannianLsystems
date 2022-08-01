@@ -101,8 +101,8 @@ root_altitude = rootalt_list[alt_index]
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move. The args = (True) 
-  argdict = {'CCW':False}
-  nproduce SetSpace(PseudoSphere(R), argdict)
+  nproduce SetSpace(PseudoSphere(R))
+  nproduce ;(0)PlotSpace(dict(CCW = False))
   # test the passage through the pseudosphere
   nproduce ;(2)InitTurtle([root_altitude,0.0,1.,0.])
   nproduce ;(6)_(LINEWIDTH)A(0)

@@ -70,38 +70,72 @@ seglen = ra/3.
 length_geodesic = 0.4 # 1. 
 nb_angles = 10
 
+s  = 1/14.5    # the total height of the curve for the recorded measures 
+
+TEST =  1 # 1
+
+module Lezard, Member, RightLeg, LeftArm, LeftLeg, RightArm
+
 Axiom:
   # Sets the Riemannian space in which the turtle will move
   nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
   nproduce ;(0)PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v 
   #(and p,q their first derivatives in the chosen direction)
-  u0= 0 
-  v0= 0 
+  u0= 0.3
+  v0= 0.0 
   p0 = 1
   q0 = 0
-  nproduce ;(1)_(LINEWIDTH)InitTurtle([u0,v0,p0,q0])
-  # angles are in degrees to invoke rotation using +.
-  angles = np.linspace(0, 360, nb_angles+1)
-  for alpha in angles[:-1]:
-    # Starting from an initial direction defined by (p0,q0) in the InitTurtle
-    # turns the turtle of an angle in the tangent plane at the local (u,v)
-    nproduce [+(alpha)A(0)]
+  nproduce ;(2)_(LINEWIDTH)InitTurtle([u0,v0,p0,q0])
+  if TEST == 1:
+    nproduce [;(3)StartIndirectInterpretation
+    nproduce Frame(0.3) +(180)Lezard(1.)
+    #nproduce Frame(0.5) f(1) Frame(0.5)
+    nproduce StopIndirectInterpretation]
 
-derivation length: int(length_geodesic/seglen)
+derivation length: 1
 production:
 
-A(n):
-  nproduce F(ra/2.)
-  nproduce A(n+1)
+decomposition:
+maximum depth: 2
+
+Lezard(n) :
+  nproduce [
+  nproduce LeftArm(n)-(90)f(n)-(90)f(n)-(90)
+  nproduce [LeftLeg(n)]
+  nproduce -(45)RightLeg(n*1.414/2.0)RightArm(n*1.414/2.0)
+  nproduce ]
+
+RightLeg(n) :
+  produce [ Member(n,1) ] f(n)
+
+LeftLeg(n) :
+  produce [ Member(n,-1)] f(n)
+
+RightArm(n) : 
+  produce [f(n)-(180) Member(n,1)] f(n)
+
+LeftArm(n) :
+  produce [f(n)-(180) Member(n,-1)] f(n)
 
 interpretation:
-maximum depth: 2
+maximum depth: 3
 
 A(n):
   u,v,p,q = turtle.uvpq
   velocity = turtle.space.shift_vector(u,v,p,q)
   nproduce ;(5)_(0.01)DrawVect(velocity,0.3)
+  #nproduce CovariantBasis(0.3)
+
+Member(n,sgn):
+  nproduce +(sgn*17)S(2.1*s*n)-(sgn*6)S(1*s*n)-(sgn*6)S(1*s*n)-(sgn*4)S(0.7*s*n).-(sgn*28)S(0.55*s*n)
+  nproduce -(sgn*26.5)S(1*s*n)+(sgn*6.5)S(0.5*s*n)+(sgn*9.5)S(0.45*s*n)+(sgn*5.5)S(0.4*s*n)+(sgn*5)S(0.35*s*n)
+  nproduce +(sgn*15)S(1.8*s*n)+(sgn*7)S(0.7*s*n).+(sgn*48)S(1.35*s*n)-(sgn*11)S(1.1*s*n).+(sgn*102)S(1.2*s*n)
+  nproduce +(sgn*90)S(1.1*s*n)-(sgn*11)S(0.9*s*n).-(sgn*109)S(0.5*s*n)+(sgn*18)S(0.35*s*n)+(sgn*10)S(1.2*s*n)
+  nproduce -(sgn*110)S(2*s*n)+(sgn*5.5)S(1.6*s*n)-(sgn*67)S(2.2*s*n)-(sgn*1)S(1.95*s*n)
+
+S(n):
+  nproduce F(n)
 
 
 endlsystem

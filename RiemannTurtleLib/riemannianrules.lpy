@@ -37,6 +37,8 @@ module CovariantBasis(size)
 module RiemannLineTo
 #module DrawVect(vect) #FIXME: we should be able to declare same module with different signatures
 module DrawVect(vect,size)
+module MoveToPoint(uv)
+module DrawTensor2(vect,size,color1,color2)
 module DrawPoint
 module StartIndirectInterpretation
 module StopIndirectInterpretation
@@ -188,14 +190,14 @@ SetSpace(surface, *args):
 
 
 PlotSpace(*args):
-    if len(args) == 1 and type(args)==dict:
-        plotspace(turtle.space, **args)
+    if len(args) == 1 and type(args[0])==dict:
+        plotspace(turtle.space, **args[0])
     else:
         plotspace(turtle.space, *args)
 
 PlotDS2(*args):
-    if len(args) == 1 and type(args)==dict:
-        plotds2(turtle.space, **args)
+    if len(args) == 1 and type(args[0])==dict:
+        plotds2(turtle.space, **args[0])
     else:
         plotds2(turtle.space, *args)
 
@@ -223,6 +225,13 @@ InitTurtle(gencoords):
   # in this way the geodesic equation will use parameter s that corresponds
   # to the curvilinear abscissa
   # nvelocity = turtle.space.normalize(pos,dir)
+
+  lg=len(gencoords)
+  if not (lg == 2 or lg == 4):
+    raise ValueError('An array of size 2 or 4 is expected as an argument')
+
+  if lg == 2: # only [u,v] is given --> add values for p,q = [1,0]
+    gencoords += [1,0]
 
   turtle.add_parameter('uvpq',gencoords)
   head, up = riemannian_turtle_init(gencoords, turtle.space)
@@ -428,6 +437,14 @@ RiemannLineTo(target_coords, nb_points):
 
   nproduce @R(head,up)
 
+MoveToPoint(uv):
+  """Move at point (u,v) keeping the velocity [p,q] from the oroginal point """
+  u, v = uv
+  _,_,p,q = turtle.uvpq
+  turtle.uvpq = [u,v,p,q]
+  pos = turtle.space.S(u, v)
+  nproduce @M(pos)
+
 # Draw a vector that is parallel transported along the path that finishes at the current turtle position
 # The vector if of norm = size and is assumed to make an angle angleRelHead at the origin of the turtle's path
 # the initial direction of the path
@@ -466,6 +483,50 @@ DrawVect(vect, size):
   # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
   if not np.isclose(l1,0.):
     nproduce [PinpointRel(vect)Arrow(l1*size)]
+
+DrawTensor2(pdirs, eigenvals, size, color_positive, color_negative):
+  ''' 
+  mat2 is a matrice of normed column vectors of dim D x D (D = 2)
+  vec is a vector of Dim D, providing the length of the vectors (typically eigen values)
+  color positive (resp. negative) is used for positive (resp_negative) eigen values
+  '''
+  '''
+  surf = turtle.space
+  u, v, p, q = turtle.uvpq
+  pos = turtle.space.S(u, v)
+  A = turtle.space.Shift(u, v)
+
+
+  dir0 = A.dot(mat2[:, 0]) * l0
+  dir1 = A.dot(mat2[:, 1]) * l1
+  '''
+  dirmax = pdirs[0] # max
+  dirmin = pdirs[1]
+  l0, l1 = eigenvals
+  color0 = color_positive if l0 > 0 else color_negative
+  color1 = color_positive if l1 > 0 else color_negative
+
+  # draw a line from the current position of the Turtle to the indicated position
+  # nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  #l1 = np.linalg.norm(dir1)
+  #l2 = np.linalg.norm(dir2)
+
+  # nproduce [_(0.01)LineRel(coord)]
+  # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+  if not np.isclose(l0, 0.):
+    nproduce [ ;(color0)
+    nproduce PinpointRel(dirmax)
+    nproduce [turtle.F(l0 * size / 2)]
+    nproduce PinpointRel(-dirmax)
+    nproduce [turtle.F(l0 * size / 2)]
+    nproduce ]
+  if not np.isclose(l1, 0.):
+    nproduce [ ;(color1)
+    nproduce PinpointRel(dirmin)
+    nproduce [turtle.F(l1 * size / 2)]
+    nproduce PinpointRel(-dirmin)
+    nproduce [turtle.F(l1 * size / 2)]
+    nproduce ]
 
 DrawPoint(uv,size):
   u,v = uv

@@ -10,6 +10,8 @@ TODO: compute principal curvatures, gauss curvature for the mother class
 """
 import math
 import numpy as np
+import numpy.linalg as linalg
+
 from importlib import reload
 
 import geodesic_between_2points
@@ -170,7 +172,9 @@ class RiemannianSpace2D:
 
     def Shift(self,u,v):
       """
-      the Shift tensor may be wieved as the coordinates of the surface
+      Also called: Pushforward operator.
+
+      the Shift tensor may be viewed as the coordinates of the surface
       covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
       It is a (3,2 matrix) to transform the coordinates u,v in x,y,z
       Here u,v, are mapped on the y,z plane
@@ -295,6 +299,9 @@ class RiemannianSpace2D:
       return np.array([[a,-g12*b],[0,b]])
 
     def passage_matrix_cb2ortho_inverse(self,u,v):
+      '''
+      Inverse of the Matrix to pass from the orthog basis to the covariant basis
+      '''
       S1,S2 = self.covariant_basis(u,v)
       a = np.linalg.norm(S1)
       g12 = self.metric_tensor(u,v)[0,1]
@@ -865,7 +872,8 @@ class ParametricSurface(RiemannianSpace2D):
             k1 = H + np.sqrt(discriminant)
             k2 = H - np.sqrt(discriminant)
 
-        if abs(k1) > abs(k2):
+        #if abs(k1) > abs(k2):
+        if k1 > k2:
             kappa_min = k2
             kappa_max = k1
         else:
@@ -873,6 +881,150 @@ class ParametricSurface(RiemannianSpace2D):
             kappa_max = k2
 
         return K, H, kappa_min, kappa_max
+
+    def shapeOperator(self,u,v):
+        """
+        Returns the shape operator at point u,v expressed in the covariant basis (Gray 1993, p275)
+        (Warning, this matrix might not be symmetric as the covariant basis is not orthogonal in general.)
+        returns empty arrays if frame is undefined
+        """
+        E,F,G,L,M,N = self.fundFormCoef(u,v)
+
+        A11 = (M*F-L*G)/(E*G-F**2)
+        A12 = (L*F-M*E)/(E*G-F**2)
+        A21 = (N*F-M*G)/(E*G-F**2)
+        A22 = (M*F-N*E)/(E*G-F**2)
+
+        # Shape operator expressed in the covariant basis
+        shape_op = np.array([[A11,A12],[A21,A22]])
+
+        if np.isnan(A11) or np.isnan(A12) or np.isnan(A21) or np.isnan(A22) \
+        or A11 == np.inf or A12 == np.inf or A21 == np.inf or A22 == np.inf:
+            #raise ValueError('Shape operator contains inf values',shape_op)
+          return [], []
+
+
+        # Computation of the shape operator in an orthonormal basis, to obtain a symmetric matrix representation
+        # of the symmetric shape operator: Ssym = P^-1 S P
+
+        '''
+        shape_op_2 = shape_op.dot(self.passage_matrix_cb2ortho(u,v))                    # S P
+        shape_op_sym = self.passage_matrix_cb2ortho_inverse(u, v).dot(shape_op_2)   # P^-1 S P
+
+        if shape_op_symprint("shape operator ----> ")
+        print(shape_op_sym)
+
+        # eigen values, eigen vectors of the shape operator
+        # note: the ith eigen vector is the ith column of evv: u = vv[:,i]
+        ev_sym, evv_sym = linalg.eig(shape_op_sym)
+
+        # transport back the eigen vectors in the covariant basis: evv = P evv_sym
+        # Note: the eigen values keep the same in the two bases.
+        evv = self.passage_matrix_cb2ortho(u, v).dot(evv_sym)
+        ev = ev_sym
+        #print("fundFormLocalFrame: ", ev, evv)
+        '''
+
+        return shape_op
+
+    def principalDirections(self,u,v):
+        """
+        Returns the principal directions of curvature at point u,v
+        cf Struiks 1961 Dover p 80
+        """
+        E,F,G,L,M,N = self.fundFormCoef(u,v)
+        print("\tE,F,G\tL,M,N : ", E,F,G,L,M,N)
+
+        K, H, kappa_min, kappa_max = self.localCurvatures(u, v)
+        #print(" K, H, kappa_min, kappa_max : ", K, H, kappa_min, kappa_max)
+
+        # computation of the normal curvatures in the direction dvdu
+        # There are 2 Equations verified by the normal curvature in direction dvdu
+        # 1. A * du + B dv = 0
+        # 2. B * du + C dv = 0
+        #
+        Amax = L-kappa_max*E
+        Bmax = M-kappa_max*F
+        Cmax = N-kappa_max*G
+
+        Amin = L-kappa_min*E
+        Bmin = M-kappa_min*F
+        Cmin = N-kappa_min*G
+
+        print("equs max : ", Amax, Bmax, Cmax)
+        print("equs min : ", Amin, Bmin, Cmin)
+
+        # Equations for max curvature
+        if not np.isclose(Amax,0) and not np.isclose(Bmax,0) :
+          dudvmax = - Bmax/ Amax
+          dirmax = [dudvmax,1]
+        elif not np.isclose(Amax,0) and np.isclose(Bmax,0) :
+          # du = 0
+          if np.isclose(Cmax,0):
+            # dv can be any
+            dirmax = [0, 1]
+          else:
+            # i.e. A!=0, B = 0 and C != 0
+            # no principal direction can be detected
+            dirmax = []
+        elif np.isclose(Amax,0) and not np.isclose(Bmax,0) :
+          # i.e. A =0, B != 0
+          # means that B dv = 0 => dv = 0
+          # means that B du = 0 => du = 0
+          # the point is degenerated (no principal direction)
+          dirmax = []
+        else:
+          assert(np.isclose(Amax,0) and np.isclose(Bmax,0))
+          # means that C dv = 0
+          # du can be any
+          if not np.isclose(Cmax,0):
+            # means that dv = 0
+            # du may be any (no constraint from eqs 1 or 2)
+            dirmax = [1,0]
+          else:
+            # C = 0
+            # dv can be any
+            # du can be any
+            # all directions are principal directions
+            # => choose one along u
+            dirmax = [1,0]
+
+        # Equations for min curvature
+        if not np.isclose(Amin,0) and not np.isclose(Bmin,0) :
+          dudvmax = - Bmin/ Amin
+          dirmin = [dudvmax,1]
+        elif not np.isclose(Amin,0) and np.isclose(Bmin,0) :
+          # du = 0
+          if np.isclose(Cmin,0):
+            # dv can be any
+            dirmin = [0, 1]
+          else:
+            # i.e. A!=0, B = 0 and C != 0
+            # no principal direction can be detected
+            dirmin = []
+        elif np.isclose(Amin,0) and not np.isclose(Bmin,0) :
+          # i.e. A =0, B != 0
+          # means that B dv = 0 => dv = 0
+          # means that B du = 0 => du = 0
+          # the point is degenerated (no principal direction)
+          dirmin = []
+        else:
+          assert(np.isclose(Amin,0) and np.isclose(Bmin,0))
+          # means that C dv = 0
+          # du can be any
+          if not np.isclose(Cmin,0):
+            # means that dv = 0
+            # du may be any (no constraint from eqs 1 or 2)
+            dirmin = [1,0]
+          else:
+            # C = 0
+            # dv can be any
+            # du can be any
+            # all directions are principal directions
+            # => choose one along u
+            dirmin = [1,0]
+
+        return kappa_min, kappa_max, dirmin, dirmax
 
     def ChristoffelSymbols(self, u, v, printflag = False):
         """
@@ -1035,7 +1187,9 @@ class Sphere(ParametricSurface):
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
 
-      return np.array([nx,ny,nz])
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
     def rotate_surface_vector_degenerate_basis(self, u, v, vectpq, angle):
         '''
@@ -1176,7 +1330,11 @@ class PseudoSphere(ParametricSurface):
       nx = -np.tanh(u)*np.cos(v)
       ny = -np.tanh(u)*np.sin(v)
       nz = - 1/np.cosh(u)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
+
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
@@ -1320,11 +1478,15 @@ class EllipsoidOfRevolution(ParametricSurface):
       factor, that cancels out in the normed vector.
       '''
 
-      den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
+      #den = np.sqrt((self.a*np.sin(v))**2 + (self.b*np.cos(v))**2 )
       nx = self.b*np.cos(u)*np.cos(v)
       ny = self.b*np.sin(u)*np.cos(v)
       nz = self.a*np.sin(v)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
+
 
     def rotate_surface_vector_degenerate_basis(self, u, v, vectpq, angle):
         '''
@@ -1442,7 +1604,11 @@ class Torus(ParametricSurface):
       nx = np.cos(u)*np.cos(v)
       ny = np.sin(u)*np.cos(v)
       nz = np.sin(v)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
+
 
     def metric_tensor(self,u,v):
       guu = (self.R + self.r*np.cos(v))**2
@@ -1516,7 +1682,7 @@ class Paraboloid(ParametricSurface):
       yu = np.sin(v)
       zu = 2*u
       xv = -u*np.sin(v)
-      yv = -u*np.cos(v)
+      yv = u*np.cos(v)
       zv = 0
 
       return np.array([[xu,xv],[yu,yv],[zu,zv]])
@@ -1532,7 +1698,7 @@ class Paraboloid(ParametricSurface):
 
     def secondsuv(self,u,v):
       xuv = -np.sin(v)
-      yuv =  np.cos(u)
+      yuv =  np.cos(v)
       zuv = 0
       return np.array([xuv,yuv,zuv])
 
@@ -1550,15 +1716,13 @@ class Paraboloid(ParametricSurface):
       return np.array([[guu,guv],[gvu,gvv]])
 
     def normal(self,u,v):
-      '''
-      FIXME: This normal is degenerated in u = 0
-      The trick from the 09/01/22 should be used here to estimate
-      the normal at u = 0 from neighboring normals
-      '''
-      nx = -2*np.cos(v)/(4*u**2 + 1)
-      ny = -2*np.sin(v)/(4*u**2 + 1)
-      nz = 1/(u * (4*u**2 + 1) )
-      return np.array([nx,ny,nz])
+      nx = -2*(u**2)*np.cos(v)
+      ny = -2*(u**2)*np.sin(v)
+      nz = u
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
     def geodesic_eq(self,uvpq,s):
       u,v,p,q = uvpq
@@ -1636,11 +1800,13 @@ class MonkeySaddle(ParametricSurface):
     '''
 
     def normal(self,u,v):
-      nx = -self.n*(self.a **2 )*(u**self.n)*np.cos((self.n-1)*v)
-      ny = -self.n*(self.a **2 )*(u**self.n)*np.cos((self.n+1)*v)
+      nx = -self.n*(self.a**2)*(u**self.n)*np.cos((self.n-1)*v)
+      ny =  self.n*(self.a**2)*(u**self.n)*np.sin((self.n-1)*v)
       nz = (self.a**2)*u
-      return np.array([nx,ny,nz])
 
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
 """
 def nb_getSecondDerivativeUUAt(self, u,v):
@@ -1992,7 +2158,10 @@ class Revolution(ParametricSurface):
       nx = factor * np.cos(u)
       ny = factor * np.sin(u)
       nz = - factor * self.rprime(v)
-      return np.array([nx,ny,nz])
+
+      nvec = np.array([nx,ny,nz])
+      lennvec = np.linalg.norm(nvec)
+      return nvec/lennvec
 
     #def geodesic_eq(self,uvpq,s):
     #  u,v,p,q = uvpq

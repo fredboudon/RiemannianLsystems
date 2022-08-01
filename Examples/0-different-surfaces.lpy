@@ -76,13 +76,14 @@ b = 0.3  # EllipsoidOfRevolution
 radiusmax = 1.0 # Paraboloid
 #
 
-TEST = 1
+TEST = 6
 module SetSpace(surface) #, InitTurtle(turtle_state)
 
 Axiom: 
   # Sets the Riemannian space in which the turtle will move
   
-  if TEST == 0: nproduce SetSpace(Sphere(R),None)
+  if TEST == 0: 
+    nproduce SetSpace(Sphere(R),None)
   elif TEST == 1: 
     argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR':3}
     nproduce SetSpace(EllipsoidOfRevolution(a,b),argdict)
@@ -95,6 +96,7 @@ Axiom:
   elif TEST == 5: nproduce SetSpace(Revolution(sphere,zmin = -1, zmax = 1),None)
   elif TEST == 6: nproduce SetSpace(Revolution(vase,zmin = 0, zmax = 10),None)
   elif TEST == 7: nproduce ^(90)SetSpace(Patch(patch1), None)
+  nproduce PlotSpace
 
 derivation length: nb_sim_steps
 production:

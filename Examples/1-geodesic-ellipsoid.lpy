@@ -71,7 +71,8 @@ length_geodesic =  10*ra*2*np.pi
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(EllipsoidOfRevolution(ra,rb),None)
+  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
+  nproduce ;(0)PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0 #np.pi/6
   v0= 0 #np.pi/6

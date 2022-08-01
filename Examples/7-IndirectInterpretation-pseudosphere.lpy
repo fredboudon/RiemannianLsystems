@@ -4,7 +4,9 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2020
 		
-	Simulates geodesics on a pseudo sphere 
+	1. Draw a geodesic and  test the computation of the curvature coefficient
+	2. Computes the values of the curvatures locally 
+	
 
    FIXME: The normals of the pseudo sphere and of the turtle segments seem inconsistent between them. Check this
 """
@@ -34,8 +36,8 @@ from riemannianturtle import *
 # Flags to control the display
 PLOTSPACE = True
 
-TEST1 = False
-TEST2 = True
+TEST1 = True # Form I and II coefficients
+TEST2 = True # Curvature coefficients
 
 #######################
 # Units
@@ -77,30 +79,51 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 length_geodesic = 3.5 
 
 #Select Axiom here
-AXIOMTEST = 2
+#1: Simple vertical geodesic
+#2: Draw a grid on the pseudo sphere indirectly from drawing on the parameter space
+AXIOMTEST = 1
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   # u = control of z (the bigger u the highest z (warning it is not directly z)
   # v = azimuth
-  nproduce SetSpace(PseudoSphere(R, zmin = -3, zmax = 3))
+  nproduce SetSpace(PseudoSphere(R, zmin = -10, zmax = 10))
   nproduce ;(0)PlotSpace(dict(CCW = False))
   nproduce _(LINEWIDTH)
-
+  
   if AXIOMTEST == 1:
     # test the passage through the pseudosphere rim
-    nproduce [;(2)InitTurtle([1.,0.0,-1,0.])A(0)]
+    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
   elif AXIOMTEST == 2:
-    # geodesic familly with increasing initial bending
-    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
-    nproduce [;(3)InitTurtle([0.1,0.0,0.98,0.02])A(0)]
-    nproduce [;(4)InitTurtle([0.1,0.0,0.97,0.03])A(0)]
-    nproduce [;(5)InitTurtle([0.1,0.0,0.95,0.05])A(0)]
-    nproduce [;(6)InitTurtle([0.1,0.0,0.94,0.06])A(0)]
-    nproduce [;(7)InitTurtle([0.1,0.0,0.935,0.065])A(0)]
+    nproduce ;(2)InitTurtle([0.001,0.0,1,0.])A(0)
+    nproduce [;(3)StartIndirectInterpretation
+    N = 10
+    a = 2*np.pi / N
+    for i in range(N):
+      nproduce [
+      for j in range(N): 
+        nproduce F(a)-(90)F(a)-(90)F(a)-(90)F(a)-(90)
+        nproduce f(a)
+      nproduce ]
+      nproduce -(90)f(a)+(90)
+    nproduce StopIndirectInterpretation]
   else:
-    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
-  
+    # test the passage through the pseudosphere rim
+    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])F(0.3)+(45)F(0.3)]
+    polyline_uv = [[1.0,0.0],[1/h,1/h],[0.,1.],[-1/h,1/h],[-1.0,0.0],[-1/h,-1/h],[0.,-1.], [1/h,-1/h]]
+    N = 10
+    a = 2*np.pi / N
+    for i in range(N):
+      nproduce [
+      for j in range(N): 
+        nproduce F(a)-(90)F(a)-(90)F(a)-(90)F(a)-(90)
+        nproduce f(a)
+        nproduce [;(3)ClosedPolygon(polyline_uv, resolution, True)]
+      nproduce ]
+      nproduce -(90)f(a)+(90)
+    
+
+
 derivation length: int(nb_seg)
 production:
 
@@ -115,26 +138,26 @@ A(n):
   u,v,p,q = turtle.uvpq 
   
   if TEST1:
-	  # Test: computed numerical coef o the fundamental forms I and II
-	  E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
-	  
-	  # theoretical values of E,F,G,L,M,N:
-	  EE = (R*np.tanh(u))**2
-	  FF = 0
-	  GG = (R/np.cosh(u))**2
-	  
-	  LL = -R*np.sinh(u)/(np.cosh(u)**2)
-	  MM = 0
-	  NN = -R*(1/np.cosh(u))*np.tanh(u)
-	  
-	  print("  {:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
-	  print("  {:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
-	  
+    # Test: computed numerical coef o the fundamental forms I and II
+    E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
+    
+    # theoretical values of E,F,G,L,M,N:
+    EE = (R*np.tanh(u))**2
+    FF = 0
+    GG = (R/np.cosh(u))**2
+    
+    LL = -R*np.sinh(u)/(np.cosh(u)**2)
+    MM = 0
+    NN = -R*(1/np.cosh(u))*np.tanh(u)
+    
+    print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
+    print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
+    
   if TEST2:
     K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
     print("Courbures: Gauss = ", "{:.3f}".format(K), \
-    ", Mean = ", "{:.3f}".format(H), \
-    ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
+          ", Mean = ", "{:.3f}".format(H), \
+          ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
   produce _(FRAMEWIDTH)Frame(FRAMESIZE)
 
 
