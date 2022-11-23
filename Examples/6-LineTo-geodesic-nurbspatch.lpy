@@ -84,7 +84,7 @@ target_pt = [1.0,0.7]
 
 ## DEBUG: vary from 0 to 9 to see how the solution gets attracted towards the geodesic
 ## HOWEVER, diverges after that ???
-LINETO_MAXITER = 7
+LINETO_MAXITER = 10
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
@@ -94,7 +94,7 @@ Axiom:
   nproduce ;(0)PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v 
   # (and p,q their first derivatives)
-  turtle_init = origin_pt + [1., 0.0] # [1., 0.3] # needed to initialize the turtle on the surface
+  turtle_init = origin_pt + [1., 0.0] # origin point + [p0,q0] (not used)
   nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
   nproduce +(13.5)
   # plots the point at the origin
@@ -112,7 +112,7 @@ S:
   ## BUG: Very fragile:
   ## - the number of input points is critical 
   ## (too big --> diverge, in particular small segments at the beginning diverge)
-  nproduce RiemannLineTo(target_pt,12)
+  nproduce RiemannLineTo(target_pt,15)
 
 
 interpretation:

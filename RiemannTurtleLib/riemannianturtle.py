@@ -307,7 +307,7 @@ def parameterspace_turtle_turn(p_uvpq, surf, deviation_angle):
 
     return uvpq
 
-def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20, mu=0.2):
+def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20, mu=0.01):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 

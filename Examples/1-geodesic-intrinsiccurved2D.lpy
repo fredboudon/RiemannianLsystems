@@ -57,6 +57,28 @@ def ps_params(u,v,source,ry,rz):
     return r,costheta,sintheta,ratioy,ratioz
     
 
+alpha = 1.0
+# Point source metric (psi) (increasing with radius to the source)
+def g11_ps(u,v,*args):
+    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v, *args)
+    return alpha * r
+# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
+def g11s_ps(v,u,*args):
+    return g11_ps(u,v,*args)
+
+# g12 == g21
+def g12_ps(u,v,*args):
+    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v,*args)
+    return 0
+def g12s_ps(v,u,*args):
+    return g12_ps(u,v,*args)
+
+def g22_ps(u,v,*args):
+    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v,*args)
+    return alpha * r
+def g22s_ps(v,u,*args):
+    return g22_ps(u,v,*args)
+
 # Point source metric (psi) (increasing with radius to the source)
 # TODO: avoid to ask the user to define the functions giis (as they can be automatically derived from gii)
 def g11_psi(u,v,*args):
@@ -150,7 +172,8 @@ Axiom:
   # Sets the Riemanian space in which the turtle will move
   params = (source, ry, rz)
   # choice of functions used to define the intrinsic metric (see above their definition
-  metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
+  metric_funcs = {'g11' : g11_ps, 'g12' : g12_ps, 'g22' : g22_ps, 'g11s' : g11s_ps, 'g12s' : g12s_ps, 'g22s' : g22s_ps}
+  #metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
   #metric_funcs = {'g11' : g11_psd, 'g12' : g12_psd, 'g22' : g22_psd, 'g11s' : g11s_psd, 'g12s' : g12s_psd, 'g22s' : g22s_psd}
   if TEST == 1:
     nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
@@ -161,14 +184,15 @@ Axiom:
     nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
     nproduce ;(0)PlotSpace
     nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
-    nproduce InitTurtle([0.,0.,0.,1.])
+    nproduce InitTurtle([-0.50,0.,0.,1.])
+    nproduce +(-25)
     nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
   elif TEST == 3: # analyze here the effect of original orientation on geodesic 
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = 0, vmax = 2, metric_tensor_params = params))
+    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = -1, vmax = 2.5, metric_tensor_params = params))
     nproduce ;(0)PlotSpace
     nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
     nproduce S
-    a = 20
+    a = 80
     for i in range(a+1):
       nproduce [InitTurtle([0.,0.,np.sin(-np.pi/2 + np.pi/a*i),np.cos(-np.pi/2 + np.pi/a*i)])
       nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)]    
@@ -187,7 +211,9 @@ A(n):
   produce _(FRAMEWIDTH) Frame(FRAMESIZE)
 
 S: 
-  produce [MoveTo(turtle.space.S(*source));(4)@O(0.1)]
+  source3D = [0]
+  source3D += source
+  produce [MoveTo(source3D);(4)@O(0.05)]
 endlsystem
 ###### INITIALISATION ######
 
