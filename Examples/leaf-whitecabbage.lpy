@@ -14,7 +14,7 @@ strides = 40
 len_strides = length/strides
 
 nb_seg = 10
-length_geodesic = length*1.2    # in some units (= cm for example)
+length_geodesic = length*1.3    # in some units (= cm for example)
 
 #######################
 # Units
@@ -65,7 +65,7 @@ S(x) :
     nproduce V(x.shape)
     nproduce SetSpace(ExtrusionSurface(x.shape))
     #nproduce SetSpace(Sphere(length)) PlotSpace()
-    nproduce [InitTurtle([u0,v0,1,0]) -(8) 
+    nproduce [InitTurtle([u0,v0,1,0]) -(6.5) 
     nproduce ,(7) _(0.02) A(nb_seg)
     nproduce ]
   else:
@@ -74,8 +74,8 @@ S(x) :
 A(n):
   if n > 0:
     nproduce StaticF(length_geodesic/nb_seg, 0.02*n/nb_seg, {})
-    nproduce [+(60)B(2)]
-    nproduce [-(60)B(2)]
+    nproduce [+(60)B(3)]
+    nproduce [-(60)B(3)]
     nproduce A(n-1)
 
 B(n):
