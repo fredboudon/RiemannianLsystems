@@ -102,7 +102,7 @@ derivation length: int(nb_seg)
 production:
 
 A(n):
-  nproduce F(length_geodesic/nb_seg)
+  nproduce StaticF(length_geodesic/nb_seg,{})
   nproduce A(n+1)
 
 interpretation:
