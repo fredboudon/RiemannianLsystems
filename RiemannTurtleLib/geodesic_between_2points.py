@@ -216,10 +216,11 @@ def compute_deltaX(space, X, R, delta_s):
 
     return delta_X
 
-def standardized_L1norm(v, MU = 1., MV = 1., MP = 1., MQ = 1.):
+def standardized_L1norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
     '''
     v is assumed to be a vector over the indexes k =  1 .. m-1 (note that 0 is missing)
     MU, MV, MP and MQ are factors corresponding to the magnitude of variables delta_u,delta_v,delta_p,delta_q
+    MP and MQ are taken 10 times higher than MU and MV, as for similar order of magnitude we want that p and q have less importance in the error.
     '''
     dim = v.shape[0] # dimension of v should be one column of 4*m coordinates
     assert(len(v.shape) == 1)

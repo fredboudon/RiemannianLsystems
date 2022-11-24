@@ -112,7 +112,7 @@ S:
   ## BUG: Very fragile:
   ## - the number of input points is critical 
   ## (too big --> diverge, in particular small segments at the beginning diverge)
-  nproduce RiemannLineTo(target_pt,15)
+  nproduce RiemannLineTo(target_pt,25)
 
 
 interpretation:

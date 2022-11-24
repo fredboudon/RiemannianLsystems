@@ -583,6 +583,8 @@ class RiemannianSpace2D:
         # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
         end_test = False
         i = 0
+        last_average_delta_X_norm = np.inf
+        average_delta_X_norm_array = []
         while not end_test:
             print('##############  MAIN LOOP i = ', i)
             # 1. Evaluate Delta_s = (distance) between curve points.
@@ -623,23 +625,41 @@ class RiemannianSpace2D:
             average_delta_X_norm = standardized_L1norm(delta_X)
             print(' ----> DELTA_X NORM :', average_delta_X_norm)
 
+            # Store the average error.
+            average_delta_X_norm_array.append(average_delta_X_norm)
+
             # 5. Test the norm of delta_X
             # If sufficiently small exit the loop (or if maximum iteration number is reached)
             # note if maxiter = 0, this means that the user wants the initial path.
-            if average_delta_X_norm < epsilon_conv or i >= max_iter:
-                if i == 0:
-                    print ('******* Initial PATH was successful')
+            if average_delta_X_norm < epsilon_conv:
+                print ("SMALL ERROR REACHED !!!!!!!! ")
                 end_test = True
+            elif average_delta_X_norm > 100 * average_delta_X_norm_array[0]:
+                # We estimate that the solution diverges if before reaching maxiter
+                # the error becomes 100 x the error corresponding to the initial solution.
+                raise RuntimeError(f"ERROR: solution diverges after {i:d}/{max_iter:d} steps. Error raised")
+            elif i >= max_iter:
+                if average_delta_X_norm > average_delta_X_norm_array[0]:
+                    print(f"WARNING: No solution was found after {max_iter:d} steps")
+                end_test = True
+
+            #elif last_average_delta_X_norm < average_delta_X_norm:
+            #    print(f"******* INSTABILITY DETECTED: error could not be decreased at step {i:d} / {max_iter:d} ")
+            #    end_test = True
             else:
+
                 i += 1
 
-                # Estimation of mu
-                if average_delta_X_norm > 0.5:
-                    mu = 0.02
-                elif average_delta_X_norm > 0.3:
-                    mu = 0.04
+                # Estimation of mu as a function of the  error
+                if average_delta_X_norm > 0.5: #0.5
+                    mu = 0.02 #0.02
+                elif average_delta_X_norm > 0.3: #0.3
+                    mu = 0.04 #0.04
                 else:
-                    mu = 0.06
+                    mu = 0.06 #0.06
+
+                last_X = np.array(X)
+                last_average_delta_X_norm = average_delta_X_norm
 
                 X = X + (mu * delta_X)
                 # Below: optional step to homogeneize the segment lengths in the (u,v) domain
@@ -653,7 +673,7 @@ class RiemannianSpace2D:
         # the first 4 terms
         geodesic_path = X.reshape((m,4))
 
-        return geodesic_path
+        return geodesic_path, np.array(average_delta_X_norm_array)
 
 
 
