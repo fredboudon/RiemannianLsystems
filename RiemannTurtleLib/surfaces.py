@@ -467,159 +467,58 @@ class RiemannianSpace2D:
         lhs2 = - Gamma[1,0,0]*p**2 - 2*Gamma[1,0,1]*p*q - Gamma[1,1,1]*q**2
         return [p,q,lhs1,lhs2]
 
-    def geodesic_to_target_point_swapped(self, uv, uvt, m, max_iter=20, mu=0.6, epsilon_conv=1e-3):
-        '''
-        Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described 
-        in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
-        - uv are the u,v coordinates of the source point
-        - uvt are the u,v coordinates of the target point
-        - m is the number of discretization points nb_points (including endpoints (u,v) and (ut,vt))
-        - max_iter is the maximum number of iteration of the newton method
-        '''
+    def homogeneize_discretization(self,X):
+        """
+        Homogeneizes the discretization of a polyline given as a sequence of (u,v,p,q) coords
+        by replacing the original segments with segments of equal length.
 
-        # Initialization : computes a first the sequence of u,v indexes and their velocity values p,q .
-        u,v = uv
-        ut,vt = uvt
+        X: discrete polyline in the form of a 1D array as a (m,4) array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
+        Hout: returned homogeneized polyline in the form of a 1D array as a (m,4) array [uu0,vv0,pp0,qq0,uu1,vv1,pp1,qq1, ...]
+        """
+        #1. Transform the input in a m-dimensional array of uvpq-vectors (4-vectors): Xinput
+        m = int(X.shape[0] / 4)
+        Xin = X.reshape(m,4)
+        Xout = np.array(Xin) # duplicate Xin and in particular sets up extremity points A and B in Xout
 
-        # print('Got to function geodesic_to_target_point !!!!! ')
-        # at least the two endpoints
-        assert( m >= 2 )
+        # Array of segment length in X the (u,v) domain (contains m-1) segments
+        seg_length_array = [np.sqrt((Xin[k][0]-Xin[k-1][0])**2  +  (Xin[k][1]-Xin[k-1][1])**2) for k in range(1,m)]
+        tot_length = sum(seg_length_array)
+        ds = tot_length / (m-1) # new length between equidistant points in the parameter domain (u,v)
+        print(f"curve length: {tot_length:.3f}, nb points: {m:2d}, homogeneized ds: {ds:.3f}")
 
-        # u,v values: an efficient initialization consists of taking the straight line joining u,v to ut,vt in the parameter space
-        u_initseq = np.zeros(m)
-        v_initseq = np.zeros(m)
-        delta_u = (ut-u) / (m-1)
-        delta_v = (vt-v) / (m-1)
-        print('uv,utvt, m,delta_u,delta_v:', uv, uvt, m,delta_u,delta_v)
-        for k in range(m):
-            u_initseq[k] = u + delta_u * k
-            v_initseq[k] = v + delta_v * k
+        # Computes the cumulated distance from the origin on each m-1 segment
+        cum_lengths = np.cumsum(seg_length_array) # m elements
+        arr = np.empty(m-1) # array of m elements
+        arr.fill(ds)        # filled with ds
+        cum_homogeneous_lengths = np.cumsum(arr) # cumulated array of ds
 
-        # p,q values: use the first fundamental form to compute du/ds and then deduce dv/ds = uv_slope * du/ds
-        if np.isclose(u,ut) and np.isclose(v,vt):
-            return None # the two points should be different
+        # find the indexes of the elements immediately after the given index
+        # the given indexes are given in the form of an array cum_length
+        insertion_indexes = np.searchsorted(cum_lengths, cum_homogeneous_lengths)
 
-        p_initseq = np.zeros(m)
-        q_initseq = np.zeros(m)
+        for k in range(0,m-2): # loop on m-2 segments (the last one is no use as B is already stored in Xout)
+            #for segment k the index of the point after its insertion is stored in
+            index2 = insertion_indexes[k]   # gets the index of the point after
+            index1 = index2-1               # gets the index of the point before
+            u1,v1,p1,q1 = Xin[index1+1]     # +1 to take into account the shift in segment arrays and points arrays like Xin
+            u2,v2,p2,q2 = Xin[index2+1]
+            dold = cum_lengths[index2]      # cumulated distance to just before point
+            dnew = cum_homogeneous_lengths[k]
+            deltad = dold - dnew            # should be always >=0 as this was obtained by inex sorting
+            # Then use this difference in path length to ponderate the interpolation to compute the new point
+            doldseg = np.sqrt((u1-u2)**2+(v1-v2)**2)
+            rho = deltad / doldseg
+            u = rho * u1 + (1-rho) * u2
+            v = rho * v1 + (1-rho) * v2
+            p = rho * p1 + (1-rho) * p2
+            q = rho * q1 + (1-rho) * q2
+            Xout[k+1] = [u,v,p,q]
 
-        # test if u = ut
-        UEQ = np.isclose(u, ut)
+        Xout = Xout.reshape(4*m,)
 
-        # Initialize the value (p,q) for each point m (u,v) points.
-        for k in range(m):
-            Ek,Fk,Gk = self.firstFundFormCoef(u_initseq[k],v_initseq[k])
-            if not UEQ:
-                uv_slope = (vt - v) / (ut - u)
-                duds = 1/np.sqrt(Ek + 2 * Fk * uv_slope + Gk * uv_slope**2)
-                p_initseq[k] = duds
-                q_initseq[k] = uv_slope * duds
-            else:
-                p_initseq[k] = 0
-                q_initseq[k] = 1/np.sqrt(Gk)
+        return Xout
 
-        # combine these 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
-        uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
-
-        #if max_iter == 0:
-        #    print('****** Intitial path ...')
-        #    return uvpq_init_seq
-
-        # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
-        uvpq_init_seq = uvpq_init_seq.reshape((4*m,))
-
-        ## !WARNING!
-        ## Starting from this point, the considered matrices
-        ## and vectors will have swapped columns (for matrix inversion optimization)
-        ## this swapping occurs within for ech k = 1,..,m-1 (not for k = 0).
-        ## all relevant quantities are indicated by a suffix 'swapped'
-        ## for example:
-        ## X_swapped = [u0,v0,p0,q0,p1,q1,u1,v1,p2,q2,u2,v2, ..., p_m-1,q_m-1,u_m-1,v_m-1]
-
-        # 1. Sets an initial path --> X at iteration 0 (in swapped form)
-        X_swapped = swap_columns(uvpq_init_seq)
-        #print('Initial X:', X_swapped)
-
-        # --> Initialization completed here.
-
-        # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
-        end_test = False
-        i = 0
-        while not end_test:
-            print('##############  MAIN LOOP i = ', i)
-            # 1. Evaluate Delta_s = (distance) between curve points.
-            # X being defined (a set of (uvpq) values along the path of size m
-            # we approximate the distance between consecutive points
-            # in the Riemannian space by the euclidean chord between these points:
-            # There are m points and m-1 segments indexed 0 .. m-2 in delta_s
-            # with delta_s[k] being the distance P_k+1 - P_k on the curve.
-            # Note: delta_s has no notion of swapping as it is a vector of dim k
-            delta_s = np.zeros(m-1)
-            for k in range(m-1):
-                # extracts u,v coords of consecutive points on the curve
-                if k == 0:
-                    u1, v1 = X_swapped[0], X_swapped[1]
-                else:
-                    u1, v1 = X_swapped[4 * k + 2], X_swapped[4*k + 3]
-                u2, v2 = X_swapped[4 * (k+1) + 2], X_swapped[4*(k+1) + 3]
-                # computes the corresponding points (np arrays) in the physical space
-                P1 = self.S(u1,v1)
-                P2 = self.S(u2,v2)
-                # the norm is euclidean as a proxy, relying on the fact
-                # that if the points are close enough, we can consider them
-                # almost in a locally euclidean space.
-                # Note that delta_s[k] contains P_k+1 - P_k on the curve
-                delta_s[k] = np.linalg.norm(P2-P1)
-
-            # 2. Compute the residual vector R corresponding to state X
-            # Result R is a 4*m vector (in swapped form as well).
-            #print('Xswapped = ', X_swapped)
-            #print('delta_s = ', delta_s)
-            R_swapped = compute_residual_vec_swapped(self, X_swapped, delta_s)
-            print('Rswapped norm = ', standardized_L1norm_swapped(R_swapped))
-            print(R_swapped)
-
-            # 3. Compute deltaX of the Newton method
-            # This method builds the Jacobian to perform the Newton's method and computes
-            # delta_X_swapped as a 4*m vector
-            delta_X_swapped = compute_deltaX_swapped(self, X_swapped, R_swapped, delta_s)
-
-            # 4. Check deltaX norm
-            # The standardization might be tuned using MU,MV,MP,MQ parameters
-            # standardized_L1norm_swapped(v, MU = 1., MV = 1., MP = 10., MQ = 10.)
-            delta_X_swapped_norm = standardized_L1norm_swapped(delta_X_swapped)
-            print(' ----> DELTA_X NORM :', delta_X_swapped_norm)
-
-            # 5. Test the norm of delta_X
-            # If sufficiently small exit the loop (or if maximum iteration number is reached)
-            # othewise Updates X_swapped, increment loop number and continue
-            # note if maxiter = 0, this means that the user wants the initial path.
-            if delta_X_swapped_norm < epsilon_conv or i >= max_iter:
-                if i == 0:
-                    print ('******* Initial PATH was successful')
-                end_test = True
-            else:
-                i += 1
-                #mu= 0.05
-                X_swapped = X_swapped + (mu * delta_X_swapped)
-
-        # The resulting value X is a vector of size 4m make an array of upvq values
-        # of size m. This vector will unswap the X_swapped vector.
-        geodesic_path = np.full((m,4), 0.)
-
-        # the first 4 terms
-        geodesic_path[0] = X_swapped[0:4]
-
-        # then unswap the rest of the vector
-        for k in range(1,m):
-            geodesic_path[k][0] = X_swapped[4*k+2]
-            geodesic_path[k][1] = X_swapped[4*k+3]
-            geodesic_path[k][2] = X_swapped[4*k]
-            geodesic_path[k][3] = X_swapped[4*k+1]
-
-        return geodesic_path
-
-
-    def geodesic_to_target_point(self, uv, uvt, m, max_iter=20, mu=0.6, epsilon_conv=1e-3):
+    def geodesic_to_target_point(self, uv, uvt, m, max_iter=20, mu=0.01, epsilon_conv=1e-3):
         '''
         Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described
         in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
@@ -684,6 +583,8 @@ class RiemannianSpace2D:
         # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
         end_test = False
         i = 0
+        last_average_delta_X_norm = np.inf
+        average_delta_X_norm_array = []
         while not end_test:
             print('##############  MAIN LOOP i = ', i)
             # 1. Evaluate Delta_s = (distance) between curve points.
@@ -692,7 +593,7 @@ class RiemannianSpace2D:
             # in the Riemannian space by the euclidean chord between these points:
             # There are m points and m-1 segments indexed 0 .. m-2 in delta_s
             # with delta_s[k] being the distance P_k+1 - P_k on the curve.
-            # Note: delta_s has no notion of swapping as it is a vector of dim k
+
             delta_s = np.zeros(m-1)
             for k in range(m-1):
                 # extracts u,v coords of consecutive points on the curve
@@ -708,44 +609,71 @@ class RiemannianSpace2D:
                 delta_s[k] = np.linalg.norm(P2-P1)
 
             # 2. Compute the residual vector R corresponding to state X
-            # Result R is a 4*m vector (in swapped form as well).
-            #print('Xswapped = ', X_swapped)
+
             #print('delta_s = ', delta_s)
             R = compute_residual_vec(self, X, delta_s)
-            print('R norm = ', standardized_L1norm(R))
-            print(R)
+            #print(R)
+            #print(' ----> R norm = ', standardized_L1norm(R))
 
             # 3. Compute deltaX of the Newton method
             # This method builds the Jacobian to perform the Newton's method and computes
-            # delta_X_swapped as a 4*m vector
+
             delta_X = compute_deltaX(self, X, R, delta_s)
 
             # 4. Check deltaX norm
             # The standardization might be tuned using MU,MV,MP,MQ parameters
-            # standardized_L1norm_swapped(v, MU = 1., MV = 1., MP = 10., MQ = 10.)
-            delta_X_norm = standardized_L1norm(delta_X)
-            print(' ----> DELTA_X NORM :', delta_X_norm)
+            average_delta_X_norm = standardized_L1norm(delta_X)
+            print(' ----> DELTA_X NORM :', average_delta_X_norm)
+
+            # Store the average error.
+            average_delta_X_norm_array.append(average_delta_X_norm)
 
             # 5. Test the norm of delta_X
             # If sufficiently small exit the loop (or if maximum iteration number is reached)
-            # othewise Updates X_swapped, increment loop number and continue
             # note if maxiter = 0, this means that the user wants the initial path.
-            if delta_X_norm < epsilon_conv or i >= max_iter:
-                if i == 0:
-                    print ('******* Initial PATH was successful')
+            if average_delta_X_norm < epsilon_conv:
+                print ("SMALL ERROR REACHED !!!!!!!! ")
                 end_test = True
+            elif average_delta_X_norm > 100 * average_delta_X_norm_array[0]:
+                # We estimate that the solution diverges if before reaching maxiter
+                # the error becomes 100 x the error corresponding to the initial solution.
+                raise RuntimeError(f"ERROR: solution diverges after {i:d}/{max_iter:d} steps. Error raised")
+            elif i >= max_iter:
+                if average_delta_X_norm > average_delta_X_norm_array[0]:
+                    print(f"WARNING: No solution was found after {max_iter:d} steps")
+                end_test = True
+
+            #elif last_average_delta_X_norm < average_delta_X_norm:
+            #    print(f"******* INSTABILITY DETECTED: error could not be decreased at step {i:d} / {max_iter:d} ")
+            #    end_test = True
             else:
+
                 i += 1
-                mu= 0.1
+
+                # Estimation of mu as a function of the  error
+                if average_delta_X_norm > 0.5: #0.5
+                    mu = 0.02 #0.02
+                elif average_delta_X_norm > 0.3: #0.3
+                    mu = 0.04 #0.04
+                else:
+                    mu = 0.06 #0.06
+
+                last_X = np.array(X)
+                last_average_delta_X_norm = average_delta_X_norm
+
                 X = X + (mu * delta_X)
+                # Below: optional step to homogeneize the segment lengths in the (u,v) domain
+                # This step can be commented out (and keep non-homogeneized X only)
+                # Tests show that this seems more robust with length homogeneization
+                X = self.homogeneize_discretization(X)
 
         # The resulting value X is a vector of size 4m make an array of upvq values
-        # of size m. This vector will unswap the X_swapped vector.
+        # of size m.
 
         # the first 4 terms
         geodesic_path = X.reshape((m,4))
 
-        return geodesic_path
+        return geodesic_path, np.array(average_delta_X_norm_array)
 
 
 
@@ -784,7 +712,6 @@ class ParametricSurface(RiemannianSpace2D):
 
     def secondsvv(self,u,v):
       print("Seconds tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
-
 
     def normal(self,u,v):
       '''
