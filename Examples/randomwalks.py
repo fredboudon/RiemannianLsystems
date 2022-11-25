@@ -15,9 +15,10 @@ import pylab
 
 from openalea import lpy
 
-seed(1)
+seed(3)
 
-model_filename = '5-rw-pseudosphere-geodesic-dist.lpy'
+#model_filename = '5-rw-pseudosphere-geodesic-dist.lpy'
+model_filename = '5-rw-sphere-geodesic-dist.lpy'
 
 lsys = lpy.Lsystem(model_filename)
 
@@ -43,7 +44,7 @@ for walk_len in range(MINWALKLENGTH, MAXWALKLENGTH):
             squared_dists[walk_len-MINWALKLENGTH][w] = np.inf
         else:
             squared_dists[walk_len-MINWALKLENGTH][w] = lsys.distance**2
-        print(walk_len, w, squared_dists[walk_len-MINWALKLENGTH][w])
+        print("Iteration: ", walk_len, w, "square dist= ", squared_dists[walk_len-MINWALKLENGTH][w])
 
 print(squared_dists)
 with open('squared_dists.txt', 'wb') as f:
