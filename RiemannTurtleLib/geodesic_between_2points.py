@@ -211,7 +211,7 @@ def compute_deltaX(space, X, R, delta_s):
     # checks the solution delta_X found by verifying if
     # delta_X . J_mat = - R
     check_sol = np.allclose(J_mat.dot(delta_X), (-R))
-    print('delta_X computed: ', check_sol)
+    #print('delta_X computed: ', check_sol)
     #print(delta_X)
 
     return delta_X
@@ -245,7 +245,7 @@ def standardized_L1norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
         sum_p += abs(v[4 * k + 2]) / MP
         sum_q += abs(v[4 * k + 3]) / MQ
 
-    print(f"average sums u,v,p,q: {sum_u/dim : .3f}, {sum_v/dim : .3f}, {sum_p/dim : .3f}, {sum_q/dim : .3f}")
+    #print(f"average sums u,v,p,q: {sum_u/dim : .3f}, {sum_v/dim : .3f}, {sum_p/dim : .3f}, {sum_q/dim : .3f}")
 
     return sum/dim
 
