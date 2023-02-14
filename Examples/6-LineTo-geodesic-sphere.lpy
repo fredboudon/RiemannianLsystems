@@ -72,7 +72,7 @@ FRAMEWIDTH = 1 * cm
 
 length_greatcircle = 2*np.pi*R
 
-ra = 1.
+ra = 2.
 rb = 0.5
 
 # can draw a dashed geodesic to show how f is acting
@@ -84,7 +84,7 @@ TEST      = 3
 origin_pt = [0., 0.]    # in (u,v) coordinates
 target_pt = [1., 0.7]   # in (u,v) coordinates
 
-target_pts = [[-1., 0.9], [-0.5, 0.7], [1., 0.7], [2., 1.3], [2., 0.4], [2.8,-0.4]]
+target_pts = [[-1., 0.9], [-0.5, 0.7], [-np.pi/2, 0.7], [2., 1.3], [2., 0.4], [2.8,-0.4],[-np.pi/2,0]]
 #target_pts = [[1., 0.7], [2., 1.], [2., 0.4]]
 
 LINETO_MAXITER = 80
@@ -112,6 +112,7 @@ production:
 S:  
   #nproduce [;(4)F(1)]
   for tgpt in target_pts:
+    nproduce A(tgpt)
     nproduce [RiemannLineTo(tgpt,20)]
 
 
@@ -119,11 +120,14 @@ interpretation:
 
 maximum depth: 2
 
-A:
+A(tgpt):
   u,v,p,q = turtle.uvpq
-  A = turtle.space.Shift(u,v)
-  velocity = A.dot(np.array([p,q]))
-  nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
+  ut, vt = tgpt[0], tgpt[1]
+  dist, _ = turtle.space.geodesic_distance((u,v),(ut,vt))
+  print(f"GeodesicDist(({u:.2f},{v:.2f}),({ut:.2f},{vt:.2f}) ) = {dist:.3f}")
+  #A = turtle.space.Shift(u,v)
+  #velocity = A.dot(np.array([p,q]))
+  #nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
   #nproduce CovariantBasis(0.3)
 
 

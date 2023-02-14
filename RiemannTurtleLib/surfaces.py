@@ -484,7 +484,7 @@ class RiemannianSpace2D:
         seg_length_array = [np.sqrt((Xin[k][0]-Xin[k-1][0])**2  +  (Xin[k][1]-Xin[k-1][1])**2) for k in range(1,m)]
         tot_length = sum(seg_length_array)
         ds = tot_length / (m-1) # new length between equidistant points in the parameter domain (u,v)
-        print(f"curve length: {tot_length:.3f}, nb points: {m:2d}, homogeneized ds: {ds:.3f}")
+        #print(f"curve length: {tot_length:.3f}, nb points: {m:2d}, homogeneized ds: {ds:.3f}")
 
         # Computes the cumulated distance from the origin on each m-1 segment
         cum_lengths = np.cumsum(seg_length_array) # m elements
@@ -518,7 +518,7 @@ class RiemannianSpace2D:
 
         return Xout
 
-    def geodesic_to_target_point(self, uv, uvt, m, max_iter=20, mu=0.01, epsilon_conv=1e-3):
+    def geodesic_to_target_point(self, uv, uvt, m, max_iter, epsilon_conv=1e-3):
         '''
         Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described
         in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
@@ -541,7 +541,7 @@ class RiemannianSpace2D:
         v_initseq = np.zeros(m)
         delta_u = (ut-u) / (m-1)
         delta_v = (vt-v) / (m-1)
-        print('uv,utvt, m,delta_u,delta_v:', uv, uvt, m,delta_u,delta_v)
+        #print('uv,utvt, m,delta_u,delta_v:', uv, uvt, m,delta_u,delta_v)
         for k in range(m):
             u_initseq[k] = u + delta_u * k
             v_initseq[k] = v + delta_v * k
@@ -577,6 +577,7 @@ class RiemannianSpace2D:
 
         # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
         X = uvpq_init_seq.reshape((4*m,))
+        X0 = np.array(X) # save this value
 
         # --> Initialization completed here.
 
@@ -586,7 +587,7 @@ class RiemannianSpace2D:
         last_average_delta_X_norm = np.inf
         average_delta_X_norm_array = []
         while not end_test:
-            print('##############  MAIN LOOP i = ', i)
+            #print('##############  MAIN LOOP i = ', i)
             # 1. Evaluate Delta_s = (distance) between curve points.
             # X being defined (a set of (uvpq) values along the path of size m
             # we approximate the distance between consecutive points
@@ -623,7 +624,7 @@ class RiemannianSpace2D:
             # 4. Check deltaX norm
             # The standardization might be tuned using MU,MV,MP,MQ parameters
             average_delta_X_norm = standardized_L1norm(delta_X)
-            print(' ----> DELTA_X NORM :', average_delta_X_norm)
+            #print(' ----> DELTA_X NORM :', average_delta_X_norm)
 
             # Store the average error.
             average_delta_X_norm_array.append(average_delta_X_norm)
@@ -632,15 +633,14 @@ class RiemannianSpace2D:
             # If sufficiently small exit the loop (or if maximum iteration number is reached)
             # note if maxiter = 0, this means that the user wants the initial path.
             if average_delta_X_norm < epsilon_conv:
-                print ("SMALL ERROR REACHED !!!!!!!! ")
+                #print("SMALL ERROR REACHED !!!!!!!! ")
                 end_test = True
-            elif average_delta_X_norm > 100 * average_delta_X_norm_array[0]:
+            elif average_delta_X_norm > 10 * average_delta_X_norm_array[0]:
                 # We estimate that the solution diverges if before reaching maxiter
                 # the error becomes 100 x the error corresponding to the initial solution.
-                raise RuntimeError(f"ERROR: solution diverges after {i:d}/{max_iter:d} steps. Error raised")
+                end_test = True
+                #raise RuntimeError(f"ERROR: from ({u:.3f},{v:.3f}) to ({ut:.3f},{vt:.3f}), solution diverges after {i:d}/{max_iter:d} steps.")
             elif i >= max_iter:
-                if average_delta_X_norm > average_delta_X_norm_array[0]:
-                    print(f"WARNING: No solution was found after {max_iter:d} steps")
                 end_test = True
 
             #elif last_average_delta_X_norm < average_delta_X_norm:
@@ -667,6 +667,14 @@ class RiemannianSpace2D:
                 # Tests show that this seems more robust with length homogeneization
                 X = self.homogeneize_discretization(X)
 
+        # In any case, if the final solution is poorer than the initial solution
+        # restores the initial path with its initial error
+        # Note: in this case, the average_delta_X_norm_array will have identical start and end values
+        if average_delta_X_norm > average_delta_X_norm_array[0]:
+            print("SOLUTION FOUND NO BETTER THAN INITIAL SOLUTION --> INITIAL SOLUTION KEPT")
+            X = X0
+            average_delta_X_norm_array.append(average_delta_X_norm_array[0])
+
         # The resulting value X is a vector of size 4m make an array of upvq values
         # of size m.
 
@@ -676,6 +684,27 @@ class RiemannianSpace2D:
         return geodesic_path, np.array(average_delta_X_norm_array)
 
 
+    def geodesic_distance(self, uv, uvt, nb_points = 20, max_iter= 20):
+        """
+        Compute the geodesic distance between two points given as u,v and ut,vt
+        """
+        nb_points  = 20  # To be better estimated
+        max_iter = 20    # To be better estimated
+
+        uvpq, errarray = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
+
+        segnb = len(uvpq)
+        u,v = uv
+        P1 = self.S(u, v)
+        dist = 0.
+        for i in range(segnb):
+            uu, vv = uvpq[i][0], uvpq[i][1]
+            P2 = self.S(uu, vv)
+            dist += np.linalg.norm(P2-P1)
+            P1 = P2
+
+        #print("Dist(A,B) = ", dist)
+        return dist, errarray
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface(RiemannianSpace2D):

@@ -6,6 +6,7 @@
     Lab: RDP ENS de Lyon, Mosaic Inria Team
 
 """
+#import logging
 from math import dist
 from surfaces import *
 
@@ -13,6 +14,16 @@ from scipy.integrate import odeint
 from scipy.integrate import solve_ivp
 from openalea.plantgl.all import triangulation,eOptimalTriangulation, eStarTriangulation
 
+""" Pb print messages twice: check this ...
+logger = logging.getLogger("Logger")
+c_handler = logging.StreamHandler()
+logger.addHandler(c_handler)
+logger.removeHandler(consoleHandler)
+
+logging.basicConfig(level=logging.DEBUG)
+#logger.debug('***** raised a debug message')
+#logger.error('***** raised an error')
+"""
 
 def flatten(t):
   return [item for sublist in t for item in sublist]
@@ -307,7 +318,7 @@ def parameterspace_turtle_turn(p_uvpq, surf, deviation_angle):
 
     return uvpq
 
-def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20, mu=0.01):
+def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 
@@ -324,16 +335,43 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20, mu=0.01):
 
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
-    #uvpq_s = space.geodesic_to_target_point_swapped(uv, uvt, nb_points, max_iter, mu)
     try:
-        uvpq_s, error_array = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter, mu)
+        uvpq_s, error_array = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
     except RuntimeError as error:
         print(error)
-        print(RuntimeError)
         uvpq_s = []
         error_array = []
 
-    np.set_printoptions(precision=3, suppress = True)
-    print("Error variations: ",error_array)
+    #np.set_printoptions(precision=3, suppress = True)
+    #print("Cumulated error sequence throughout iterations: ",error_array)
 
     return uvpq_s
+
+def geodesic_distance_to_point(space,uv,uvt):
+    '''
+    Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
+
+    nb_points includes uv and ut,vt, meaning that for nb_points = 10 for instance, 8 intermediary points will be computed
+    in addition to both u,v and ut,vt.
+    '''
+
+    # Checks that (ut,vt) = coords of the target point are valid
+    ut,vt = uvt
+
+    if not space.check_coords_domain(ut, vt):
+        print("geodesic_to_point: target point out of space coord domain: ", ut, vt)
+        return None
+
+    # the returned value may be None if the preconditions are not respected
+    # e.g. (u,v) must be different from (ut,vt)
+    try:
+        dist, error_array = space.geodesic_distance(uv, uvt)
+    except RuntimeError as error:
+        print(error)
+        error_array = []
+
+    #np.set_printoptions(precision=3, suppress = True)
+    #print("Cumulated error sequence throughout iterations: ",error_array)
+
+
+    return dist
