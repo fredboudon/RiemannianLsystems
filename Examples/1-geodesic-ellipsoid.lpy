@@ -85,7 +85,7 @@ derivation length: int(length_geodesic/seglen)
 production:
 
 A(n):
-  nproduce F(ra/2.)
+  nproduce StaticF(ra/2.)
   nproduce A(n+1)
 
 interpretation:

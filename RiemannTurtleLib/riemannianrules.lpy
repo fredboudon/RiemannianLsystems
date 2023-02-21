@@ -30,6 +30,7 @@ from surfaces import *
 from riemannianturtle import *
 
 module SetSpace(surface, argdict)
+module EndSpace()
 module InitTurtle(turtle_state)
 module ParallelTransportedArrow(angleRelHead,size)
 module LineTo(uvcoords, stepnb)
@@ -47,6 +48,7 @@ module PlotSpace()
 module PlotDS2()
 module StaticF
 module Staticf
+module Turn
 
 #Default values --> can be redefined below in the main file if needed
 MAXSTEPLEN = 0.01
@@ -107,7 +109,7 @@ def forward(turtle, length, dl = 1):
     uvpq_s = parameterspace_turtle_move_forward(turtle.uvpq, turtle.space, length, stepnb)
   else:
     # move the turtle directly on the surface
-    uvpq_s = riemannian_turtle_move_forward(turtle.uvpq,turtle.space,length,stepnb)
+    uvpq_s = riemannian_turtle_move_forward(turtle.uvpq, turtle.space, length, stepnb)
 
   segnb = len(uvpq_s) # should be equal to stepnb
   assert stepnb == segnb
@@ -128,34 +130,6 @@ def forward(turtle, length, dl = 1):
   turtle.boundary_reached = flag # by default boundary is not reached at (u,v)
   turtle.uvpq = turtle.space.check_coords(uvpq_s[i])
 
-
-def endforward(turtle):
-
-  u,v,p,q  = turtle.uvpq # uvpq_s[i]
-  '''
-  # COVARIANT BASIS
-  # Compute shitf tensor at u,v,
-  A = turtle.space.Shift(u,v) # Compute shift tensor at the new u,v
-  S1 = A[:,0] # first colum of A = first surface covariant vector in ambiant space
-  S2 = A[:,1] # second column of A = second surface covariant vector in ambiant space
-
-  # uses the shift tensor to transform the p,q vector
-  # representing the coordinates of the covariant basis "on the curve" (one vector)
-  # expressed in the "surface" covariant basis
-  h = A.dot(np.array([p,q]))
-  '''
-  # TURTLE FRAME:
-  S1,S2, velocity = turtle.space.covariant_basis_and_velocity(u,v,p,q)
-  head = velocity / np.linalg.norm(velocity)
-  up = np.array(turtle.space.normal(u,v))
-  #print ("head = ",head, " head norm = ", np.linalg.norm(head))
-  #print ("up = ",up, " up norm = ", np.linalg.norm(up))
-
-  # 5. Finally, orient the head of the turtle
-  # according to what was computed for the last point
-  nproduce @R(head,up)
-
-
 def cached_forward(cache, turtle, length, dl = 1):
     if len(cache) == 0:
         cache['points'] = list(forward(turtle, length, dl))
@@ -167,7 +141,53 @@ def cached_forward(cache, turtle, length, dl = 1):
     turtle.uvpq = cache['uvpq']
     turtle.boundary_reached = cache['boundary_reached']
 
+
+def orient(turtle, uvpq = None):
+  if not uvpq is None:
+    u,v,p,q = uvpq
+  else:
+    u,v,p,q = turtle.uvpq
+  # COVARIANT BASIS
+  # Compute shitf tensor at u,v,
+  velocity = turtle.space.shift_vector(u, v, p, q)  
+  #S1,S2, velocity = turtle.space.covariant_basis_and_velocity(u,v,p,q)
+  #print('velocity =' , velocity)
+  head = velocity / np.linalg.norm(velocity)
+  up = np.array(turtle.space.normal(u,v))
+  # print ("head = ",head, " head norm = ", np.linalg.norm(head))
+  # print ("up = ",up, " up norm = ", np.linalg.norm(up))
+  turtle.setHead(head,up)
+
+def turn(turtle, angle):
+  if turtle.indirect_interpretation:
+    turtle.uvpq = parameterspace_turtle_turn(turtle.uvpq, turtle.space,angle)
+  else:
+    turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  orient(turtle)
+  # TODO: Modify the following line as when the rotation takes place indirecty in the parameter space, the cumrotation is different
+  turtle.cumrotation += angle
+  # print("Total turtle rotation during the path = ", turtle.cumrotation)
+
 production:
+decomposition:
+StaticF(length):
+    produce StaticF(length, {})
+
+StaticF(length, topdiam):
+    if type(topdiam) != dict:
+        produce StaticF(length, topdiam, {})
+
+StaticF(length, topdiam, dl):
+    if type(dl) != dict:
+        produce StaticF(length, topdiam, dl, {})
+
+Staticf(length):
+    produce Staticf(length, {})
+
+Staticf(length, dl):
+    if type(dl) != dict:
+        produce Staticf(length, dl, {})
+
 interpretation:
 
 # Two parameters are added to the turtle
@@ -187,6 +207,10 @@ SetSpace(surface, *args):
   turtle.add_parameter('space', surface)
   turtle.add_parameter('cumrotation', 0) # for parallel transport
   turtle.add_parameter('indirect_interpretation', False)  # to move the turtle indirectly in the parametre space and draw the result in the 3D space
+
+
+EndSpace():
+  turtle.clear_parameters()
 
 
 PlotSpace(*args):
@@ -241,8 +265,8 @@ InitTurtle(gencoords):
   # Records if the turtle has reached the boundary of the (u,v) domain
   turtle.add_parameter('boundary_reached', False)
 
-  nproduce @M( turtle.space.S(u,v) )
-  nproduce @R(head,up)
+  turtle.move( turtle.space.S(u,v) )
+  turtle.setHead(head,up)
 
 # The following instructions redefined the compute the new riemmanian turtle state
 # after turtle classical instructions.
@@ -253,11 +277,18 @@ InitTurtle(gencoords):
 
 #TODO: Factorize codes of F(), f() and LineTo() as a large part of the code is common to these functions
 F(length):
+  if not hasattr(turtle,'space'): 
+    turtle.F(length)
+  else:
     for p in forward(turtle, length, MAXSTEPLEN):
-        nproduce LineTo(p)
-    endforward(turtle)
+        turtle.lineTo(p)
+    orient(turtle)
+  produce
 
 F(length, topdiam):
+  if not hasattr(turtle,'space'): 
+    turtle.F(length,topdiam)
+  else:
     dl = MAXSTEPLEN
     stepnb = int(ceil(length / dl))
     currentdiam = turtle.getWidth()
@@ -265,35 +296,49 @@ F(length, topdiam):
 
     for p in forward(turtle, length, dl):
         currentdiam += ddiam
-        nproduce LineTo(p, currentdiam)
-    endforward(turtle)
+        turtle.lineTo(p, currentdiam)
+    orient(turtle)
+  produce
 
 F(length, dl, topdiam):
+  if not hasattr(turtle,'space'): 
+    turtle.nF(length, dl, topdiam)
+  else:
     stepnb = int(ceil(length / dl))
     currentdiam =turtle.getWidth()
     ddiam = (topdiam - currentdiam)/stepnb
 
     for p in forward(turtle, length, dl):
         currentdiam += ddiam
-        nproduce LineTo(p, currentdiam)
-    endforward(turtle)
+        turtle.lineTo(p, currentdiam)
+    orient(turtle)
+  produce
 
 f(length):
+  if not hasattr(turtle,'space'): 
+    turtle.f(length)
+  else:    
     for p in forward(turtle, length, MAXSTEPLEN):
-        nproduce MoveTo(p)
-    endforward(turtle)
+        turtle.moveTo(p)
+    orient(turtle)
+  produce
 
 f(length, dl):
+  if not hasattr(turtle,'space'): 
+    turtle.f(length)
+  else: 
     for p in forward(turtle, length, dl):
-        nproduce MoveTo(p)
-    endforward(turtle)
+        turtle.moveTo(p)
+    orient(turtle)
+  produce
 
 ## Static Version
 
 StaticF(length, cache):
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
-        nproduce LineTo(p)
-    endforward(turtle)
+        turtle.lineTo(p)
+    orient(turtle)
+    produce
 
 StaticF(length, topdiam, cache):
     dl = MAXSTEPLEN
@@ -303,8 +348,9 @@ StaticF(length, topdiam, cache):
 
     for p in cached_forward(cache, turtle, length, dl):
         currentdiam += ddiam
-        nproduce LineTo(p, currentdiam)
-    endforward(turtle)
+        turtle.lineTo(p, currentdiam)
+    orient(turtle)
+    produce
 
 StaticF(length, dl, topdiam, cache):
     stepnb = int(ceil(length / dl))
@@ -313,20 +359,21 @@ StaticF(length, dl, topdiam, cache):
 
     for p in cached_forward(cache, turtle, length, dl):
         currentdiam += ddiam
-        nproduce LineTo(p, currentdiam)
-    endforward(turtle)
+        turtle.lineTo(p, currentdiam)
+    orient(turtle)
+    produce
 
 Staticf(length, cache):
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
-        nproduce MoveTo(p)
-    endforward(turtle)
+        turtle.moveTo(p)
+    orient(turtle)
+    produce
 
 Staticf(length, dl, cache):
     for p in cached_forward(cache, turtle, length, dl):
-        nproduce MoveTo(p)
-    endforward(turtle)
-
-
+        turtle.moveTo(p)
+    orient(turtle)
+    produce
 
 # To plot a geodesic from a point (u,v) to a point (ut,vt)
 # The call in L-Py should be: LineTo((ut,vt), 30) which would draw a geodesic from
@@ -369,7 +416,7 @@ RiemannLineTo(target_coords, nb_points):
     #pp,qq = uvpq_s[i][2], uvpq_s[i][3]
     #velocity = turtle.space.shift_vector(uu,vv,pp,qq)
     #nproduce LineTo(turtle.space.S(uu,vv)) [;(2)DrawVect(velocity,0.5)]
-    nproduce LineTo(turtle.space.S(uu, vv))
+    turtle.lineTo(turtle.space.S(uu, vv))
     if flag: # the drawing stop when a boundary is reached
       break
 
@@ -378,68 +425,23 @@ RiemannLineTo(target_coords, nb_points):
   turtle.boundary_reached = flag # by default boundary is not reached at (u,v)
   turtle.uvpq = turtle.space.check_coords(uvpq_s[i])
 
-  u,v,p,q  = uvpq_s[i]
-
-  # TURTLE FRAME:
-  # Compute shitf tensor at u,v,
-  velocity = turtle.space.shift_vector(u,v,p,q)
-  head = velocity / np.linalg.norm(velocity)
-  up = np.array(turtle.space.normal(u,v))
-  #print ("head = ",head, " head norm = ", np.linalg.norm(head))
-  #print ("up = ",up, " up norm = ", np.linalg.norm(up))
-
-  # 5. Finally, orient the head of the turtle
-  # according to what was computed for the mast point
-  nproduce @R(head,up)
+  orient(turtle)
+  produce
 
 
 +(angle):
-
-  if turtle.indirect_interpretation:
-    turtle.uvpq = parameterspace_turtle_turn(turtle.uvpq, turtle.space,angle)
-  else:
-    turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
-
-  u,v,p,q = turtle.uvpq
-  #print("retour = ", u,v,p,q)
-
-  # COVARIANT BASIS
-  # Compute shitf tensor at u,v,
-  velocity = turtle.space.shift_vector(u, v, p, q)
-  #print('velocity =' , velocity)
-  head = velocity / np.linalg.norm(velocity)
-  up = np.array(turtle.space.normal(u,v))
-  # print ("head = ",head, " head norm = ", np.linalg.norm(head))
-  # print ("up = ",up, " up norm = ", np.linalg.norm(up))
-
-  # TODO: Modify the following line as when the rotation takes place indirecty in the parameter space, the cumrotation is different
-  turtle.cumrotation += angle
-  # print("Total turtle rotation during the path = ", turtle.cumrotation)
-
-  nproduce @R(head,up)
+  if not hasattr(turtle,'space'): 
+    turtle.left(angle)
+  else:  
+    turn(turtle, angle)
+  produce
 
 -(angle):
-
-  if turtle.indirect_interpretation:
-    turtle.uvpq = parameterspace_turtle_turn(turtle.uvpq, turtle.space, -angle)
-  else:
-    turtle.uvpq = riemannian_turtle_turn(turtle.uvpq, turtle.space, -angle)
-
-  #turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,-angle)
-
-  u,v,p,q = turtle.uvpq
-  # COVARIANT BASIS
-  # Compute shitf tensor at u,v,
-  velocity = turtle.space.shift_vector(u, v, p, q)
-  head = velocity / np.linalg.norm(velocity)
-  up = np.array(turtle.space.normal(u, v))
-  # print ("head = ",head, " head norm = ", np.linalg.norm(head))
-  # print ("up = ",up, " up norm = ", np.linalg.norm(up))
-
-  # TODO: Modify the following line as when the rotation takes place indirectly in the parameter space, the cumrotation is different
-  turtle.cumrotation -= angle
-
-  nproduce @R(head,up)
+  if not hasattr(turtle,'space'): 
+    turtle.right(angle)
+  else:  
+    turn(turtle, -angle)
+  produce
 
 MoveToPoint(uv):
   """Move at point (u,v) keeping the velocity [p,q] from the oroginal point """
@@ -447,7 +449,8 @@ MoveToPoint(uv):
   _,_,p,q = turtle.uvpq
   turtle.uvpq = [u,v,p,q]
   pos = turtle.space.S(u, v)
-  nproduce @M(pos)
+  turtle.moveTo(pos)
+  produce
 
 # Draw a vector that is parallel transported along the path that finishes at the current turtle position
 # The vector if of norm = size and is assumed to make an angle angleRelHead at the origin of the turtle's path
