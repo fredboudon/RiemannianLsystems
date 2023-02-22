@@ -8,6 +8,8 @@
 """
 
 import numpy as np
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
 from math import ceil
 from random import random, seed
 
@@ -39,48 +41,71 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
             # (F(1) for instance corresponds to a forward move of 1 meter)
 cm = 0.01 * meter
 
-# Surface parameters
-R = 1. * meter   # Radius of the sphere in meter
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
 
 #######################
 # DISPLAY PARAMETERS
 #######################
 
-extern(NBSTEPS = 150)
+extern(NBSTEPS = 80)
+extern(WALKS = 100)
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
 
 # OUTPUT
 distance = None
+slen = 1/7. # to be homogeneous with the Sphere radius 7. 
 
-# maximum len of subdivision step required to draw any line on the surface
-# this controls the resolution of the geodesic plot with respect to the
-# surface curvature
-MAXSTEPLEN = 1 * cm  # Should be > 0.0
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+origin_pt = [2.0,0.0]
 
-# Width to draw the geodesics
-LINEWIDTH  = 0.3 * cm
-
-# To control the Frame size
-FRAMESIZE  = 0.3 * meter
-FRAMEWIDTH = 1 * cm
-
-#######################
-# SIMULATION PARAMETERS
-#######################
-
-# Tighten the nec of the pin form structure to see that the geodesic 
-# at some threshold is doomed to stay in the lower part and cannot reach the other part
-nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
-            # To draw one geodesic, set it to 1 and set dashed to False
-
-#seed(0)
-slen = 0.1 # 0.1
-origin_pt = [2.0,0]
-
-LINETO_MAXITER = 25
+# LineTo parameters
+LINETO_MAXITER = 20
 NB_POINTS = 20
 
-#def End():
-#   turtle = execContext().turtle
+# Temporary global value
+Nstep = 0
+
+# Arrays for result
+geodesicLen = np.zeros(WALKS)
+geodesicMean = np.zeros(NBSTEPS)
+geodesicStd = np.zeros(NBSTEPS)
+geodesicVar = np.zeros(NBSTEPS)
+
+def StartEach():
+  geodesicLen=np.zeros(WALKS)
+  print("**** STEP ", Nstep)
+
+def EndEach():
+  global geodesicLen
+  # filtering the indefined distance values (-1)
+  posvals = geodesicLen >= 0.0
+  geodesicLen = geodesicLen[posvals]
+  print("Step ", Nstep, " filtered ", WALKS - len(geodesicMean))
+  
+  geodesicMean[Nstep] = np.mean(np.power(geodesicLen,2))
+  geodesicStd[Nstep] = np.std(np.power(geodesicLen,2))
+  geodesicVar[Nstep] = np.var(np.power(geodesicLen,2))
+  
+  geodesicLen = np.zeros(WALKS)
+
+
+def End():
+    #plt.clf()
+    #plt.plot(geodesicMean, 'ro')
+    #plt.fill_between(geodesicMean+geodesicStd, geodesicMean-geodesicStd, facecolor='blue', alpha=0.5)
+    x = np.arange(0,NBSTEPS,1)
+    plt.errorbar(x,geodesicMean, yerr=geodesicStd, fmt='.k');
+    plt.xlabel('Time')
+    plt.ylabel('Mean squared geodesic length')
+    plt.title(f'MSGD for a sphere of radius {R:.2f}')
+    plt.grid(True)
+
+    plt.show()
+    #plt.savefig('MSGDr4n80w800')
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
@@ -88,32 +113,53 @@ Axiom:
   nproduce ;(0)PlotSpace(dict(CCW = False))
   turtle_init = origin_pt + [1., 1.1]
   nproduce InitTurtle(turtle_init)
-  nproduce ;(6)_(LINEWIDTH)[;(4)@O(0.02)]A(0)
+  nproduce ;(4)@O(0.02);(6)_(LINEWIDTH)
+  for w in range(WALKS):
+    nproduce [A(w,0)]
+
 
 derivation length: NBSTEPS
 production:
 
-A(n):
+A(w,n):
+  global Nstep
+  Nstep = n
   a = 360*random()
-  nproduce +(a)F(slen)A(n+1)
-  if getIterationNb() == NBSTEPS-1:
-    nproduce [;(3)RiemannLineTo(origin_pt,NB_POINTS)]
+  nproduce +(a)F(slen)A(w,n+1)
+  #if getIterationNb() == __lsystem__.derivationLength-1:
+  #  nproduce [;(3)RiemannLineTo(origin_pt,NB_POINTS)]
 
 interpretation:
 
-A(n):
+A(w,n):
   global distance
+  #print('A(w,n)=',w,n)
   # produce _(FRAMEWIDTH) Frame(FRAMESIZE)
-  if getIterationNb() == __lsystem__.derivationLength-1 :
-    # print("NBSTEPS = ", getIterationNb())
-    ut,vt,pt,qt = turtle.uvpq
-    u, v = origin_pt[0], origin_pt[1]
-    distance,errarray = turtle.space.geodesic_distance((u,v),(ut,vt), nb_points = NB_POINTS, max_iter= LINETO_MAXITER)
-    if errarray == []:
-      print("Distance could not be computed, DISCARD THIS SIMULATION ...")
-      distance = np.inf
-    else:
-      print(f"GeodesicDist(({u:.2f},{v:.2f}),({ut:.2f},{vt:.2f}) ) = {distance:.3f}")
+  #if getIterationNb() == __lsystem__.derivationLength-1 :
+  # print("NBSTEPS = ", getIterationNb())
+  ut,vt,pt,qt = turtle.uvpq
+  u, v = origin_pt[0], origin_pt[1]
+  if n == 0:
+    distance = 0.0
+    errorval = 0
+  else:
+    distance,errarray, errorval = geodesic_distance_to_point(turtle.space,(u,v),(ut,vt), nb_points = NB_POINTS, max_iter= LINETO_MAXITER)
+    i = 0
+    while errorval != 0 and i < 0:
+      i += 1
+      # try to change parameters to compute the distance again:
+      print("Distance computation did not converge, retry ...,")
+      distance,errarray, errorval = geodesic_distance_to_point(turtle.space,(u,v),(ut,vt), nb_points = max(NB_POINTS-3*i,4), max_iter= LINETO_MAXITER)
+      if errorval == 0:
+        pass # print(' Found for nb_points = {max(NB_POINTS-3*i,4):d}!!')
+    #print(f"GeodesicDist(({u:.2f},{v:.2f}),({ut:.2f},{vt:.2f}) ) = {distance:.3f}")
+  if errorval == 0 or errorval == 3:
+    geodesicLen[w] = distance
+    if errorval == 3:
+      pass #print("Error 3: difference between last and initial value = ", errarray[-2]-errarray[0])
+  else:
+    geodesicLen[w] = -1   # an error prevented to computed a reliable distance
+  
   produce ;(2)@O(0.02)
 
 endlsystem

@@ -393,11 +393,14 @@ RiemannLineTo(target_coords, nb_points):
   # nb_points id the total required number of sampling point on the trajectory
   # including the two end-points
 
-  uvpq_s = geodesic_to_point(space, (u,v), (ut,vt), nb_points, max_iter=LINETO_MAXITER)
+  uvpq_s, errorval = geodesic_to_point(space, (u,v), (ut,vt), nb_points, max_iter=LINETO_MAXITER)
 
   # if error, then stop here and produce nothing
-  if uvpq_s == []:
+  if errorval != 0:
+    # Convergence could not be reached in the geodesic_to_point function
+    # then discard the curve, and draw nothing
     produce
+  # otherwise, draw the curve :
   #print('PATH FOUND:', uvpq_s)
   # TODO: the returned list can be None. This case should be handled.
   #uvpq_s = uvpq_s[:-1] # remove the first point (source)

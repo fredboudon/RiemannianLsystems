@@ -335,19 +335,22 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20):
 
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
-    try:
-        uvpq_s, error_array = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
-    except RuntimeError as error:
-        print(error)
-        uvpq_s = []
-        error_array = []
+    uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
+    '''
+    try:
+    uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
+except RuntimeError as error:
+    print(error)
+    uvpq_s = []
+    error_array = []
+    '''
     #np.set_printoptions(precision=3, suppress = True)
     #print("Cumulated error sequence throughout iterations: ",error_array)
 
-    return uvpq_s
+    return uvpq_s, errorval
 
-def geodesic_distance_to_point(space,uv,uvt):
+def geodesic_distance_to_point(space,uv,uvt,nb_points, max_iter=20):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 
@@ -364,14 +367,18 @@ def geodesic_distance_to_point(space,uv,uvt):
 
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
+    dist, error_array, errorval = space.geodesic_distance(uv, uvt,nb_points, max_iter)
+    '''
     try:
-        dist, error_array = space.geodesic_distance(uv, uvt)
-    except RuntimeError as error:
-        print(error)
-        error_array = []
+    dist, error_array = space.geodesic_distance(uv, uvt)
+except RuntimeError as error:
+    print(error)
+    error_array = []
+    '''
+
 
     #np.set_printoptions(precision=3, suppress = True)
     #print("Cumulated error sequence throughout iterations: ",error_array)
 
 
-    return dist
+    return dist, error_array, errorval

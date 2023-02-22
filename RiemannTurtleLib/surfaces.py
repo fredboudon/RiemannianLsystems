@@ -285,9 +285,12 @@ class RiemannianSpace2D:
         # Build the orthonormal basis using the normal vector and
         print("length basis vector 1 is 0 !!!")
 
-      a = 1/len1
+      a = 1/len1 # also defined by 1/sqrt(g11) as s1.s1 = len1**2 = g11
+      g11 = self.metric_tensor(u,v)[0,0]
       g12 = self.metric_tensor(u,v)[0,1]
-      S22 = S2 - g12 * S1
+      #S22 = S2 - g12 * S1
+      coef = g12/g11
+      S22 = S2 - coef * S1
       b = 1/np.linalg.norm(S22)
 
       # print("J2orthonormal")
@@ -296,7 +299,7 @@ class RiemannianSpace2D:
       # print("         S22 = ",S22)
       # print("g12 = ", g12, " a = ", a, " b = ", b)
 
-      return np.array([[a,-g12*b],[0,b]])
+      return np.array([[a,-coef*b],[0,b]])
 
     def passage_matrix_cb2ortho_inverse(self,u,v):
       '''
@@ -304,15 +307,18 @@ class RiemannianSpace2D:
       '''
       S1,S2 = self.covariant_basis(u,v)
       a = np.linalg.norm(S1)
+      g11 = self.metric_tensor(u,v)[0,0]
       g12 = self.metric_tensor(u,v)[0,1]
-      S22 = S2 - g12 * S1
+      #S22 = S2 - g12 * S1
+      coef = g12 / g11
+      S22 = S2 - coef * S1
       b = np.linalg.norm(S22)
       #print("Jfromorthonormal")
       #print("covariant S1 = ", S1)
       #print("covariant S2 = ", S2)
       #print("         S22 = ",S22)
       #print("g12 = ", g12, " a = ", a, " b = ", b)
-      return np.array([[a,g12*a],[0,b]])
+      return np.array([[a,coef*a],[0,b]])
 
     def is_degenerate_point(self, u,v,p,q):
         """
@@ -583,6 +589,7 @@ class RiemannianSpace2D:
 
         # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
         end_test = False
+        ERROR = -1  # Initializes the ERROR type (-1 is not meaningful and should always be replaced by another value)
         i = 0
         last_average_delta_X_norm = np.inf
         average_delta_X_norm_array = []
@@ -634,13 +641,16 @@ class RiemannianSpace2D:
             # note if maxiter = 0, this means that the user wants the initial path.
             if average_delta_X_norm < epsilon_conv:
                 #print("SMALL ERROR REACHED !!!!!!!! ")
+                ERROR = 0           # Convergence
                 end_test = True
             elif average_delta_X_norm > 10 * average_delta_X_norm_array[0]:
                 # We estimate that the solution diverges if before reaching maxiter
                 # the error becomes 100 x the error corresponding to the initial solution.
+                ERROR = 1           # Diverges before end of iterations
                 end_test = True
                 #raise RuntimeError(f"ERROR: from ({u:.3f},{v:.3f}) to ({ut:.3f},{vt:.3f}), solution diverges after {i:d}/{max_iter:d} steps.")
             elif i >= max_iter:
+                ERROR = 2           # Did not converge before end of iterations, but error kept bounded
                 end_test = True
 
             #elif last_average_delta_X_norm < average_delta_X_norm:
@@ -671,8 +681,9 @@ class RiemannianSpace2D:
         # restores the initial path with its initial error
         # Note: in this case, the average_delta_X_norm_array will have identical start and end values
         if average_delta_X_norm > average_delta_X_norm_array[0]:
-            print("SOLUTION FOUND NO BETTER THAN INITIAL SOLUTION --> INITIAL SOLUTION KEPT")
+            #print("SOLUTION FOUND NO BETTER THAN INITIAL SOLUTION --> INITIAL SOLUTION KEPT")
             X = X0
+            ERROR = 3
             average_delta_X_norm_array.append(average_delta_X_norm_array[0])
 
         # The resulting value X is a vector of size 4m make an array of upvq values
@@ -681,7 +692,7 @@ class RiemannianSpace2D:
         # the first 4 terms
         geodesic_path = X.reshape((m,4))
 
-        return geodesic_path, np.array(average_delta_X_norm_array)
+        return geodesic_path, np.array(average_delta_X_norm_array), ERROR
 
 
     def geodesic_distance(self, uv, uvt, nb_points = 20, max_iter= 20):
@@ -691,7 +702,7 @@ class RiemannianSpace2D:
         nb_points  = 20  # To be better estimated
         max_iter = 20    # To be better estimated
 
-        uvpq, errarray = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
+        uvpq, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
         segnb = len(uvpq)
         u,v = uv
@@ -704,7 +715,8 @@ class RiemannianSpace2D:
             P1 = P2
 
         #print("Dist(A,B) = ", dist)
-        return dist, errarray
+        return dist, errarray, errorval
+
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface(RiemannianSpace2D):
