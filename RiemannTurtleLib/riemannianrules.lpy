@@ -189,6 +189,7 @@ Staticf(length, dl):
         produce Staticf(length, dl, {})
 
 interpretation:
+maximum depth:2
 
 # Two parameters are added to the turtle
 # - turtle.space is added by SetSpace refers to the Riemanian space
@@ -210,7 +211,7 @@ SetSpace(surface, *args):
 
 
 EndSpace():
-  turtle.clear_parameters()
+  turtle.remove_parameter('space')
 
 
 PlotSpace(*args):
@@ -319,7 +320,7 @@ f(length):
     turtle.f(length)
   else:    
     for p in forward(turtle, length, MAXSTEPLEN):
-        turtle.moveTo(p)
+        turtle.move(p)
     orient(turtle)
   produce
 
@@ -328,7 +329,7 @@ f(length, dl):
     turtle.f(length)
   else: 
     for p in forward(turtle, length, dl):
-        turtle.moveTo(p)
+        turtle.move(p)
     orient(turtle)
   produce
 
@@ -458,18 +459,22 @@ MoveToPoint(uv):
 ParallelTransportedArrow(angleRelHead,size):
   nproduce [+(angleRelHead-turtle.cumrotation)Arrow(size)]
 
+CovariantBasis:
+  nproduce CovariantBasis(1)
+
 CovariantBasis(size):
   surf = turtle.space
   u,v,p,q = turtle.uvpq
   S1, S2 = surf.covariant_basis(u, v)
   l1 = np.linalg.norm(S1)
   l2 = np.linalg.norm(S2)
+  print(l1,l2)
   #nproduce [;(1)DrawVectnp(S1)][;(4)DrawVectnp(S2)]
   #nproduce [_(0.01);(2)LineRel(size*S1)@O(0.01)][_(0.01);(3)LineRel(size*S2)@O(0.01)]
   if not np.isclose(l1, 0.):
-    nproduce [_(0.01);(2)PinpointRel(S1)Arrow(l1*size)]
+    nproduce [;(2)PinpointRel(S1)Arrow(l1*size)]
   if not np.isclose(l2, 0.):
-    nproduce [_(0.01);(3)PinpointRel(S2)Arrow(l2*size)]
+    nproduce [;(3)PinpointRel(S2)Arrow(l2*size)]
 
 # Draw a vector at the current position of the turtle
 DrawVect(vect):

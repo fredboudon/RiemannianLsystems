@@ -1962,7 +1962,7 @@ class GeomLibPatch(ParametricSurface):
       skl = derivatives(self.nurbssurf, u, v, 2)
       return np.array(skl[0][2])
 
-from openalea.plantgl.math import Matrix3
+from openalea.plantgl.math import Matrix3, norm
 
 def m3_tolist(self):
     return [self.getColumn(v) for v in range(3)]
@@ -1973,7 +1973,9 @@ class ExtrusionSurface(Patch):
 
     def __init__(self, extrusion):
       extrusion.uknotList = [extrusion.axis.firstKnot,extrusion.axis.lastKnot]
-      extrusion.vknotList = [extrusion.axis.firstKnot,extrusion.crossSection.lastKnot]
+      cs = extrusion.crossSection
+      extrusion.vknotList = [cs.firstKnot,cs.lastKnot]
+      self.vtoric = (norm(cs.getPointAt(cs.firstKnot)-cs.getPointAt(cs.lastKnot)) < 1e-5)
       self.framecache = {}
       self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 
