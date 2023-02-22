@@ -1808,10 +1808,6 @@ class Patch(ParametricSurface):
       super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
 
     def normalizeuv(self, u, v):
-      #if not (self.umin <= u <= self.umax) :
-      #  raise ValueError(u,self.umin,self.umax)
-      #if not (self.vmin <= v <= self.vmax) :
-      #  raise ValueError(v,self.vmin,self.vmax)
       if self.utoric:
           u = self.umin + (u-self.umin) % (self.umax-self.umin) 
       else:
@@ -1991,7 +1987,7 @@ class ExtrusionSurface(Patch):
       self.framecache = {}
       self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 
-      super(ExtrusionSurface, self).__init__(extrusion)
+      super(ExtrusionSurface, self).__init__(extrusion, vtoric=self.vtoric)
 
       self.build_cache()
 
