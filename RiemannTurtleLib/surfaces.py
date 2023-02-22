@@ -217,6 +217,10 @@ class RiemannianSpace2D:
       return S1,S2,velocity
 
     def shift_vector(self,u,v,p,q):
+      '''
+      This is the Jacobian of the transformation passing from the parameter space to the ambiant space.
+      If f denotes tis mapping, it is also called the differential mapping df, or the push-forward operator
+      '''
       A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
 
       # Computes the 3D vector corresponding to the vector p,q
