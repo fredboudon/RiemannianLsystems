@@ -26,9 +26,9 @@ lsys = lpy.Lsystem(model_filename)
 # Input variables
 ##############################
 
-MINWALKLENGTH = 150
+MINWALKLENGTH = 50
 MAXWALKLENGTH = 200
-NBWALKS = 10      # At each length
+NBWALKS = 20      # At each length
 
 # Array with 2 dimensions: walk length x walk index (w)
 squared_dists = np.empty((MAXWALKLENGTH-MINWALKLENGTH,NBWALKS))
@@ -59,7 +59,7 @@ with open('squared_dists.txt', 'rb') as f:
 
 #BoxName = [walk_len for walk_len in range(10, MAXWALKLENGTH)]
 plt.boxplot(squared_dists.T)
-plt.ylim(0,2.5)
+plt.ylim(0,10)
 #pylab.xticks([1,2,3], BoxName)
 
 #plt.savefig('geodesic_distances_negative_curvature.png')

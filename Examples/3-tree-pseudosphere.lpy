@@ -83,7 +83,7 @@ STEPSIZE = 0.1     # size of a step (in a.u.) used to draw pieces of geodesic
 LEAVES = False
 ROTATELEAF = False
 
-AXIOMTEST = 1
+AXIOMTEST = 2
 
 TEST1 = False  # True for long internodes
 

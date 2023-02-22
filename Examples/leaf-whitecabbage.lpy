@@ -53,7 +53,7 @@ def EndEach(lstring, lscene):
 
 module Leaf
 
-Axiom: ;(2)Leaf(length, width) S(ParameterSet())
+Axiom: ;(8)Leaf(length, width) S(ParameterSet())
 derivation length: nb_seg+ 2
 production:
 
@@ -73,15 +73,17 @@ S(x) :
 
 A(n):
   if n > 0:
-    nproduce StaticF(length_geodesic/nb_seg, 0.02*n/nb_seg, {})
-    nproduce [+(60)B(3)]
-    nproduce [-(60)B(3)]
+    # StaticF(length,radius_at_extremity)
+    rad = 0.02*n/nb_seg
+    nproduce StaticF(length_geodesic/nb_seg, rad, {})
+    nproduce [+(30)B(4,rad)]
+    nproduce [-(33)B(5,rad)]
     nproduce A(n-1)
 
-B(n):
+B(n,r):
   if n > 0:
-    nproduce StaticF(length_geodesic/nb_seg, 0.02*n/nb_seg, {})
-    nproduce B(n-1)
+    nproduce StaticF(length_geodesic/nb_seg, r*n/nb_seg, {})
+    nproduce B(n-1,r)
 
 interpretation:
 maximum depth: 5
@@ -128,6 +130,9 @@ def __initialiseContext__(context):
 	Color_7 = pgl.Material("Color_7" , ambient = (82,92,64) , diffuse = 1.95652 , shininess = 0 , )
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
+	Color_8 = pgl.Material("Color_8" , ambient = (155,185,134) , diffuse = 0.410811 , shininess = 0 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
 	scalars = [('ORDER', 'Integer', 0, 0, 2)]
 	context["__scalars__"] = scalars
 	for s in scalars:
@@ -144,7 +149,7 @@ def __initialiseContext__(context):
 	    )
 	nerve.name = "nerve"
 	section = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(-1.35896, 0.0118907, 1),(-0.965673, -0.0525752, 1),(-0.598767, -0.492253, 1),(0.0232609, -2.07486, 1),(1.45626, -2.60323, 1),(1.96028, -0.0226782, 1)]) , 
+	    ctrlPointList = pgl.Point3Array([(1.35896, 0.0118907, 1),(0.965673, -0.0525752, 1),(0.598767, -0.492253, 1),(-0.0232609, -2.07486, 1),(-1.45626, -2.60323, 1),(-1.96028, -0.0226782, 1)]) , 
 	    )
 	section.name = "section"
 	panel_1 = ({'name': 'Curve2D', 'active': True, 'visible': True},[('Curve2D',nerve),('Curve2D',section)])
