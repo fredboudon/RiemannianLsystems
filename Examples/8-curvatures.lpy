@@ -80,8 +80,8 @@ length_geodesic =  ra/5
 # Selectiong of tests
 #########################
 
-TEST = 9
-PRINT_TEST = 2
+TEST = 1           # To test different parametric surfaces
+PRINT_TEST = 2     # To print different types of results related to curvature
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
@@ -110,6 +110,7 @@ Axiom:
     nproduce SetSpace(PseudoSphere(1, zmin = 0.1, zmax = 1-0.001))
   elif TEST == 9:
     nproduce SetSpace(ChineseHat(1))
+  
   nproduce ;(0)PlotSpace(dic)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0.01 #np.pi/6
@@ -183,13 +184,13 @@ S:
       
 A(scalefactor,color_plus,color_minus,linewidth):
   u,v,p,q = turtle.uvpq
-  print('uvpq',u,v,p,q)
+  print(f'u={u:.3f} v={v:.3f} p={p:.3f} q={q:.3f} ')
   
   if PRINT_TEST == 1:
     # Test: computed numerical coef o the fundamental forms I and II
     E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
     print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
-    if AXIOM_TEST == 8: # Pseudosphere
+    if TEST == 8: # Pseudosphere
       # theoretical values of E,F,G,L,M,N for pseudosphere :
       EE = (R*np.tanh(u))**2
       FF = 0
@@ -245,7 +246,7 @@ A(scalefactor,color_plus,color_minus,linewidth):
     
     #nproduce ;(5)_(0.005)DrawVect(dir1,0.3)
     #nproduce ;(6)_(0.005)DrawVect(dir2,0.3)
-    nproduce _(linewidth)DrawTensor2(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    nproduce _(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)
     
     normal = turtle.space.normal(u,v)
     nproduce DrawVect(normal, 0.1)

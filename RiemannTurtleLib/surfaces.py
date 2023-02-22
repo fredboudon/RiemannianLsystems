@@ -905,7 +905,7 @@ class ParametricSurface(RiemannianSpace2D):
         cf Struiks 1961 Dover p 80
         """
         E,F,G,L,M,N = self.fundFormCoef(u,v)
-        print("\tE,F,G\tL,M,N : ", E,F,G,L,M,N)
+        #print("\tE,F,G\tL,M,N : ", E,F,G,L,M,N)
 
         K, H, kappa_min, kappa_max = self.localCurvatures(u, v)
         #print(" K, H, kappa_min, kappa_max : ", K, H, kappa_min, kappa_max)
@@ -923,8 +923,8 @@ class ParametricSurface(RiemannianSpace2D):
         Bmin = M-kappa_min*F
         Cmin = N-kappa_min*G
 
-        print("equs max : ", Amax, Bmax, Cmax)
-        print("equs min : ", Amin, Bmin, Cmin)
+        #print("equs max : ", Amax, Bmax, Cmax)
+        #print("equs min : ", Amin, Bmin, Cmin)
 
         # Equations for max curvature
         if not np.isclose(Amax,0) and not np.isclose(Bmax,0) :

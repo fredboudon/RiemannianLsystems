@@ -39,7 +39,8 @@ module RiemannLineTo
 #module DrawVect(vect) #FIXME: we should be able to declare same module with different signatures
 module DrawVect(vect,size)
 module MoveToPoint(uv)
-module DrawTensor2(vect,size,color1,color2)
+module DrawTensor2Lines(vect,vect2,size,color1,color2)
+module DrawTensor2Ellipsis(vect,vect2,size,color1,color2)
 module DrawPoint
 module StartIndirectInterpretation
 module StopIndirectInterpretation
@@ -366,13 +367,13 @@ StaticF(length, dl, topdiam, cache):
 
 Staticf(length, cache):
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
-        turtle.moveTo(p)
+        turtle.move(p)
     orient(turtle)
     produce
 
 Staticf(length, dl, cache):
     for p in cached_forward(cache, turtle, length, dl):
-        turtle.moveTo(p)
+        turtle.move(p)
     orient(turtle)
     produce
 
@@ -453,7 +454,7 @@ MoveToPoint(uv):
   _,_,p,q = turtle.uvpq
   turtle.uvpq = [u,v,p,q]
   pos = turtle.space.S(u, v)
-  turtle.moveTo(pos)
+  turtle.move(pos)
   produce
 
 # Draw a vector that is parallel transported along the path that finishes at the current turtle position
@@ -501,7 +502,7 @@ DrawVect(vect, size):
 
 DrawTensor2Lines(pdirs, eigenvals, size, color_positive, color_negative):
   ''' 
-  pidrs are the eigen vectors of the 2 tensor
+  pdirs are the eigen vectors of the 2-tensor
   eigenvals are the two corresponding eigen values
   color positive (resp. negative) is used for positive (resp_negative) eigen values
   '''
@@ -517,7 +518,7 @@ DrawTensor2Lines(pdirs, eigenvals, size, color_positive, color_negative):
   #l2 = np.linalg.norm(dir2)
 
   # nproduce [_(0.01)LineRel(coord)]
-  # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+  # PinpointRel(vect) orients the turtle frame so that H is pointing in the vect direction
   if not np.isclose(l0, 0.):
     nproduce [ ;(color0)
     nproduce PinpointRel(dirmax)
@@ -600,7 +601,6 @@ ClosedPolygon(polyline_uv, *args):
     params['state'] = turtle.getParameters()
     for p, c in turtle._params.items():
         params[p] = c(getattr(turtle, p))
-    t.append(params)
     produce ?T(params)
 
 endlsystem
