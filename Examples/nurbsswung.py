@@ -90,3 +90,9 @@ class NurbsSwung:
         if du == 2 : return self.getSecondDerivativeUUAt(u,v)
         elif dv == 2: return self.getSecondDerivativeVVAt(u,v)
         else: return self.getSecondDerivativeUVAt(u,v)
+    
+    def getIsoVSectionAt(self,v):
+        result = self.profileInterpolator.getIsoVSectionAt(v)
+        theta = v
+        result.ctrlPointList = [(p.x*cos(theta), p.x*sin(theta), p.y, p.w) for p in result.ctrlPointList]
+        return result
