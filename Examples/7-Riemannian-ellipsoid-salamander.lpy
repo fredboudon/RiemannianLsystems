@@ -1,0 +1,215 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Geodesics of an ellipsoid of revolution 
+"""
+
+import numpy as np
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
+
+from surfaces import *
+from riemannianturtle import *
+
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+PLOTDS2 = False
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 0.5 * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+ra = 1.
+rb = 0.5
+
+seglen = ra/3.
+length_geodesic = 0.4 # 1. 
+nb_angles = 10
+
+s  = 1/14.5    # the total height of the curve for the recorded measures 
+
+TEST =  1 # 1
+
+module Lezard, Member, RightLeg, LeftArm, LeftLeg, RightArm
+module Seg, StI, SpI, Pos1, Pos2, Pos3
+module RLineTo, RMoveTo
+
+Axiom:
+  # Sets the Riemannian space in which the turtle will move
+  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
+  nproduce ;(0)PlotSpace
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v 
+  #(and p,q their first derivatives in the chosen direction)
+  u0= 0.3
+  v0= 0.0 
+  p0 = 1
+  q0 = 0
+  nproduce ;(2)_(LINEWIDTH)InitTurtle([u0,v0,p0,q0])
+  if TEST == 1:
+    nproduce [;(3) StI(0)
+    #nproduce Frame(0.3) 
+    nproduce +(180) Lezard(1.)
+    #nproduce Frame(0.5) f(1) Frame(0.5)
+    nproduce SpI(0) 
+    produce ]
+
+derivation length: 2
+production:
+
+StI(i) --> StI(i+1)
+SpI(i) --> SpI(i+1)
+
++(x) Seg(v) ?UV(uv) --> RLineTo(list(uv.values()))
+-(x) Seg(v) ?UV(uv) --> RLineTo(list(uv.values()))
+Pos1(n) ?UV(uv) --> RMoveTo(list(uv.values()))
+Pos2(n) ?UV(uv) --> RMoveTo(list(uv.values()))
+Pos3(n) ?UV(uv) --> RMoveTo(list(uv.values()))
+
+decomposition:
+maximum depth: 5
+
+Lezard(n) :
+  nproduce [
+  nproduce LeftArm(n) Pos1(n) ?UV 
+  nproduce [LeftLeg(n)]
+  nproduce -(45) 
+  n2 = n*1.414/2.0
+  nproduce RightLeg(n2) Pos2(n2) ?UV
+  nproduce RightArm(n2)
+  nproduce ]
+
+RightLeg(n) :
+  produce [ ,(2) Member(n,1) ] 
+
+LeftLeg(n) :
+  produce [ ,(5)Member(n,-1)] #f(n)
+
+RightArm(n) : 
+  produce [ Pos3(n) ?UV Member(n,1)] # f(n)
+
+LeftArm(n) :
+  produce [Pos3(n) ?UV  Member(n,-1)] 
+
+Member(n,sgn):
+  nproduce +(sgn*17)S(2.1*s*n)-(sgn*6)S(1*s*n)-(sgn*6)S(1*s*n)-(sgn*4)S(0.7*s*n).-(sgn*28)S(0.55*s*n)
+  nproduce -(sgn*26.5)S(1*s*n)+(sgn*6.5)S(0.5*s*n)+(sgn*9.5)S(0.45*s*n)+(sgn*5.5)S(0.4*s*n)+(sgn*5)S(0.35*s*n)
+  nproduce +(sgn*15)S(1.8*s*n)+(sgn*7)S(0.7*s*n).+(sgn*48)S(1.35*s*n)-(sgn*11)S(1.1*s*n).+(sgn*102)S(1.2*s*n)
+  nproduce +(sgn*90)S(1.1*s*n)-(sgn*11)S(0.9*s*n).-(sgn*109)S(0.5*s*n)+(sgn*18)S(0.35*s*n)+(sgn*10)S(1.2*s*n)
+  nproduce -(sgn*110)S(2*s*n)+(sgn*5.5)S(1.6*s*n)-(sgn*67)S(2.2*s*n)-(sgn*1)S(1.95*s*n)
+
+S(v) --> Seg(v) ?UV
+
+
+interpretation:
+maximum depth: 4
+
+Pos1(n) --> f(n)-(90)f(n)-(90)f(n)-(90)
+Pos2(n) --> f(n)
+Pos3(n) --> f(n)-(180)
+
+StI(i):
+  if i <= 1:
+    nproduce StartIndirectInterpretation
+  
+SpI(i):
+  if i <= 1:
+    nproduce StopIndirectInterpretation
+  
+
+A(n):
+  u,v,p,q = turtle.uvpq
+  velocity = turtle.space.shift_vector(u,v,p,q)
+  nproduce ;(5)_(0.01)DrawVect(velocity,0.3)
+  #nproduce CovariantBasis(0.3)
+
+Seg(n) --> F(n)
+
+RLineTo(uv):
+  if RIEMANN:
+    nproduce RiemannLineTo(uv, 2) 
+  else:
+    p = turtle.space.S(uv[0],uv[1])
+    turtle.lineTo(p[0],p[1],p[2])
+  nproduce [ ,(7) MoveTo(turtle.space.S(uv[0],uv[1]))@O(LINEWIDTH*2)]
+
+RMoveTo(uv):
+  if RIEMANN:
+    nproduce RiemannMoveTo(uv) 
+  else:
+    nproduce MoveTo(turtle.space.S(uv[0],uv[1]))    
+  produce [ ,(7) MoveTo(turtle.space.S(uv[0],uv[1]))@O(LINEWIDTH*2)]
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (0,0,0) , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2), ('RIEMANN', 'Bool', True)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
