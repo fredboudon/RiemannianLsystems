@@ -1108,7 +1108,8 @@ class Sphere(ParametricSurface):
     # the Shift tensor may be wieved as the coordinates of the surface
     # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
     def Shift(self,u,v):
-      """ Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      """
+      Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
       It is derived from the partial derivatives of the surface equations wrt u,v
       (may be could be computed automatically from S(u,v) ... see that later)
       """
@@ -1798,7 +1799,7 @@ NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
 
 class Patch(ParametricSurface):
 
-    def __init__(self, patch, utoric = False, vtoric = False):
+    def __init__(self, patch, utoric = False, vtoric = False, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
       self.patch = patch
 
       umin = min(self.patch.uknotList)
@@ -1809,7 +1810,7 @@ class Patch(ParametricSurface):
       self.utoric = utoric
       self.vtoric = vtoric
 
-      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
+      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U, STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_U)
 
     def normalizeuv(self, u, v):
       if self.utoric:
@@ -1983,7 +1984,7 @@ Matrix3.tolist = m3_tolist
 
 class ExtrusionSurface(Patch):
 
-    def __init__(self, extrusion):
+    def __init__(self, extrusion, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
       extrusion.uknotList = [extrusion.axis.firstKnot,extrusion.axis.lastKnot]
       cs = extrusion.crossSection
       extrusion.vknotList = [cs.firstKnot,cs.lastKnot]
@@ -1991,7 +1992,7 @@ class ExtrusionSurface(Patch):
       self.framecache = {}
       self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 
-      super(ExtrusionSurface, self).__init__(extrusion, vtoric=self.vtoric)
+      super(ExtrusionSurface, self).__init__(extrusion, vtoric=self.vtoric, STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U, STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_V)
 
       self.build_cache()
 

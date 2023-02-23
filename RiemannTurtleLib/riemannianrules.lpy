@@ -598,8 +598,11 @@ ClosedPolygon(polyline_uv, *args):
 
 
 ?T(params):
-    params['state'] = turtle.getParameters()
-    for p, c in turtle._params.items():
+    params['state'] = turtle.getParameters() # turtle's internal parameters
+    for p, c in turtle._params.items():      # user defined parameters
+        # p = a parameter name
+        # c is a copy function for this parameter (deepcopy by default)
+        # adds the retreived parameter p to params
         params[p] = c(getattr(turtle, p))
     produce ?T(params)
 

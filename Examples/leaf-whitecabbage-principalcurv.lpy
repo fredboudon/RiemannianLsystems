@@ -44,6 +44,9 @@ linewidth = LINEWIDTH
 FRAMESIZE  = 0.3 * meter
 FRAMEWIDTH = 1 * cm
 
+BRANCHES = True
+BASERADIUS = 0.03
+
 def StartEach():
   if getIterationNb == 0:
     frameDisplay(True)
@@ -62,13 +65,13 @@ production:
 
 V(x) :
   if x.hasattr('shape'):
-    v0 = 0.75
-    u0 = 0
+    v0 = 0.73
+    u0 = 0.001
     nproduce W(x.shape)
-    nproduce SetSpace(ExtrusionSurface(x.shape))
+    nproduce SetSpace(ExtrusionSurface(x.shape), STAY_ON_BOUNDARY_U = True, STAY_ON_BOUNDARY_V = True)
     #nproduce SetSpace(Sphere(length)) PlotSpace()
     nproduce [InitTurtle([u0,v0,1,0]) -(6.5) 
-    nproduce ,(7) _(0.02) ?T(ParameterSet())A(nb_seg)
+    nproduce ,(7) _(BASERADIUS) ?T(ParameterSet())A(nb_seg)
     nproduce ]
   else:
     frameDisplay(True)
@@ -76,7 +79,7 @@ V(x) :
 ?T(t)A(n):
   if n > 0:
     # StaticF(length,radius_at_extremity)
-    rad = 0.02*n/nb_seg
+    rad = BASERADIUS*n/nb_seg
     
     u,v,p,q = t.uvpq
     scalefactor = 10
@@ -87,8 +90,8 @@ V(x) :
     pushforward = t.space.Shift(u,v)
     pdirmax = pushforward.dot(pdirmax_uv)
     npdirmax = np.linalg.norm(pdirmax)
-    pdirmax = np.array(pdirmax)/npdirmax
-    pdirmax = pdirmax*curvmax
+    #pdirmax = np.array(pdirmax)/npdirmax
+    #pdirmax = pdirmax*curvmax
     ndir = t.space.normal(u,v)
     #pdirmin = np.cross(pdirmax, ndir) 
     pdirmin = pushforward.dot(pdirmin_uv) 
@@ -101,24 +104,33 @@ V(x) :
     pcurvs = [curvmax,curvmin]
     
     print(pdirs, pcurvs)
-    nproduce [;(4)_(0.005)DrawVect(ndir,0.1)]
-    nproduce [;(5)_(0.005)DrawVect(pdirmax,0.1)]
-    nproduce [;(6)_(0.005)DrawVect(pdirmin,0.1)]
-    nproduce [_(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)]
+    #nproduce _(0.01)CovariantBasis(0.3)
+    #nproduce [;(4)_(0.005)DrawVect(ndir,0.1)]
+    #nproduce [;(5)_(0.005)DrawVect(pdirmax,0.1)]
+    #nproduce [;(6)_(0.005)DrawVect(pdirmin,0.1)]
+    #nproduce [_(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)]
 
     # 2 syntaxes for StaticF():
     # Similar to F: StaticF(length,toprad), 
     # or similar to nF: StaticF(length,dl, toprad)
     nproduce StaticF(length_geodesic/nb_seg, rad)
-    #nproduce [+(30)B(4,rad)]
-    #nproduce [-(33)B(5,rad)]
-    
+    if BRANCHES:
+      a = 8 + 0.1*n**2 # deflection angle
+      b = 5*n/nb_seg
+      nproduce [+(30)B(5,rad,a)]
+      nproduce [-(30+b)B(5,rad,-a)]
     nproduce ?T(ParameterSet())A(n-1)
 
-B(n,r):
+B(n,r, deflection_angle):
   if n > 0:
-    nproduce S(length_geodesic/nb_seg, r*n/nb_seg)
-    nproduce B(n-1,r)
+    nproduce +(deflection_angle) StaticF(length_geodesic/nb_seg, r*n/nb_seg)
+    if n == 4 :
+      a = 8 # deflection angle
+      a = -a if deflection_angle < 0 else a 
+      nproduce [+(5)B(n-1,r, a)]
+      nproduce [-(7)B(n-1,r, a)]
+    else:
+      nproduce B(n-1,r, deflection_angle)
 
 interpretation:
 maximum depth: 2
