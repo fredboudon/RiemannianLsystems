@@ -33,12 +33,11 @@ module SetSpace(surface, argdict)
 module EndSpace()
 module InitTurtle(turtle_state)
 module ParallelTransportedArrow(angleRelHead,size)
-module LineTo(uvcoords, stepnb)
 module CovariantBasis(size)
-module RiemannLineTo
+module RiemannLineTo(uvcoords, stepnb)
 #module DrawVect(vect) #FIXME: we should be able to declare same module with different signatures
 module DrawVect(vect,size)
-module MoveToPoint(uv)
+module RiemannMoveTo(uv)
 module DrawTensor2Lines(vect,vect2,size,color1,color2)
 module DrawTensor2Ellipsis(vect,vect2,size,color1,color2)
 module DrawPoint
@@ -120,7 +119,7 @@ def forward(turtle, length, dl = 1):
     flag = False
     # draw a line from the last visited point to the next one in abs coordinates
     uu, vv = uvpq_s[i][0], uvpq_s[i][1]
-    if turtle.space.STAY_ON_BOUNDARY_U or turtle.space.STAY_ON_BOUNDARY_V:
+    if turtle.space.STOP_AT_BOUNDARY_U or turtle.space.STOP_AT_BOUNDARY_V:
       uu, vv, flag = turtle.space.check_coords_domain(uu,vv)
     yield turtle.space.S(uu,vv)
     if flag: # the drawing stop when a boundary is reached
@@ -143,7 +142,7 @@ def cached_forward(cache, turtle, length, dl = 1):
     turtle.boundary_reached = cache['boundary_reached']
 
 
-def orient(turtle, uvpq = None):
+def orientHead(turtle, uvpq = None):
   if not uvpq is None:
     u,v,p,q = uvpq
   else:
@@ -164,7 +163,7 @@ def turn(turtle, angle):
     turtle.uvpq = parameterspace_turtle_turn(turtle.uvpq, turtle.space,angle)
   else:
     turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
-  orient(turtle)
+  orientHead(turtle)
   # TODO: Modify the following line as when the rotation takes place indirecty in the parameter space, the cumrotation is different
   turtle.cumrotation += angle
   # print("Total turtle rotation during the path = ", turtle.cumrotation)
@@ -284,7 +283,7 @@ F(length):
   else:
     for p in forward(turtle, length, MAXSTEPLEN):
         turtle.lineTo(p)
-    orient(turtle)
+    orientHead(turtle)
   produce
 
 F(length, topdiam):
@@ -299,7 +298,7 @@ F(length, topdiam):
     for p in forward(turtle, length, dl):
         currentdiam += ddiam
         turtle.lineTo(p, currentdiam)
-    orient(turtle)
+    orientHead(turtle)
   produce
 
 F(length, dl, topdiam):
@@ -313,7 +312,7 @@ F(length, dl, topdiam):
     for p in forward(turtle, length, dl):
         currentdiam += ddiam
         turtle.lineTo(p, currentdiam)
-    orient(turtle)
+    orientHead(turtle)
   produce
 
 f(length):
@@ -322,7 +321,7 @@ f(length):
   else:    
     for p in forward(turtle, length, MAXSTEPLEN):
         turtle.move(p)
-    orient(turtle)
+    orientHead(turtle)
   produce
 
 f(length, dl):
@@ -331,7 +330,7 @@ f(length, dl):
   else: 
     for p in forward(turtle, length, dl):
         turtle.move(p)
-    orient(turtle)
+    orientHead(turtle)
   produce
 
 ## Static Version
@@ -339,7 +338,7 @@ f(length, dl):
 StaticF(length, cache):
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
         turtle.lineTo(p)
-    orient(turtle)
+    orientHead(turtle)
     produce
 
 StaticF(length, topdiam, cache):
@@ -351,7 +350,7 @@ StaticF(length, topdiam, cache):
     for p in cached_forward(cache, turtle, length, dl):
         currentdiam += ddiam
         turtle.lineTo(p, currentdiam)
-    orient(turtle)
+    orientHead(turtle)
     produce
 
 StaticF(length, dl, topdiam, cache):
@@ -362,19 +361,19 @@ StaticF(length, dl, topdiam, cache):
     for p in cached_forward(cache, turtle, length, dl):
         currentdiam += ddiam
         turtle.lineTo(p, currentdiam)
-    orient(turtle)
+    orientHead(turtle)
     produce
 
 Staticf(length, cache):
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
         turtle.move(p)
-    orient(turtle)
+    orientHead(turtle)
     produce
 
 Staticf(length, dl, cache):
     for p in cached_forward(cache, turtle, length, dl):
         turtle.move(p)
-    orient(turtle)
+    orientHead(turtle)
     produce
 
 # To plot a geodesic from a point (u,v) to a point (ut,vt)
@@ -415,7 +414,7 @@ RiemannLineTo(target_coords, nb_points):
     flag = False
     # draw a line from the last visited point to the next one in abs coordinates
     uu, vv = uvpq_s[i][0], uvpq_s[i][1]
-    if turtle.space.STAY_ON_BOUNDARY_U or turtle.space.STAY_ON_BOUNDARY_V:
+    if turtle.space.STOP_AT_BOUNDARY_U or turtle.space.STOP_AT_BOUNDARY_V:
       uu, vv, flag = turtle.space.check_coords_domain(uu,vv)
     # to draw intermediate tangent vectors
     #pp,qq = uvpq_s[i][2], uvpq_s[i][3]
@@ -430,7 +429,7 @@ RiemannLineTo(target_coords, nb_points):
   turtle.boundary_reached = flag # by default boundary is not reached at (u,v)
   turtle.uvpq = turtle.space.check_coords(uvpq_s[i])
 
-  orient(turtle)
+  orientHead(turtle)
   produce
 
 
@@ -448,13 +447,20 @@ RiemannLineTo(target_coords, nb_points):
     turn(turtle, -angle)
   produce
 
-MoveToPoint(uv):
+RiemannMoveTo(uv):
   """Move at point (u,v) keeping the velocity [p,q] from the oroginal point """
   u, v = uv
   _,_,p,q = turtle.uvpq
   turtle.uvpq = [u,v,p,q]
   pos = turtle.space.S(u, v)
   turtle.move(pos)
+  produce
+
+RiemannPinpoint(pq):
+  """Turn the head of the turtle in the direction indicated by p,q (u,v) """
+  turtle.uvpq[2] = p
+  turtle.uvpq[3] = q
+  orientHead(turtle)
   produce
 
 # Draw a vector that is parallel transported along the path that finishes at the current turtle position

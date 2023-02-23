@@ -92,7 +92,7 @@ class RiemannianSpace2D:
     but usually they will redefine the some of them.
     '''
 
-    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
+    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
       # functions to compute the metric
       self.g11 = g11
       self.g12 = g12
@@ -111,8 +111,8 @@ class RiemannianSpace2D:
 
       self.metric_tensor_params = metric_tensor_params
 
-      self.STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U
-      self.STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_U
+      self.STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U
+      self.STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_U
 
     def S(self,u,v):
       """
@@ -131,14 +131,14 @@ class RiemannianSpace2D:
         '''
         boundary_reached = False
 
-        if self.STAY_ON_BOUNDARY_U:
+        if self.STOP_AT_BOUNDARY_U:
             if u > self.umax:
                 boundary_reached = True
                 u = self.umax
             elif u < self.umin:
                 boundary_reached = True
                 u = self.umin
-        if self.STAY_ON_BOUNDARY_V:
+        if self.STOP_AT_BOUNDARY_V:
             if v > self.vmax:
                 boundary_reached = True
                 v = self.vmax
@@ -155,7 +155,7 @@ class RiemannianSpace2D:
         '''
         return uvpq
 
-    def sets_boundary_flag(self, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V=False):
+    def sets_boundary_flag(self, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V=False):
         """
         By default the class contains a flag that restricts the values of (u,v)
         to stay in the domain (umin,umax,vmin,vmax) while the turtle is moving .
@@ -166,8 +166,8 @@ class RiemannianSpace2D:
 
         This can be used to stop the turtle movement
         """
-        self.STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U  # boolean value
-        self.STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_V  # boolean value
+        self.STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U  # boolean value
+        self.STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V  # boolean value
 
 
     def Shift(self,u,v):
@@ -740,8 +740,8 @@ class ParametricSurface(RiemannianSpace2D):
       """
       print("Shift tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
     '''
-    def __init__(self, umin,umax,vmin,vmax, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
-        super(ParametricSurface, self).__init__(umin=umin,umax=umax,vmin=vmin,vmax=vmax,STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U, STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_V)
+    def __init__(self, umin,umax,vmin,vmax, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
+        super(ParametricSurface, self).__init__(umin=umin,umax=umax,vmin=vmin,vmax=vmax,STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
 
     def secondsuu(self,u,v):
       """ Vectors of the second derivatives of the point S(u,v):
@@ -1226,7 +1226,7 @@ class PseudoSphere(ParametricSurface):
       # warning: inverse function returns an array for a given input value
       min = inversefunc(pseudo_sphere_z, y_values=zmin, args=(R))
       max = inversefunc(pseudo_sphere_z, y_values=zmax, args=(R))
-      super(PseudoSphere, self).__init__(umin=min,umax=max,vmin=0,vmax=2*np.pi,STAY_ON_BOUNDARY_V=True) # only keep z in the domain
+      super(PseudoSphere, self).__init__(umin=min,umax=max,vmin=0,vmax=2*np.pi,STOP_AT_BOUNDARY_V=True) # only keep z in the domain
 
       self.R = R # radius of the sphere
       self.CIRCUM = 2*np.pi*self.R  # Circumference
@@ -1799,7 +1799,7 @@ NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
 
 class Patch(ParametricSurface):
 
-    def __init__(self, patch, utoric = False, vtoric = False, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
+    def __init__(self, patch, utoric = False, vtoric = False, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
       self.patch = patch
 
       umin = min(self.patch.uknotList)
@@ -1810,7 +1810,7 @@ class Patch(ParametricSurface):
       self.utoric = utoric
       self.vtoric = vtoric
 
-      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U, STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_U)
+      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_U)
 
     def normalizeuv(self, u, v):
       if self.utoric:
@@ -1984,7 +1984,7 @@ Matrix3.tolist = m3_tolist
 
 class ExtrusionSurface(Patch):
 
-    def __init__(self, extrusion, STAY_ON_BOUNDARY_U = False, STAY_ON_BOUNDARY_V = False):
+    def __init__(self, extrusion, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
       extrusion.uknotList = [extrusion.axis.firstKnot,extrusion.axis.lastKnot]
       cs = extrusion.crossSection
       extrusion.vknotList = [cs.firstKnot,cs.lastKnot]
@@ -1992,7 +1992,7 @@ class ExtrusionSurface(Patch):
       self.framecache = {}
       self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 
-      super(ExtrusionSurface, self).__init__(extrusion, vtoric=self.vtoric, STAY_ON_BOUNDARY_U = STAY_ON_BOUNDARY_U, STAY_ON_BOUNDARY_V = STAY_ON_BOUNDARY_V)
+      super(ExtrusionSurface, self).__init__(extrusion, vtoric=self.vtoric, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
 
       self.build_cache()
 
@@ -2053,7 +2053,7 @@ class Revolution(ParametricSurface):
     """
 
     def __init__(self, rfunc, args = [], zmin = -2*np.pi, zmax = 2*np.pi):
-      super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STAY_ON_BOUNDARY_V=True) # only keep z in the domain
+      super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STOP_AT_BOUNDARY_V=True) # only keep z in the domain
 
       #print('args = ', args)
       #print('rfunc(2.,args)', rfunc(2.,args))
