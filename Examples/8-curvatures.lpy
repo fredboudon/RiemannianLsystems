@@ -179,7 +179,7 @@ S:
   color_minus = 6
   for u in ulist:
     for v in vlist:
-      nproduce MoveToPoint([u,v]) @O(0.005) A(scalefactor,color_plus,color_minus,linewidth)
+      nproduce RiemannMoveTo([u,v]) @O(0.005) A(scalefactor,color_plus,color_minus,linewidth)
       #nproduce Frame(0.1)
       
 A(scalefactor,color_plus,color_minus,linewidth):

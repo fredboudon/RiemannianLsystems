@@ -68,7 +68,7 @@ V(x) :
     v0 = 0.73
     u0 = 0.001
     nproduce W(x.shape)
-    nproduce SetSpace(ExtrusionSurface(x.shape), STAY_ON_BOUNDARY_U = True, STAY_ON_BOUNDARY_V = True)
+    nproduce SetSpace(ExtrusionSurface(x.shape), STOP_AT_BOUNDARY_U = True, STOP_AT_BOUNDARY_V = True)
     #nproduce SetSpace(Sphere(length)) PlotSpace()
     nproduce [InitTurtle([u0,v0,1,0]) -(6.5) 
     nproduce ,(7) _(BASERADIUS) ?T(ParameterSet())A(nb_seg)
