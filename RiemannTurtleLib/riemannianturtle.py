@@ -337,18 +337,28 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20):
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
-    '''
-    try:
-    uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
-except RuntimeError as error:
-    print(error)
-    uvpq_s = []
-    error_array = []
-    '''
-    #np.set_printoptions(precision=3, suppress = True)
-    #print("Cumulated error sequence throughout iterations: ",error_array)
-
     return uvpq_s, errorval
+
+def parameterspace_to_point(space, uv, uvt, nb_points):
+    '''
+    Computes sequences of coords (u,v) to go to uvt.
+
+    nb_points includes uv and ut,vt, meaning that for nb_points = 10 for instance, 8 intermediary points will be computed
+    in addition to both u,v and ut,vt.
+    '''
+
+    # Checks that (ut,vt) = coords of the target point are valid
+    ut,vt = uvt
+
+    if not space.check_coords_domain(ut, vt):
+        print("geodesic_to_point: target point out of space coord domain: ", ut, vt)
+        return None
+
+    # the returned value may be None if the preconditions are not respected
+    # e.g. (u,v) must be different from (ut,vt)
+    uvpq_s = space.parameterspace_to_target_point(uv, uvt, nb_points)
+
+    return uvpq_s
 
 def geodesic_distance_to_point(space,uv,uvt,nb_points, max_iter=20):
     '''

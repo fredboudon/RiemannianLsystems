@@ -528,16 +528,7 @@ class RiemannianSpace2D:
 
         return Xout
 
-    def geodesic_to_target_point(self, uv, uvt, m, max_iter, epsilon_conv=1e-3):
-        '''
-        Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described
-        in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
-        - uv are the u,v coordinates of the source point
-        - uvt are the u,v coordinates of the target point
-        - m is the number of discretization points nb_points (including endpoints (u,v) and (ut,vt))
-        - max_iter is the maximum number of iteration of the newton method
-        '''
-
+    def parameterspace_to_target_point(self, uv, uvt, m):
         # Initialization : computes a first the sequence of u,v indexes and their velocity values p,q .
         u,v = uv
         ut,vt = uvt
@@ -581,13 +572,21 @@ class RiemannianSpace2D:
         # combine these 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
         uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
 
-        #if max_iter == 0:
-        #    print('****** Intitial path ...')
-        #    return uvpq_init_seq
-
         # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
-        X = uvpq_init_seq.reshape((4*m,))
-        X0 = np.array(X) # save this value
+        return uvpq_init_seq
+
+    def geodesic_to_target_point(self, uv, uvt, m, max_iter, epsilon_conv=1e-3):
+        '''
+        Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described
+        in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
+        - uv are the u,v coordinates of the source point
+        - uvt are the u,v coordinates of the target point
+        - m is the number of discretization points nb_points (including endpoints (u,v) and (ut,vt))
+        - max_iter is the maximum number of iteration of the newton method
+        '''
+
+        X0 = self.parameterspace_to_target_point(uv, uvt, m).reshape((4*m,))
+        X = np.array(X0)
 
         # --> Initialization completed here.
 
@@ -698,6 +697,17 @@ class RiemannianSpace2D:
 
         return geodesic_path, np.array(average_delta_X_norm_array), ERROR
 
+    def path_distance(self, uvpqs):
+        """
+        Compute the geometric distance between set of points given by uvpqs
+        """
+        P1 = self.S(uvpqs[0][0], uvpqs[0][1])
+        dist = 0.
+        for uu, vv, _, _ in uvpqs:
+            P2 = self.S(uu, vv)
+            dist += np.linalg.norm(P2-P1)
+            P1 = P2
+        return dist
 
     def geodesic_distance(self, uv, uvt, nb_points = 20, max_iter= 20):
         """
@@ -708,15 +718,7 @@ class RiemannianSpace2D:
 
         uvpq, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
-        segnb = len(uvpq)
-        u,v = uv
-        P1 = self.S(u, v)
-        dist = 0.
-        for i in range(segnb):
-            uu, vv = uvpq[i][0], uvpq[i][1]
-            P2 = self.S(uu, vv)
-            dist += np.linalg.norm(P2-P1)
-            P1 = P2
+        dist = path_distance(uvpq)
 
         #print("Dist(A,B) = ", dist)
         return dist, errarray, errorval
