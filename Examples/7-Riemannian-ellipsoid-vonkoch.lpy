@@ -1,0 +1,350 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Geodesics of an ellipsoid of revolution 
+"""
+
+import numpy as np
+from math import degrees
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+import sys
+sys.path.append("../RiemannTurtleLib")
+
+from importlib import reload
+
+import surfaces
+surfaces = reload(surfaces)
+import riemannianturtle
+riemannian_turtle = reload(riemannianturtle)
+
+from surfaces import *
+from riemannianturtle import *
+
+%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+PLOTDS2 = False
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 0.5 * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+def nbSegments(turtle, uvt):
+  uvd = norm(np.array(uvt)-turtle.uvpq[:2])
+  nbp = 20
+  if uvd < 0.125:
+    nbp = 2
+  elif uvd < 0.147:
+    nbp = 3
+  elif uvd < 0.1975:
+    nbp = 4
+  elif uvd < 0.207:
+    nbp = 5
+  elif uvd < 0.269:
+    nbp = 6
+  elif uvd < 0.315:
+    nbp = 7
+  elif uvd < 0.4:
+    nbp = 8
+  else:
+    nbp = int((25.623 * uvd - 0.883))
+  return nbp
+
+ra = 1.
+rb = 0.7
+
+seglen = ra/3.
+length_geodesic = 0.4 # 1. 
+nb_angles = 10
+
+s  = 1/14.5    # the total height of the curve for the recorded measures 
+
+TEST =  2 # 1
+gdist = 0
+
+def estimateRotation(turtle, u, v, before_pq, after_pq):
+   normmat = turtle.space.passage_matrix_cb2ortho_inverse(u, v)
+   vectpqb = normmat.dot(before_pq)
+   vectpqa = normmat.dot(after_pq)
+   return degrees(angle(vectpqb,vectpqa))
+
+
+def StartInterpretation(turtle):
+  turtle.clear_parameters()
+  global gdist
+  gdist = 0
+def EndInterpretation():
+  pass
+
+module Lezard, Member, RightLeg, LeftArm, LeftLeg, RightArm
+module Seg, StI, SpI, Pos1, Pos2, Pos3
+module SetASpace, RLineTo, RMoveTo
+
+Axiom:
+  nproduce SS
+  nproduce ;(2)_(LINEWIDTH)
+  nproduce [;(3) StI(0)
+  if TEST == 1:
+    nproduce +(180) Lezard(1.5)
+  elif TEST == 2:
+    l = 1.5
+    o = 2
+    nproduce +(180) B(l,o)+(120)B(l,o)+(120)B(l,o)    
+  nproduce SpI(0) 
+  produce ]
+
+derivation length: 4
+production:
+
+SS --> SetASpace
+
+
+StI(i) --> StI(i+1)
+SpI(i) --> SpI(i+1)
+
++(x) Seg(v) ?UV(uv) :
+  if len(uv) > 0:
+   produce RLineTo(list(uv.values()),{})
+
+-(x) Seg(v) ?UV(uv) :
+  if len(uv) > 0:
+   produce RLineTo(list(uv.values()),{})
+
+Pos1(n) ?UV(uv) :
+  if len(uv) > 0:
+   produce RMoveTo(list(uv.values()),{})
+
+Pos2(n) ?UV(uv) :
+  if len(uv) > 0:
+   produce RMoveTo(list(uv.values()),{})
+
+Pos3(n) ?UV(uv) :
+  if len(uv) > 0:
+   produce RMoveTo(list(uv.values()),{})
+
+RLineTo(target,infos):
+   if len(infos) > 0:
+     produce +(infos['angle']) F(infos['length'])
+
+RMoveTo(target,infos):
+   if len(infos) > 0:
+     produce +(infos['angle']) F(infos['length'])
+
+decomposition:
+maximum depth: 5
+
+B(v,n):
+  if n == 0 : produce S(v)
+  else : produce B(v/3,n-1)-(60)B(v/3,n-1)+(120)B(v/3,n-1)-(60)B(v/3,n-1)
+
+Lezard(n) :
+  nproduce [
+  nproduce LeftArm(n) Pos1(n) ?UV 
+  nproduce [LeftLeg(n)]
+  nproduce -(45) 
+  n2 = n*1.414/2.0
+  nproduce RightLeg(n2) Pos2(n2) ?UV
+  nproduce RightArm(n2)
+  nproduce ]
+
+RightLeg(n) :
+  produce [ ,(2) Member(n,1) ] 
+
+LeftLeg(n) :
+  produce [ ,(5)Member(n,-1)] #f(n)
+
+RightArm(n) : 
+  produce [ Pos3(n) ?UV Member(n,1)] # f(n)
+
+LeftArm(n) :
+  produce [Pos3(n) ?UV  Member(n,-1)] 
+
+Member(n,sgn):
+  nproduce +(sgn*17)S(2.1*s*n)
+  if COMPLEXSHAPE:
+    nproduce -(sgn*6)S(1*s*n)-(sgn*6)S(1*s*n)-(sgn*4)S(0.7*s*n)
+    nproduce .-(sgn*28)S(0.55*s*n) -(sgn*26.5)S(1*s*n)
+    nproduce +(sgn*6.5)S(0.5*s*n)+(sgn*9.5)S(0.45*s*n)+(sgn*5.5)S(0.4*s*n)+(sgn*5)S(0.35*s*n)
+    nproduce +(sgn*15)S(1.8*s*n)+(sgn*7)S(0.7*s*n).
+    nproduce +(sgn*48)S(1.35*s*n)-(sgn*11)S(1.1*s*n).
+  else:
+    nproduce -(sgn*15)S(2.7*s*n)  
+    nproduce .-(sgn*52.5)S(1.7*s*n)
+    nproduce +(sgn*24.5)S(1.5*s*n)
+    nproduce +(sgn*21)S(2.6*s*n)
+    nproduce +(sgn*40)S(2.25*s*n).
+    
+  nproduce +(sgn*102)S(1.2*s*n)
+  if COMPLEXSHAPE:
+    nproduce +(sgn*90)S(1.1*s*n)
+    nproduce -(sgn*11)S(0.9*s*n).
+    nproduce -(sgn*109)S(0.5*s*n)+(sgn*18)S(0.35*s*n)+(sgn*10)S(1.2*s*n)
+    nproduce -(sgn*110)S(2*s*n)+(sgn*5.5)S(1.6*s*n)
+    nproduce -(sgn*67)S(2.2*s*n)-(sgn*1)S(1.95*s*n)
+  else:
+    nproduce +(sgn*79)S(2.*s*n)
+    nproduce -(sgn*78)S(1.5*s*n)
+    nproduce -(sgn*105)S(3.6*s*n)
+    nproduce -(sgn*67.4)S(4.3*s*n)
+    
+
+S(v) --> Seg(v) ?UV
+
+
+interpretation:
+maximum depth: 5
+
+SetASpace:
+  if getIterationNb() < 3:
+    # Sets the Riemannian space in which the turtle will move
+    nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
+    nproduce ;(0)PlotSpace
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v 
+    #(and p,q their first derivatives in the chosen direction)
+    u0= 0.3
+    v0= 0.0 
+    p0 = 1
+    q0 = 0
+    nproduce InitTurtle([u0,v0,p0,q0])
+  else:
+    nproduce EndSpace()
+  
+Pos1(n) --> f(n)-(90)f(n)-(90)f(n)-(90)
+Pos2(n) --> f(n)
+Pos3(n) --> f(n)-(180)
+
+StI(i):
+  if i <= 1:
+    nproduce StartIndirectInterpretation
+  
+SpI(i):
+  if i <= 1:
+    nproduce StopIndirectInterpretation
+  
+
+A(n):
+  u,v,p,q = turtle.uvpq
+  velocity = turtle.space.shift_vector(u,v,p,q)
+  nproduce ;(5)_(0.01)DrawVect(velocity,0.3)
+  #nproduce CovariantBasis(0.3)
+
+Seg(n) --> F(n)  [ ,(7) @O(LINEWIDTH*2)]
+
+RMoveTo(uv, infos):
+  nproduce RCMoveTo(uv, nbSegments(turtle,uv), infos ) 
+  produce [ ,(5)@O(LINEWIDTH*2)]
+
+RLineTo(uv, infos):
+  if RIEMANN:
+    nproduce RCLineTo(uv, nbSegments(turtle,uv), infos) 
+  else:
+    p = turtle.space.S(uv[0],uv[1])
+    turtle.lineTo(p[0],p[1],p[2])
+  nproduce [ ,(7) MoveTo(turtle.space.S(uv[0],uv[1]))@O(LINEWIDTH*2)]
+
+RCMoveTo(target_coords, nb_points, infos):
+  infos['init'] = turtle.uvpq
+  try:
+      uvpq_s = riemaniannLineTo(turtle, target_coords, i)
+  except Exception as e:
+    print('Error',e, norm(np.array(target_coords)-turtle.uvpq[:2]))
+    ii = turtle.indirect_interpretation
+    turtle.indirect_interpretation = True
+    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+    turtle.indirect_interpretation = ii
+  infos['uvpq'] = uvpq_s
+  infos['angle'] = estimateRotation(turtle, infos['init'][0],infos['init'][1], infos['init'][2:],uvpq_s[0][2:])
+  infos['length'] = turtle.space.path_distance(uvpq_s)
+  turtle.move(turtle.space.S(uvpq_s[-1][0],uvpq_s[-1][1]))
+  turtle.uvpq = uvpq_s[-1]
+  orientHead(turtle)
+  produce
+
+RCLineTo(target_coords, nb_points, infos):
+  infos['init'] = turtle.uvpq
+  try:
+    error = False
+    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+  except Exception as e:
+    error = True
+    ii = turtle.indirect_interpretation
+    turtle.indirect_interpretation = True
+    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+    turtle.indirect_interpretation = ii
+  infos['uvpq'] = uvpq_s
+  infos['angle'] = estimateRotation(turtle, infos['init'][0],infos['init'][1], infos['init'][2:],uvpq_s[0][2:])
+  infos['length'] = turtle.space.path_distance(uvpq_s)
+  if error:
+    c = turtle.getColor()
+    turtle.setColor(7)
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  if error:
+    turtle.setColor(c)
+  produce
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (0,0,0) , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	context.options.setSelection('Axiom decomposition',1)
+	scalars = [('nc', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2), ('RIEMANN', 'Bool', True), ('COMPLEXSHAPE', 'Bool', False)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
