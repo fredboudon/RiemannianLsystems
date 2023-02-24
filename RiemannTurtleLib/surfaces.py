@@ -998,6 +998,16 @@ class ParametricSurface(RiemannianSpace2D):
             # => choose one along u
             dirmin = [1,0]
 
+        # if
+        if abs(kappa_min) > abs(kappa_max): # swap min and max
+            kappa_tmp = kappa_min
+            kappa_min = kappa_max
+            kappa_max = kappa_tmp
+            dirtmp = dirmin
+            dirmin = dirmax
+            dirmax = dirtmp
+
+        # Max corresponds to the curvature with maximal ABSOLUTE VALUE
         return kappa_min, kappa_max, dirmin, dirmax
 
     def ChristoffelSymbols(self, u, v, printflag = False):

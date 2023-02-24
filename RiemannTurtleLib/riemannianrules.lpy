@@ -277,9 +277,11 @@ EndSpace():
 
 
 PlotSpace(*args):
+    # when called as PlotSpace({'colorvalfunc' = f, 'cmap' = 'jet', 'Du' = 0.1, 'Dv' = 0.1, 'CCW' = True})
     if len(args) == 1 and type(args[0])==dict:
         plotspace(turtle.space, **args[0])
     else:
+        # when called as PlotSpace(f, 'jet', 0.1, 0.1, True)
         plotspace(turtle.space, *args)
 
 PlotDS2(*args):
