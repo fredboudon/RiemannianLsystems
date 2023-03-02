@@ -190,7 +190,8 @@ production:
       if sign < 0:
         alpha = -alpha  
       
-      deflection_angle = sensitivity * alpha * delta_s 
+      # deflection angle should be alpha in the limit of delta_s = infinity or sensitivity = infinity
+      deflection_angle = sensitivity * alpha * delta_s / (1 + sensitivity * delta_s)
       deflection_angle = np.degrees(deflection_angle)
       
       produce +(deflection_angle) StaticF(delta_s) ?T(ParameterSet()) A(n-1,f)

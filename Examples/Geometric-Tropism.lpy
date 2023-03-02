@@ -78,7 +78,7 @@ seglen = ra/10.
 length_geodesic =  ra/5
 
 
-sensitivity = 0.2 # rate of geometric tropism: it is in units of angle per distance units
+sensitivity = 1 # rate of geometric tropism: it is in units of angle per distance units
                  # how much Turtle Head must turn for a distance delta_s at the surface
                  # The actual angle is prop to the angle (between current Head and the principal direction) and to the distance ds
              
@@ -207,7 +207,8 @@ production:
         if sign < 0:
           alpha = -alpha  
         
-        deflection_angle = sensitivity * alpha * delta_s 
+        # deflection angle should be alpha in the limit of delta_s = infinity or sensitivity = infinity
+        deflection_angle = sensitivity * alpha * delta_s / (1 + sensitivity * delta_s)
         deflection_angle = np.degrees(deflection_angle)
         
       #print(f"deflection angle = {deflection_angle:.3f} ")
