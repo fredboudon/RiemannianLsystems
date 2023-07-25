@@ -718,7 +718,7 @@ class RiemannianSpace2D:
 
         uvpq, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
-        dist = path_distance(uvpq)
+        dist = self.path_distance(uvpq)
 
         #print("Dist(A,B) = ", dist)
         return dist, errarray, errorval
