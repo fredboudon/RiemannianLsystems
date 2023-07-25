@@ -3,7 +3,7 @@ sys.path.append("../RiemannTurtleLib")
 from math import *
 import numpy as np
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 Axiom: 
   nproduce SetSpace(Sphere()) InitTurtle(0.5,0.5,0.5,0.5)

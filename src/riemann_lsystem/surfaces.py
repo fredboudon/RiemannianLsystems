@@ -14,10 +14,10 @@ import numpy.linalg as linalg
 
 from importlib import reload
 
-import geodesic_between_2points
-geodesic_between_2points = reload(geodesic_between_2points)
+import riemann_lsystem.geodesic_between_2points
+reload(riemann_lsystem.geodesic_between_2points)
 
-from geodesic_between_2points import *
+from riemann_lsystem.geodesic_between_2points import *
 
 # To install: pip install pynverse
 from pynverse import inversefunc

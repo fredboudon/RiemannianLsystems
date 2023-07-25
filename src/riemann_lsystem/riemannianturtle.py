@@ -8,7 +8,7 @@
 """
 #import logging
 from math import dist
-from surfaces import *
+from .surfaces import *
 
 from scipy.integrate import odeint
 from scipy.integrate import solve_ivp

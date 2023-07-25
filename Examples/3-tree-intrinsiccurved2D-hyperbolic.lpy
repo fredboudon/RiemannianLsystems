@@ -15,21 +15,19 @@ from random import random, seed
 
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
-import sys
-sys.path.append("../RiemannTurtleLib")
-
 from importlib import reload
 
-import surfaces
-surfaces = reload(surfaces)
-import riemannianturtle
-riemannian_turtle = reload(riemannianturtle)
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
 
-from surfaces import *
-from riemannianturtle import *
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
 
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 # Flags to control the display
 PLOTSPACE = True

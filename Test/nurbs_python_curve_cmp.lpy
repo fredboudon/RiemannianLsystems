@@ -9,9 +9,6 @@ from geomdl import utilities
 from geomdl import operations
 from math import *
 
-import sys
-sys.path.append("../RiemannTurtleLib")
-
 from surfaces import Sphere as CGSphere
 
 
