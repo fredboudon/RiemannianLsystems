@@ -1,7 +1,4 @@
-import sys
-sys.path.append("../RiemannTurtleLib")
-
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 """
 	L-systems in Riemannian geometry

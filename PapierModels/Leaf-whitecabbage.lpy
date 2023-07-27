@@ -62,14 +62,14 @@ production:
 
 V(x) :
   if x.hasattr('shape'):
-    v0 = 0.73
+    v0 = 0.27
     u0 = 0.001
     nproduce W(x.shape)
-    nproduce SetSpace(ExtrusionSurface(x.shape), STOP_AT_BOUNDARY_U = True, STOP_AT_BOUNDARY_V = True)
+    nproduce SetSpace(ExtrusionSurface(x.shape, STOP_AT_BOUNDARY_U = True, STOP_AT_BOUNDARY_V = True))
     #nproduce SetSpace(Sphere(length)) PlotSpace()
-    nproduce [InitTurtle([u0,v0,1,0]) -(6.5) 
-    nproduce ,(7) _(BASERADIUS) ?T(ParameterSet())A(nb_seg)
-    nproduce ]
+    nproduce [InitTurtle([u0,v0,1,0.45]) -(6.5) 
+    nproduce ,(7) @Gc _(BASERADIUS) ?T(ParameterSet())A(nb_seg)
+    nproduce @Ge]
   else:
     frameDisplay(True)
 
@@ -78,44 +78,15 @@ V(x) :
     # StaticF(length,radius_at_extremity)
     rad = BASERADIUS*n/nb_seg
     
-    u,v,p,q = t.uvpq
-    scalefactor = 10
-    color_plus = 5
-    color_minus = 6
-    # Reorient the turtle along the principal direction
-    curvmin, curvmax, pdirmin_uv, pdirmax_uv = t.space.principalDirections(u,v)
-    pushforward = t.space.Shift(u,v)
-    pdirmax = pushforward.dot(pdirmax_uv)
-    npdirmax = np.linalg.norm(pdirmax)
-    #pdirmax = np.array(pdirmax)/npdirmax
-    #pdirmax = pdirmax*curvmax
-    ndir = t.space.normal(u,v)
-    #pdirmin = np.cross(pdirmax, ndir) 
-    pdirmin = pushforward.dot(pdirmin_uv) 
-    npdirmin = np.linalg.norm(pdirmin)
-    pdirmin = np.array(pdirmin)/npdirmin
-    pdirmin = pdirmin*curvmin
-    #print("pdirmax = ", pdirmax)
-    pdirs = [pdirmax,pdirmin]
-    #nproduce CovariantBasis(0.3)
-    pcurvs = [curvmax,curvmin]
-    
-    print(pdirs, pcurvs)
-    #nproduce _(0.01)CovariantBasis(0.3)
-    #nproduce [;(4)_(0.005)DrawVect(ndir,0.1)]
-    #nproduce [;(5)_(0.005)DrawVect(pdirmax,0.1)]
-    #nproduce [;(6)_(0.005)DrawVect(pdirmin,0.1)]
-    #nproduce [_(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)]
-
-    # 2 syntaxes for StaticF():
+   # 2 syntaxes for StaticF():
     # Similar to F: StaticF(length,toprad), 
     # or similar to nF: StaticF(length,dl, toprad)
     nproduce StaticF(length_geodesic/nb_seg, rad)
     if BRANCHES:
       a = 8 + 0.1*n**2 # deflection angle
-      b = 5*n/nb_seg
-      nproduce [+(30)B(5,rad,a)]
-      nproduce [-(30+b)B(5,rad,-a)]
+      b = 5*n/nb_seg      
+      nproduce [+(30+b)B(5,rad,a)]
+      nproduce [-(30)B(5,rad,-a)]
     nproduce ?T(ParameterSet())A(n-1)
 
 B(n,r, deflection_angle):
@@ -173,7 +144,7 @@ def __initialiseContext__(context):
 	    )
 	nerve.name = "nerve"
 	section = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(1.35896, 0.0118907, 1),(0.965673, -0.0525752, 1),(0.598767, -0.492253, 1),(-0.0232609, -2.07486, 1),(-1.45626, -2.60323, 1),(-1.96028, -0.0226782, 1)]) , 
+	    ctrlPointList = pgl.Point3Array([(1.96028, -0.0226782, 1),(1.45626, -2.60323, 1),(0.0232609, -2.07486, 1),(-0.598767, -0.492253, 1),(-0.965673, -0.0525752, 1),(-1.35896, 0.0118907, 1)]) , 
 	    )
 	section.name = "section"
 	panel_1 = ({'name': 'Curve2D', 'active': True, 'visible': True},[('Curve2D',nerve),('Curve2D',section)])

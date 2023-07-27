@@ -1,13 +1,11 @@
 """
 	L-systems in Riemannian geometry
-	
+
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Example of a 2D intrinsic Riemaniann space
-	Space is curved by a point source (represented as a sphere)
-	Coordinates are the usual cartesian coords, but the metric is different at different points.
-	
+   Test the growth of a tree in a purely Riemannian space (2D)
+
 """
 
 import numpy as np
@@ -30,7 +28,6 @@ from riemann_lsystem.riemannianturtle import *
 
 # Flags to control the display
 PLOTSPACE = True
-PLOTDS2 = True
 
 ######################################
 # DEFINITION OF THE METRIC (INTRINSIC)
@@ -52,32 +49,8 @@ def ps_params(u,v,source,ry,rz):
     ratioy = r / ry
     ratioz = r / rz
     return r,costheta,sintheta,ratioy,ratioz
-    
-
-alpha = 1.0
-# Point source metric (psi) (increasing with radius to the source)
-def g11_ps(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v, *args)
-    return alpha * r
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
-def g11s_ps(v,u,*args):
-    return g11_ps(u,v,*args)
-
-# g12 == g21
-def g12_ps(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v,*args)
-    return 0
-def g12s_ps(v,u,*args):
-    return g12_ps(u,v,*args)
-
-def g22_ps(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v,*args)
-    return alpha * r
-def g22s_ps(v,u,*args):
-    return g22_ps(u,v,*args)
 
 # Point source metric (psi) (increasing with radius to the source)
-# TODO: avoid to ask the user to define the functions giis (as they can be automatically derived from gii)
 def g11_psi(u,v,*args):
     r, costheta, sintheta, ratioy, ratioz = ps_params(u, v, *args)
     return ratioy*costheta**2 + ratioz*sintheta**2
@@ -97,27 +70,6 @@ def g22_psi(u,v,*args):
     return ratioy*sintheta**2 + ratioz*costheta**2
 def g22s_psi(v,u,*args):
     return g22_psi(u,v,*args)
-
-# Point source metric (psd)(decreasing with radius to the source)
-def g11_psd(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v, *args)
-    return (1/ratioy)*costheta**2 + (1/ratioz)*sintheta**2
-def g11s_psd(v,u,*args):
-    return g11_psd(u,v,*args)
-
-# g12 == g21
-def g12_psd(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v,*args)
-    return ((1/ratioy)-(1/ratioz))*costheta*sintheta
-def g12s_psd(v,u,*args):
-    return g12_psd(u,v,*args)
-
-def g22_psd(u,v,*args):
-    r, costheta, sintheta, ratioy, ratioz = ps_params(u, v,*args)
-    return (1/ratioy)*sintheta**2 + (1/ratioz)*costheta**2
-def g22s_psd(_psdv,u,*args):
-    return g22_psd(u,v,*args)
-
 
 #######################
 # Units
@@ -141,76 +93,81 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 0.9 * cm
+LINEWIDTH  = 2 * cm
 
 # To control the Frame size
-FRAMESIZE  = 0.2 * meter
-FRAMEWIDTH = 0.6 * cm
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1.0 * cm
 
 #######################
 # SIMULATION PARAMETERS
 #######################
 
+TREE = True
+sun = (1.,1.5) # source of attraction
+
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
-
-slen = 0.10 # 
+ilen = 0.4 # 
+seed(0)
 
 #Metric parameters for psi and psd
-source = (0.5,1.)
+source = (0.5,1.5)
 ry = 1.
 rz = 2.
 
-TEST = 3
+TEST = 1
 
 Axiom: 
+  global source
+  if TEST == 1: # FIXME: it seems that the segments are much longer close to the source and that on the left there is repulsion while attraction on the right !!
+    source = (1,1.5)
+  else:
+    source = (0.5,1.5)
+  # Sets the Riemanian space in which the turtle will move
   # Sets the Riemanian space in which the turtle will move
   params = (source, ry, rz)
   # choice of functions used to define the intrinsic metric (see above their definition
-  metric_funcs = {'g11' : g11_ps, 'g12' : g12_ps, 'g22' : g22_ps, 'g11s' : g11s_ps, 'g12s' : g12s_ps, 'g22s' : g22s_ps}
-  #metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
+  metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
   #metric_funcs = {'g11' : g11_psd, 'g12' : g12_psd, 'g22' : g22_psd, 'g11s' : g11s_psd, 'g12s' : g12s_psd, 'g22s' : g22s_psd}
-  if TEST == 1:
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
-    nproduce ;(0)PlotSpace
-    nproduce InitTurtle([0.,0.,0.,1.])
-    nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
-  elif TEST == 2:
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
-    nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
-    nproduce InitTurtle([-0.50,0.,0.,1.])
-    nproduce +(-25)
-    nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
-  elif TEST == 3: # analyze here the effect of original orientation on geodesic 
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = -1, vmax = 2.5, metric_tensor_params = params))
-    nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
-    nproduce S
-    a = 80
-    for i in range(a+1):
-      nproduce [InitTurtle([0.,0.,np.sin(-np.pi/2 + np.pi/a*i),np.cos(-np.pi/2 + np.pi/a*i)])
-      nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)]    
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = 0, vmax = 3, metric_tensor_params = params))
+  nproduce ;(0)PlotSpace
+  nproduce PlotDS2(dict(DS2_SCALEFACTOR = 5))
+  nproduce InitTurtle([0.0,0.0,0.0,1.])
+  # nproduce InitTurtle([0.9,1.4,-0.7,-0.2]) # Gowing away from the source ...
 
+  # for hyperbolic geometry:
+  # just uncomment the hyperbolic metric in surfaces.py and comment the other one
+  # Geodesics are semi-circles of the Poincaré-Beltrami half plane
+  #nproduce InitTurtle([-1.5,0.1,0.3,0.9])
+  
+  nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)_(FRAMEWIDTH)Frame(FRAMESIZE)
+ 
 
-
-derivation length: 15
+derivation length: 6 # set to 12 for a hyperbolic geodesic, and 7 for hyperbolic tree
 production:
 
 A(n):
-  nproduce F(slen)A(n+1)
+  # branching angle
+  if n % 2 == 0:
+    ba = 30
+  else:
+    ba = -30
+  nproduce F(ilen) 
+  if TREE:
+    nproduce [+(ba)A(n+1)]
+  nproduce A(n+1)
 
 interpretation:
 
 A(n):
-  produce _(FRAMEWIDTH) Frame(FRAMESIZE)
+  produce ;(2)@O(0.03)
 
 S: 
-  source3D = [0]
-  source3D += source
-  produce [MoveTo(source3D);(4)@O(0.05)]
+  produce [MoveTo(turtle.space.S(*source));(4)@O(0.1)]
+
 endlsystem
 ###### INITIALISATION ######
 

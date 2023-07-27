@@ -15,20 +15,17 @@ from random import random, seed
 
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
-import sys
-sys.path.append("../RiemannTurtleLib")
-
 from importlib import reload
 
-import surfaces
-surfaces = reload(surfaces)
-import riemannianturtle
-riemannian_turtle = reload(riemannianturtle)
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
 
-from surfaces import *
-from riemannianturtle import *
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 # Flags to control the display
 PLOTSPACE = True
@@ -48,19 +45,23 @@ LINEWIDTH  = 1. * cm
 # DISPLAY PARAMETERS
 #######################
 
-extern(NBSTEPS = 80)
-extern(WALKS = 100)
+extern(NBSTEPS = 100)
+extern(WALKS = 20)
 
 # Surface parameters
-R = 2. * meter   # Radius of the sphere in meter
+R = 1. * meter   # Radius of the sphere in meter
+slen = 0.05       # to be homogeneous with the Sphere radius 7. 
+dt = 1           # in seconds
+
+# theoretical diffusion coef D in a 2D flat space:
+D = (slen**2)/(4*dt)
 
 # OUTPUT
 distance = None
-slen = 1/7. # to be homogeneous with the Sphere radius 7. 
 
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
-origin_pt = [2.0,0.0]
+origin_pt = [1.3,0.0]
 
 # LineTo parameters
 LINETO_MAXITER = 20
@@ -84,7 +85,7 @@ def EndEach():
   # filtering the indefined distance values (-1)
   posvals = geodesicLen >= 0.0
   geodesicLen = geodesicLen[posvals]
-  print("Step ", Nstep, " filtered ", WALKS - len(geodesicMean))
+  print("Step ", Nstep, " filtered ", WALKS - len(geodesicLen))
   
   geodesicMean[Nstep] = np.mean(np.power(geodesicLen,2))
   geodesicStd[Nstep] = np.std(np.power(geodesicLen,2))
@@ -98,12 +99,13 @@ def End():
     #plt.plot(geodesicMean, 'ro')
     #plt.fill_between(geodesicMean+geodesicStd, geodesicMean-geodesicStd, facecolor='blue', alpha=0.5)
     x = np.arange(0,NBSTEPS,1)
+    xtheo = x* 4*D
+    plt.plot(x,xtheo) # identity curve
     plt.errorbar(x,geodesicMean, yerr=geodesicStd, fmt='.k');
     plt.xlabel('Time')
     plt.ylabel('Mean squared geodesic length')
-    plt.title(f'MSGD for a sphere of radius {R:.2f}')
+    plt.title(f'MSGD. R={R:.2f}m,Walkers={WALKS:3d},Nbsteps={NBSTEPS:3d},StepLen ={slen:1.2f}m,dt={dt:0.2f},D = {D:0.3f}')
     plt.grid(True)
-
     plt.show()
     #plt.savefig('MSGDr4n80w800')
 
@@ -125,7 +127,7 @@ A(w,n):
   global Nstep
   Nstep = n
   a = 360*random()
-  nproduce +(a)F(slen)A(w,n+1)
+  nproduce +(a)StaticF(slen)A(w,n+1)
   #if getIterationNb() == __lsystem__.derivationLength-1:
   #  nproduce [;(3)RiemannLineTo(origin_pt,NB_POINTS)]
 

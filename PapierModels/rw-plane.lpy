@@ -1,0 +1,144 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Simulates geodesics on a sphere with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
+
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
+
+"""
+import numpy as np
+from random import random, seed
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 0.5 * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.05 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETER
+#######################
+
+
+extern(NBSTEPS=45)
+extern(WALKS=20)
+
+# Surface parameters
+extern(slen=0.1 * meter)
+extern(dt=1)  # in seconds
+
+# theoretical diffusion coef D in a 2D flat space:
+D = (slen ** 2) / (4 * dt)
+
+# OUTPUT
+distance = None
+origin_pt = [0., 0., 0.]
+
+# Temporary global value
+# Nstep = 0
+
+# origin_pt = None
+
+###### Arrays for result:
+# Array of geodesic lengths for each walk. This array is updated at each timestep.
+# It contains the geodesic distance of each walker to the origin at the current time step
+geodesicLen = np.zeros(WALKS)
+
+# At each timestep, the mean, Std and Variance of the lengths of the walks are computed
+# using a generic algorithm for curved surfaces to compute the geodesic distance of each walker to the origin.
+# this make 3 values at each time step:
+
+def Start():
+    geodesicLen = np.zeros(WALKS+1)
+
+
+def End(lstring):
+    print("\t**** IN LPY: Walk length ", getIterationNb(), 'lstring length:', len(lstring))
+    k = 0
+    for i in range(len(lstring)):
+      if lstring[i].name == 'A':
+        origin_pt = lstring[i][1]
+        current_pt = lstring[i][2]
+        distance = np.linalg.norm(current_pt-origin_pt)
+        geodesicLen[k] = distance
+        k += 1
+    
+    '''
+    t = np.arange(0, NBSTEPS, 1)
+    flat_theo = 4 * D * t
+    plt.plot(t, flat_theo, c='b')  # identity curve
+    plt.errorbar(t, geodesicMean, yerr=geodesicStd, fmt='.k');
+    plt.xlabel('Time')
+    plt.ylabel('Mean squared length')
+    plt.title(f'MSGD. Planar RW,N={WALKS:3d},Time={NBSTEPS:3d},$\delta$ ={slen:1.2f}m,dt={dt:0.2f},D = {D:0.4f}')
+    plt.grid(True)
+    plt.figure(1).canvas.draw()  # to force the drawing of the new figure
+    plt.show()  # to show the window containing the figure
+    # plt.savefig('MSGDr4n80w800')
+    '''
+
+
+Axiom:
+  global origin_pt
+  origin_pt = np.array(origin_pt)
+  nproduce ;(4)@O(0.02);(6)_(LINEWIDTH)@M(origin_pt)
+  for w in range(WALKS): 
+    nproduce [?P(0,0,0)A(w,origin_pt,origin_pt)]
+
+derivation length: NBSTEPS
+production:
+
+?P(x,y,z)A(w,origin_pt,current_pt):
+  a = 360*random()
+  # moves in the plane (y,z) (i.e. x = 0)
+  #print('position[',w,']:', np.array([0,x,y]))
+  current_pt = np.array([x,y,z])
+  nproduce +(a)F(slen)?P(0,0,0)A(w,origin_pt,current_pt)
+
+interpretation:
+
+A(w,origin_pt,current_pt):
+  #global distance
+  #print('A(w,n)=',w,n)
+  # produce _(FRAMEWIDTH) Frame(FRAMESIZE)
+  #if getIterationNb() == __lsystem__.derivationLength-1 :
+  # print("NBSTEPS = ", getIterationNb())
+  #distance = np.linalg.norm(current_pt-origin_pt)
+  #geodesicLen[w] = distance
+
+  produce ;(2)@O(0.02)
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	context.animation_timestep = 0.001

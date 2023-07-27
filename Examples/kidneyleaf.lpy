@@ -4,7 +4,7 @@ import numpy as np
 from numpy.linalg import norm
 from openalea.plantgl.scenegraph.nurbsshape import nurbHalfEllipse
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 import openalea.plantgl.all as pgl
 import nurbsswung as ns

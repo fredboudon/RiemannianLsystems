@@ -9,8 +9,7 @@ brstate = getstate()
 seed(1)
 
 
-sys.path.append("../RiemannTurtleLib")
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 scale = 1
 ip = trunkaxis.ctrlPointList[0]

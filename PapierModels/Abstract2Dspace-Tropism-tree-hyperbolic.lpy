@@ -1,16 +1,17 @@
 """
 	L-systems in Riemannian geometry
-
+	
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-   Test the growth of a tree on a chinese hat
-
+	Example of a growing tree in 2D intrinsic Riemaniann space
+	
+	
 """
 
 import numpy as np
 from math import ceil
-from random import random
+from random import random, seed
 
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
@@ -26,8 +27,37 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
 # Flags to control the display
 PLOTSPACE = True
+PLOTDS2 = True
+
+######################################
+# DEFINITION OF THE METRIC (INTRINSIC)
+######################################
+
+######################################################
+
+
+# Hyperbolic metric (Halfplane PoinCaré-Beltrami)
+def g11_hyperbolic(u,v,*args):
+    return 1./v**2
+# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
+def g11s_hyperbolic(v,u,*args):
+    return g11_hyperbolic(u,v,*args)
+
+# g12 == g21
+def g12_hyperbolic(u,v,*args):
+    return 0.
+def g12s_hyperbolic(v,u,*args):
+    return g12_hyperbolic(u,v,*args)
+
+def g22_hyperbolic(u,v,*args):
+    return 1./v**2
+def g22s_hyperbolic(v,u,*args):
+    return g22_hyperbolic(u,v,*args)
+
 
 #######################
 # Units
@@ -51,105 +81,63 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 1. * cm
+LINEWIDTH  = 0.9 * cm
 
 # To control the Frame size
-FRAMESIZE  = 0.3 * meter
-FRAMEWIDTH = 1 * cm
+FRAMESIZE  = 0.2 * meter
+FRAMEWIDTH = 0.6 * cm
+
+DS2_SCALEFACTOR = 12.
 
 #######################
 # SIMULATION PARAMETERS
 #######################
-
-# Pseudo sphere radius
-radius = 1.
 
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-slen = 0.2
-
-# Tree parameter
-angle = 45
-
-# Length and step of the path
-LENGTH = 2* np.pi *R               # length on the surface of the drawn geodesic path (in a.u.)
-STEPSIZE = 0.1     # size of a step (in a.u.) used to draw pieces of geodesic
-LEAVES = False
-ROTATELEAF = False
-
-AXIOMTEST = 2
-
-TEST1 = False  # True for long internodes
-
-def length(n):
-  return 4*STEPSIZE - 4*n * STEPSIZE/10.
+slen = 0.5  # segment length
+TREE = True
 
 Axiom: 
-  # Sets the Riemanian space in which the turtle will move. The args = (True) 
-  argdict = {'CCW':False}
-  nproduce SetSpace(PseudoSphere(R), argdict)
-  nproduce ;(0)PlotSpace(dict(CCW = False))
-  if AXIOMTEST == 1:
-    # test the passage through the pseudosphere
-    nproduce ;(2)InitTurtle([-1.5,0.0,1.,0.])
-  elif AXIOMTEST == 2:
-    nproduce ;(3)InitTurtle([0.1,0.01,0.1,0.00])
-  else:
-    nproduce ;(3)InitTurtle([0.1,0.01,1.0,0.00])
-  nproduce ;(6)_(LINEWIDTH)A(0)
- 
-derivation length: 7
+  # Sets the Riemanian space in which the turtle will move
+  metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
+
+  # Note the second argument is optional and set the display 
+  argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR' : 20,'CCW' : True}
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.5, umax = 1.5, vmin = 0.12, vmax = 2.2))
+  nproduce ;(0)PlotSpace
+  nproduce PlotDS2(dict(DS2_SCALEFACTOR = 20))
+  nproduce InitTurtle([-0.1,0.12,0.15,0.9])
+
+  nproduce;(6)_(LINEWIDTH)A(0)@O(0.03)
+
+derivation length: 6
 production:
+
 
 A(n):
   # branching angle
   if n % 2 == 0:
-    ba = -angle
-    la = 30
+    ba = 30
   else:
-    ba = angle
-    la = -30
-  
-  if TEST1:
-    ilen = 0.28
-  else:
-    ilen = 0.20
-  nproduce F(ilen) [+(ba)
-  if LEAVES:
-    nproduce [L(la,0)]
-  nproduce A(n+1)]
+    ba = -30
+  nproduce F(slen) 
+  if TREE:
+    nproduce [+(ba)A(n+1)]
   nproduce A(n+1)
-
-L(la,n):
-  if n > 5:
-    produce
-  else:
-    produce L(la,n+1)
 
 interpretation:
 
-maximum depth: 2
-
 A(n):
   produce ;(2)@O(0.03)
-  nproduce CovariantBasis(0.3)
-  nproduce _(0.03)DrawVect(velocity,1.5)
+  
+interpretation:
 
-  #if FRAME: nproduce _(0.01)Frame(0.2)
-
-L(la,n):
-  if n == 0:
-    produce
-  if ROTATELEAF:
-    turn = np.copysign(90,la)
-  else:
-    turn = 0
-  produce ;(2)-(la)/(turn)~l(1.0)
-
-
+A(n):
+  produce _(FRAMEWIDTH) Frame(FRAMESIZE)
 
 endlsystem
 ###### INITIALISATION ######

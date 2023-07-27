@@ -7,7 +7,7 @@ from importlib import reload
 reload(ns)
 from math import *
 
-%pastefile ../RiemannTurtleLib/riemannianrules.lpy
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 def nurbHalfEllipse(xradius = 1, yradius = 1): 
     knots = [0,0,0,0,1,1,1,1]
