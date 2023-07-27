@@ -9,7 +9,6 @@ brstate = getstate()
 seed(1)
 
 
-sys.path.append("../RiemannTurtleLib")
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 scale = 1
