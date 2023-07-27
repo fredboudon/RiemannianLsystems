@@ -160,32 +160,31 @@ RLineTo(target,infos):
 
 RMoveTo(target,infos):
    if len(infos) > 0:
-     produce +(infos['angle']) F(infos['length'])
+     produce +(infos['angle']) f(infos['length'])
 
 decomposition:
 maximum depth: 5
 
 Lezard(n) :
-  nproduce [
-  nproduce LeftArm(n) Pos1(n) ?UV 
-  nproduce [LeftLeg(n)]
-  nproduce -(45) 
   n2 = n*1.414/2.0
-  nproduce RightLeg(n2) Pos2(n2) ?UV
-  nproduce RightArm(n2)
-  nproduce ]
+  nproduce [ Pos3(n) ?UV  LeftArm(n) 
+  nproduce   +(45) RightArm(n2) ]
+  nproduce [Pos1(n) ?UV 
+  nproduce LeftLeg(n) 
+  nproduce -(45) RightLeg(n2) ]
+
+LeftArm(n) :
+  produce  [  Member(n,-1)] 
+
+LeftLeg(n) :
+  produce [ ,(5)Member(n,-1)] 
+
 
 RightLeg(n) :
   produce [ ,(2) Member(n,1) ] 
 
-LeftLeg(n) :
-  produce [ ,(5)Member(n,-1)] #f(n)
-
 RightArm(n) : 
-  produce [ Pos3(n) ?UV Member(n,1)] # f(n)
-
-LeftArm(n) :
-  produce [Pos3(n) ?UV  Member(n,-1)] 
+  produce [ ,(6) ?UV Member(n,1)] 
 
 Member(n,sgn):
   nproduce +(sgn*17)S(2.1*s*n)
