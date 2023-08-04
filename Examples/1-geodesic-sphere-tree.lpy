@@ -86,18 +86,26 @@ nb_growthstep = 10
 
 DETECT_RATIO = 1.3
 
+activebuds = 1
+togrowth = False
+
 def Start():
   global budid 
   budid = 1
 
 def StartEach():
-  global intersections
+  global intersections,activebuds
   frameDisplay(True)
   intersections = LineIntersection()
+  activebuds = 0
 
 def EndEach(lstring, lscene):
+  global activebuds, togrowth
   assert not lscene is None
   print('*******',getIterationNb())
+  if activebuds == 0:
+    togrowth = True
+    
 
 space = EllipsoidOfRevolution(R,1.5*R) #Sphere(R)
 
@@ -126,10 +134,12 @@ derivation length: nb_initstep +nb_growthstep
 production:
 
 MySpace(t):
-  global R,space,max_order, MAXSTEPLEN
-  if getIterationNb() >= 0:
+  global R,space,max_order,togrowth
+  if togrowth:
     #MAXSTEPLEN *= (1+dR/R)
+    print('Growth')
     R += dR
+    togrowth = False
     
   if getIterationNb() >= nb_initstep:
     max_order = 5
@@ -139,13 +149,7 @@ MySpace(t):
 A(n, r, max_rank, test, bid):
   global intersections, budid
   bangle = 60
-  if (n < max_order and r < max_rank) and 'uvpq' in test:
-    #if not 'uvpq' in test:
-    #  nproduce StaticF(seglen/2, {} )
-    #  nproduce [+(bangle * pow(-1,n)) A(n+2, {}) ]
-    #  nproduce StaticF(seglen/2, {} )
-    #  nproduce  A(n+1, {})
-    #el
+  if (n < max_order and r <= max_rank) and 'uvpq' in test:
     if len(test['uvpq']) > 0:
       uvpqs = test['uvpq']
       if test['intersect']:
@@ -157,14 +161,15 @@ A(n, r, max_rank, test, bid):
       else:
         intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
         assert budid > max(intersections.ids())
-        mrank = max_rank
-        if n == 1:
-          mrank = max_rank-r-1
         nproduce Segment( uvpqs, getIterationNb(), bid )
-        nproduce [+(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid) ]
-        nproduce [-(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid+1) ]
-        nproduce  A(n, r+1, max_rank, {}, budid+2)
-        budid += 3
+        if r < max_rank:
+          mrank = max_rank
+          if n == 0:
+            mrank = max_rank-r
+          nproduce [+(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid) ]
+          nproduce [-(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid+1) ]
+          nproduce  A(n, r+1, max_rank, {}, budid+2)
+          budid += 3
   else:
     if r == max_rank:
       produce
@@ -191,9 +196,9 @@ MySpace(t):
   produce SetSpace(space)
 
 A(n, r, mr, test, bid):
-  if n < max_order and r < mr:
+  if n < max_order and r <= mr:
     test.clear()
-    slen = seglen*pow(0.6,n)*DETECT_RATIO
+    slen = seglen*pow(0.8,n)*DETECT_RATIO
     #print(bid,slen, MAXSTEPLEN)
     uvpq_s = forward(turtle, slen, MAXSTEPLEN)
     test['uvpq']=uvpq_s[:int(len(uvpq_s)/DETECT_RATIO)]
@@ -206,14 +211,16 @@ A(n, r, mr, test, bid):
         if LINKVEINS:
            test['uvpq']=uvpq_s[:beg+intersection]
     else :
+      global activebuds
+      activebuds += 1
       test['intersect'] = False
       sid = intersections.add_line([(u,v) for u,v,p,q in uvpq_s],  bid)
     nproduce ,(2 if not test['intersect'] else 3)@O(LINEWIDTH)
     if ID:
       nproduce [RiemannMoveTo(uvpq_s[1][:2]) RiemannPinpoint(uvpq_s[1][2:])^(90)f(5),(10) Label(str(bid),16)]
       nproduce ,(3 if intersection else 2)[@Gc StaticF(seglen,{'uvpq':uvpq_s})]
-  else:
-    nproduce ,(5)@O(LINEWIDTH)
+  #else:
+  #  nproduce ,(5)@O(LINEWIDTH)
     
   
 endlsystem
