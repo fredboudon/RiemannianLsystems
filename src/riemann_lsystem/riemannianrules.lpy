@@ -132,6 +132,7 @@ def forward(turtle, length, dl = 1):
     # move the turtle directly on the surface
     uvpq_s = riemannian_turtle_move_forward(turtle.uvpq, turtle.space, length, stepnb)
   
+  uvpq_s = [turtle.space.check_coords(uvpq) for uvpq in uvpq_s]
   return uvpq_s
 
 
@@ -160,14 +161,14 @@ def riemaniannLineTo(turtle, target_coords, nb_points):
 
 def cached_forward(cache, turtle, length, dl = 1):
     if len(cache) == 0:
-        cache['points'] = list(apply_forward(turtle, forward(turtle, length, dl)))
-        cache['uvpq'] = turtle.uvpq
-        cache['boundary_reached'] = turtle.boundary_reached
-    for p in cache['points']:
+        cache['uvpq'] = list( forward(turtle, length, dl))
+        # cache['uvpq'] = turtle.uvpq
+        # cache['boundary_reached'] = turtle.boundary_reached
+    for p in apply_forward(turtle, cache['uvpq']):
         yield p
 
-    turtle.uvpq = cache['uvpq']
-    turtle.boundary_reached = cache['boundary_reached']
+    #turtle.uvpq = cache['uvpq']
+    #turtle.boundary_reached = cache['boundary_reached']
 
 
 def orientHead(turtle, uvpq = None):
@@ -483,8 +484,8 @@ RiemannMoveTo(uv):
 
 RiemannPinpoint(pq):
   """Turn the head of the turtle in the direction indicated by p,q (u,v) """
-  turtle.uvpq[2] = p
-  turtle.uvpq[3] = q
+  turtle.uvpq[2] = pq[0]
+  turtle.uvpq[3] = pq[1]
   orientHead(turtle)
   produce
 

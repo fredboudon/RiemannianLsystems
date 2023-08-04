@@ -1,0 +1,250 @@
+"""
+	L-systems in Riemannian geometry
+
+		Authors: F. Boudon, Ch. Godin
+		Date: 2023
+		
+	Simulates geodesics on a sphere with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
+
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
+
+"""
+
+import numpy as np
+from math import ceil, exp
+from random import random
+
+from importlib import reload
+
+import riemann_lsystem
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+import riemann_lsystem.lineintersection as li
+reload(li)
+
+from riemann_lsystem.lineintersection import *
+
+from openalea.plantgl.all import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 100.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+dR = 0.1 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 5 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 5 * cm
+
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+
+length_greatcircle = 2*np.pi*R
+
+max_order  = 2
+max_rank = 5
+seglen = length_greatcircle/(2.5*max_rank)
+
+u0= pi
+v0= (-pi/2) * (6/10.)
+p0 = 0.0 # 0.001 # 0.03
+q0 = 1.
+
+intersections = LineIntersection()
+budid = 0
+
+nb_initstep = max_rank
+nb_growthstep = 10
+
+
+DETECT_RATIO = 1.3
+
+def Start():
+  global budid 
+  budid = 1
+
+def StartEach():
+  global intersections
+  frameDisplay(True)
+  intersections = LineIntersection()
+
+def EndEach(lstring, lscene):
+  assert not lscene is None
+  print('*******',getIterationNb())
+
+space = EllipsoidOfRevolution(R,1.5*R) #Sphere(R)
+
+def energy(u,v):
+  return intersections.nb_bboxes((u,v))
+
+def energy2(u,v):
+  a = int(divmod(u,pi/10)[0])
+  b = int(divmod(v,pi/10)[0])
+  if a % 2:
+    return b % 2
+  else :
+    return 1 - (b % 2)
+
+Axiom:
+  global budid
+  # Sets the Riemannian space in which the turtle will move
+  nproduce MySpace(0)
+  dx = 0.05
+  nproduce ;(0)PlotSpace() #energy, 'jet', dx, dx)
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1) +(1)  A(0, 0, max_rank, {'intersect' : False}, budid)]
+  budid +=1
+
+derivation length: nb_initstep +nb_growthstep
+production:
+
+MySpace(t):
+  global R,space,max_order, MAXSTEPLEN
+  if getIterationNb() >= 0:
+    #MAXSTEPLEN *= (1+dR/R)
+    R += dR
+    
+  if getIterationNb() >= nb_initstep:
+    max_order = 5
+  space = EllipsoidOfRevolution(R,1.5*R) # Sphere(R)
+  nproduce MySpace(t+1)
+
+A(n, r, max_rank, test, bid):
+  global intersections, budid
+  bangle = 60
+  if (n < max_order and r < max_rank) and 'uvpq' in test:
+    #if not 'uvpq' in test:
+    #  nproduce StaticF(seglen/2, {} )
+    #  nproduce [+(bangle * pow(-1,n)) A(n+2, {}) ]
+    #  nproduce StaticF(seglen/2, {} )
+    #  nproduce  A(n+1, {})
+    #el
+    if len(test['uvpq']) > 0:
+      uvpqs = test['uvpq']
+      if test['intersect']:
+        if DORMANT_BUD:
+          nproduce  A(n, r, max_rank, test, bid)          
+        else:
+          intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
+          nproduce Segment(uvpqs, getIterationNb(), bid )
+      else:
+        intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
+        assert budid > max(intersections.ids())
+        mrank = max_rank
+        if n == 1:
+          mrank = max_rank-r-1
+        nproduce Segment( uvpqs, getIterationNb(), bid )
+        nproduce [+(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid) ]
+        nproduce [-(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid+1) ]
+        nproduce  A(n, r+1, max_rank, {}, budid+2)
+        budid += 3
+  else:
+    if r == max_rank:
+      produce
+    else:
+      produce A(n, r, max_rank, test, bid) 
+
+Segment(uvpqs,it, bid):
+  global intersections
+  intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
+
+interpretation:
+maximum depth: 2
+
+Segment(uvpq, it, bid):
+  turtle.setId(bid)
+  if ID:
+    nproduce [RiemannMoveTo(uvpq[1][:2]) RiemannPinpoint(uvpq[1][2:])^(90)f(5),(10) Label(str(bid),16)]
+  radius = LINEWIDTH*(1-exp(-1-(getIterationNb()-it)))
+  nproduce _(radius),(1) #InterpolateColors(4,6,it/(nb_initstep+nb_growthstep)) 
+  produce @Gc StaticF(0,{'uvpq':uvpq}) @Ge
+
+MySpace(t):
+  global space
+  produce SetSpace(space)
+
+A(n, r, mr, test, bid):
+  if n < max_order and r < mr:
+    test.clear()
+    slen = seglen*pow(0.6,n)*DETECT_RATIO
+    #print(bid,slen, MAXSTEPLEN)
+    uvpq_s = forward(turtle, slen, MAXSTEPLEN)
+    test['uvpq']=uvpq_s[:int(len(uvpq_s)/DETECT_RATIO)]
+    beg = 0
+    if bid in intersections:
+      raise ValueError(bid,'in intersections')
+    intersection = intersections.test_intersection([(u,v) for u,v,p,q in uvpq_s[beg:]])
+    if intersection and n > 0:
+        test['intersect']=True
+        if LINKVEINS:
+           test['uvpq']=uvpq_s[:beg+intersection]
+    else :
+      test['intersect'] = False
+      sid = intersections.add_line([(u,v) for u,v,p,q in uvpq_s],  bid)
+    nproduce ,(2 if not test['intersect'] else 3)@O(LINEWIDTH)
+    if ID:
+      nproduce [RiemannMoveTo(uvpq_s[1][:2]) RiemannPinpoint(uvpq_s[1][2:])^(90)f(5),(10) Label(str(bid),16)]
+      nproduce ,(3 if intersection else 2)[@Gc StaticF(seglen,{'uvpq':uvpq_s})]
+  else:
+    nproduce ,(5)@O(LINEWIDTH)
+    
+  
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , transparency = 0.9 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_10 = pgl.Material("Color_10" , ambient = (0,0,0) , diffuse = 40 , shininess = 0 , )
+	Color_10.name = "Color_10"
+	context.turtle.setMaterial(10,Color_10)
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('LINKVEINS', 'Bool', False), ('DORMANT_BUD', 'Bool', True), ('ID', 'Bool', False)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)

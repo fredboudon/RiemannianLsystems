@@ -190,6 +190,13 @@ class RiemannianSpace2D:
 
       return np.array([[xu,xv],[yu,yv],[zu,zv]])
 
+    def InvShift(self,u,v):
+       """
+       The inverse Shift operator.
+       Compute the pseudo inverse matrix using numpy
+       """
+       return linalg.pinv(self.Shift(u,v))
+
     def normal(self,u,v):
       # the normal is always borne by the x axis (as the space is the plane y,z)
       nx = 1.
@@ -745,6 +752,17 @@ class ParametricSurface(RiemannianSpace2D):
     def __init__(self, umin,umax,vmin,vmax, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
         super(ParametricSurface, self).__init__(umin=umin,umax=umax,vmin=vmin,vmax=vmax,STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
 
+    def normalizeuv(self, u, v):
+      if self.utoric:
+          u = self.umin + (u-self.umin) % (self.umax-self.umin) 
+      else:
+          u = min(self.umax,max(self.umin,u))
+      if self.vtoric:
+          v = self.vmin + (v-self.vmin) % (self.vmax-self.vmin) 
+      else:
+          v = min(self.vmax,max(self.vmin,v))
+      return u,v
+    
     def secondsuu(self,u,v):
       """ Vectors of the second derivatives of the point S(u,v):
       D2S(u,v)/du^2, D2S(u,v)/du2dv2, D2S(u,v)/dv^2 (the fourth /dvdu is symmetric to /dudv)
@@ -1824,16 +1842,6 @@ class Patch(ParametricSurface):
 
       super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_U)
 
-    def normalizeuv(self, u, v):
-      if self.utoric:
-          u = self.umin + (u-self.umin) % (self.umax-self.umin) 
-      else:
-          u = min(self.umax,max(self.umin,u))
-      if self.vtoric:
-          v = self.vmin + (v-self.vmin) % (self.vmax-self.vmin) 
-      else:
-          v = min(self.vmax,max(self.vmin,v))
-      return u,v
 
     def getPointAt(self, u,v):
       return self.patch.getPointAt(u,v)
