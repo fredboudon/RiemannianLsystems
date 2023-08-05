@@ -45,7 +45,7 @@ cm = 0.01 * meter
 
 # Surface parameters
 R = 2. * meter   # Radius of the sphere in meter
-dR = 0.1 * meter
+dR = 0.5 * meter
 
 #######################
 # DISPLAY PARAMETERS
@@ -81,7 +81,7 @@ intersections = LineIntersection()
 budid = 0
 
 nb_initstep = max_rank
-nb_growthstep = 10
+nb_growthstep = 20
 
 
 DETECT_RATIO = 1.3
@@ -162,10 +162,9 @@ A(n, r, max_rank, test, bid):
         intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
         assert budid > max(intersections.ids())
         nproduce Segment( uvpqs, getIterationNb(), bid )
-        if r < max_rank:
-          mrank = max_rank
-          if n == 0:
-            mrank = max_rank-r
+        if r < max_rank-1:
+          #mrank = max_rank
+          mrank = max_rank-r
           nproduce [+(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid) ]
           nproduce [-(bangle * pow(-1,n)) A(n+1, 0, mrank, {}, budid+1) ]
           nproduce  A(n, r+1, max_rank, {}, budid+2)
@@ -187,7 +186,7 @@ Segment(uvpq, it, bid):
   turtle.setId(bid)
   if ID:
     nproduce [RiemannMoveTo(uvpq[1][:2]) RiemannPinpoint(uvpq[1][2:])^(90)f(5),(10) Label(str(bid),16)]
-  radius = LINEWIDTH*(1-exp(-1-(getIterationNb()-it)))
+  radius = LINEWIDTH #*(1-exp(-1-(getIterationNb()-it)))
   nproduce _(radius),(1) #InterpolateColors(4,6,it/(nb_initstep+nb_growthstep)) 
   produce @Gc StaticF(0,{'uvpq':uvpq}) @Ge
 
@@ -198,29 +197,33 @@ MySpace(t):
 A(n, r, mr, test, bid):
   if n < max_order and r <= mr:
     test.clear()
-    slen = seglen*pow(0.8,n)*DETECT_RATIO
+    slen = seglen*pow(0.6,n)*DETECT_RATIO
     #print(bid,slen, MAXSTEPLEN)
     uvpq_s = forward(turtle, slen, MAXSTEPLEN)
-    test['uvpq']=uvpq_s[:int(len(uvpq_s)/DETECT_RATIO)]
-    beg = 0
-    if bid in intersections:
-      raise ValueError(bid,'in intersections')
-    intersection = intersections.test_intersection([(u,v) for u,v,p,q in uvpq_s[beg:]])
+    bbx = bbox(uvpq_s)
+    if bbx[0][0] < space.umin or bbx[1][0] > space.umax or bbx[0][1] < space.vmin or bbx[1][1] > space.vmax:
+      intersection == True
+    else:
+      test['uvpq']=uvpq_s[:int(len(uvpq_s)/DETECT_RATIO)]
+      if bid in intersections:
+        raise ValueError(bid,'in intersections')
+      intersection = intersections.test_intersection([(u,v) for u,v,p,q in uvpq_s])
     if intersection and n > 0:
         test['intersect']=True
         if LINKVEINS:
-           test['uvpq']=uvpq_s[:beg+intersection]
+           test['uvpq']=uvpq_s[:intersection]
     else :
       global activebuds
       activebuds += 1
       test['intersect'] = False
       sid = intersections.add_line([(u,v) for u,v,p,q in uvpq_s],  bid)
-    nproduce ,(2 if not test['intersect'] else 3)@O(LINEWIDTH)
+    nproduce ,(2 if not test['intersect'] else 3)@O(2*LINEWIDTH)
     if ID:
       nproduce [RiemannMoveTo(uvpq_s[1][:2]) RiemannPinpoint(uvpq_s[1][2:])^(90)f(5),(10) Label(str(bid),16)]
       nproduce ,(3 if intersection else 2)[@Gc StaticF(seglen,{'uvpq':uvpq_s})]
-  #else:
-  #  nproduce ,(5)@O(LINEWIDTH)
+  else:
+    if r <= mr:
+       nproduce ,(5)@O(2*LINEWIDTH)
     
   
 endlsystem
