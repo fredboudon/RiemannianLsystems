@@ -26,12 +26,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-import riemannianturtle
-riemannian_turtle = reload(riemannianturtle)
-
-from surfaces import *
-from riemannianturtle import *
-
 # Flags to control the display
 PLOTSPACE = True
 

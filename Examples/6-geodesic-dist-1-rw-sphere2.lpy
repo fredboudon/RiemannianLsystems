@@ -12,8 +12,6 @@
 
 """
 
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
-
 import matplotlib.pyplot as plt
 from random import random, seed
 

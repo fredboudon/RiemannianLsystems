@@ -102,7 +102,7 @@ A(n):
     ba = angle
     la = -30
   
-  nproduce F(1.0) [+(ba)
+  nproduce StaticF(1.0) [+(ba)
   if LEAVES:
     nproduce [L(la,0)]
   nproduce A(n+1)]

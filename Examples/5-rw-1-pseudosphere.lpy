@@ -77,12 +77,13 @@ Axiom:
   nproduce ;(6)_(LINEWIDTH)A(0)
  
 
-derivation length: 200
+derivation length: 1
 production:
-
+decomposition:
+maximum depth:200
 A(n):
   a = 360*random()
-  nproduce +(a)F(slen)A(n+1)
+  nproduce +(a)StaticF(slen)A(n+1)
 
 interpretation:
 

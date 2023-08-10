@@ -76,7 +76,7 @@ seglen = length_greatcircle/nb_seg
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
 AXIOMTEST = 1
-TEST      = 3  
+TEST      = 1  
 
 
 Axiom:

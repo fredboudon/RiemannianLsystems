@@ -76,7 +76,7 @@ R = 1.   # Radius of the sphere, or main radius of the torus
 
 # If true, moves the turtle along great circles
 # If not, moves the turtle along a latitude
-GREATCIRCLES = False
+GREATCIRCLES = True
 if GREATCIRCLES :
   NBSTEPS = 3
 else:

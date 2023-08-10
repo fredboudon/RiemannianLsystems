@@ -133,7 +133,7 @@ production:
   # moves in the plane (y,z) (i.e. x = 0)
   #print('position[',w,']:', np.array([0,x,y]))
   current_pt = np.array([x,y,z])
-  nproduce +(a)F(slen)?P(0,0,0)A(w,n+1,origin_pt,current_pt)
+  nproduce +(a)StaticF(slen)?P(0,0,0)A(w,n+1,origin_pt,current_pt)
 
 interpretation:
 

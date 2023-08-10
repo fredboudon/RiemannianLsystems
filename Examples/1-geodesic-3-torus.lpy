@@ -77,7 +77,7 @@ def EndEach(lstring):
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Torus(R,r), None)
+  nproduce SetSpace(Torus(R,r))
   nproduce ;(0)PlotSpace
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   u0= 0 # 0

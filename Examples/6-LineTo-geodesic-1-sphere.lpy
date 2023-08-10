@@ -76,7 +76,7 @@ rb = 0.5
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
 AXIOMTEST = 1
-TEST      = 3  
+TEST      = 2  
 
 origin_pt = [0., 0.]    # in (u,v) coordinates
 target_pt = [1., 0.7]   # in (u,v) coordinates
@@ -98,7 +98,7 @@ Axiom:
   # plots the point at the origin
   nproduce Frame(0.2)
   # plots the target point as a sphere on the surface
-  for tgpt in target_pts:
+  for tgpt in target_pts:clear
     nproduce ;(3)DrawPoint(tgpt,0.05)
   nproduce S
 
@@ -107,9 +107,7 @@ derivation length: 1 #nb_seg
 production:
 
 S:  
-  #nproduce [;(4)F(1)]
   for tgpt in target_pts:
-    nproduce A(tgpt)
     nproduce [RiemannLineTo(tgpt,20)]
 
 

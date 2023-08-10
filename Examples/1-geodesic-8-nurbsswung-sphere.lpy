@@ -88,7 +88,7 @@ interpretation:
 maximum depth: 2
 
 
-D --> DrawVect(turtle.space.shift_vector(*turtle.uvpq))
+D --> DrawVect(turtle.space.shift_vector(*turtle.uvpq),0.2)
 
 
 endlsystem

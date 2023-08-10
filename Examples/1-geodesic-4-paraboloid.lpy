@@ -28,11 +28,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-import riemannianturtle
-riemannian_turtle = reload(riemannianturtle)
-
-from surfaces import *
-from riemannianturtle import *
 
 #######################
 # Units
@@ -76,7 +71,6 @@ r =0.2
 circonf = R*2*np.pi
 length_geodesic = circonf
 
-module SetSpace(surface), InitTurtle(turtle_state)
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
@@ -100,7 +94,7 @@ derivation length: int(nb_seg)
 production:
 
 A(n):
-  nproduce F(length_geodesic/nb_seg)
+  nproduce StaticF(length_geodesic/nb_seg)
   nproduce A(n+1)
 
 interpretation:

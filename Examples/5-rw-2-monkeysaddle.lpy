@@ -84,7 +84,7 @@ production:
 
 A(n):
   a = 360*random()
-  nproduce +(a)F(slen)A(n+1)
+  nproduce +(a)StaticF(slen)A(n+1)
 
 interpretation:
 
