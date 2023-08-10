@@ -117,7 +117,7 @@ def meshPolygon(polyline, resolution):
 
   '''
 
-  # Computes an initial and optimal first triangle optimisation of the polygone
+  # Computes an initial and optimal first triangle optimisation of the polygon
   # as a list of index 3-uples pointing into the original list of points (polyline)
   # This uses CGAL function through PlantGL wrapping
   opttrilist = triangulation(polyline, eOptimalTriangulation)

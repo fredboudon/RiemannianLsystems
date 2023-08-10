@@ -175,7 +175,6 @@ production:
       #print(pdirs, pcurvs)
     
     if n > 0:
-      
       if pdirmin_uv == [] or pdirmax_uv == []:
         deflection_angle = 0
       elif abs(abs(curvmax)-abs(curvmin))/(abs(curvmax)+abs(curvmin)) < 0.01:
@@ -267,6 +266,7 @@ S:
     vlist = np.linspace(0,2*pi,n)    
     scalefactor = 0.01
     linewidth = 0.005
+  
   '''
   color_plus = 5
   color_minus = 6

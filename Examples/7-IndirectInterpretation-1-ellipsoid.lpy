@@ -67,7 +67,7 @@ seglen = ra/3.
 length_geodesic = 0.4 # 1. 
 nb_angles = 10
 
-TEST = 1 # 1,2
+TEST = 2 # 1,2
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move

@@ -33,9 +33,6 @@ from riemann_lsystem.riemannianturtle import *
 # Flags to control the display
 PLOTSPACE = True
 
-TEST1 = True # Form I and II coefficients
-TEST2 = True # Curvature coefficients
-
 #######################
 # Units
 #######################
@@ -77,8 +74,10 @@ length_geodesic = 3.5
 
 #Select Axiom here
 #1: Simple vertical geodesic
-#2: Draw a grid on the pseudo sphere indirectly from drawing on the parameter space
-AXIOMTEST = 1
+#2: Draw a grid on the pseudo sphere indirectly from drawing on the parameter space (press REWIND)
+AXIOMTEST = 2  
+TEST1 = True # Form I and II coefficients
+TEST2 = True # Curvature coefficients
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
@@ -104,20 +103,6 @@ Axiom:
       nproduce ]
       nproduce -(90)f(a)+(90)
     nproduce StopIndirectInterpretation]
-  else:
-    # test the passage through the pseudosphere rim
-    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])F(0.3)+(45)F(0.3)]
-    polyline_uv = [[1.0,0.0],[1/h,1/h],[0.,1.],[-1/h,1/h],[-1.0,0.0],[-1/h,-1/h],[0.,-1.], [1/h,-1/h]]
-    N = 10
-    a = 2*np.pi / N
-    for i in range(N):
-      nproduce [
-      for j in range(N): 
-        nproduce F(a)-(90)F(a)-(90)F(a)-(90)F(a)-(90)
-        nproduce f(a)
-        nproduce [;(3)ClosedPolygon(polyline_uv, resolution, True)]
-      nproduce ]
-      nproduce -(90)f(a)+(90)
     
 
 

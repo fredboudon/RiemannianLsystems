@@ -601,6 +601,7 @@ DrawPoint(uv,size):
   pos = turtle.space.S(u, v)
   nproduce [@M(pos) @O(size)]
 
+# Splits a polygon given as a uv-polyline into small squared polygons, place them on the surface in 3D and fill them.
 ClosedPolygon(polyline_uv, *args):
   resolution = 1.
   reverse = False
