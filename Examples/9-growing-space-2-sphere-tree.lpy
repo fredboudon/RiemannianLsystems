@@ -217,13 +217,15 @@ A(n, r, mr, test, bid):
       activebuds += 1
       test['intersect'] = False
       sid = intersections.add_line([(u,v) for u,v,p,q in uvpq_s],  bid)
-    nproduce ,(2 if not test['intersect'] else 3)@O(2*LINEWIDTH)
+    if DISPLAY_BUDS:
+      nproduce ,(2 if not test['intersect'] else 3)@O(2*LINEWIDTH)
     if ID:
       nproduce [RiemannMoveTo(uvpq_s[1][:2]) RiemannPinpoint(uvpq_s[1][2:])^(90)f(5),(10) Label(str(bid),16)]
       nproduce ,(3 if intersection else 2)[@Gc StaticF(seglen,{'uvpq':uvpq_s})]
   else:
     if r <= mr:
-       nproduce ,(5)@O(2*LINEWIDTH)
+       if DISPLAY_BUDS:
+         nproduce ,(5)@O(2*LINEWIDTH)
     
   
 endlsystem
@@ -243,7 +245,7 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('LINKVEINS', 'Bool', False), ('DORMANT_BUD', 'Bool', True), ('ID', 'Bool', False)]
+	scalars = [('LINKVEINS', 'Bool', False), ('DORMANT_BUD', 'Bool', True), ('ID', 'Bool', False), ('DISPLAY_BUDS', 'Bool', True)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]

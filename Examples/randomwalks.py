@@ -18,7 +18,7 @@ from openalea import lpy
 seed(3)
 
 #model_filename = '5-rw-pseudosphere-geodesic-dist.lpy'
-model_filename = '5-rw-sphere-geodesic-dist.lpy'
+model_filename = '6-geodesic-dist-1-rw-sphere.lpy'
 
 lsys = lpy.Lsystem(model_filename)
 

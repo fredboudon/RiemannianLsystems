@@ -17,7 +17,7 @@ from openalea import lpy
 from openalea.plantgl.all import Viewer
 
 simulation_id = 2
-model_filename = '1-geodesic-intrinsiccurved2D-vonKoch.lpy'
+model_filename = '11-Abst2DRiemannSpace-snowflake.lpy'
 
 ##############################
 # Input variables

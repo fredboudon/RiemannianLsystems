@@ -4,7 +4,8 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-    Draw a tree on a chinese hat.
+	- Tree on a Chinese hat
+	TODO: plot the leaves a bit above the tangent plane to see them all (could use information on the local curvature!)
 
 """
 
