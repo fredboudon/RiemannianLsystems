@@ -27,12 +27,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
-
-# Flags to control the display
-PLOTSPACE = True
-PLOTDS2 = True
-
 ######################################
 # DEFINITION OF THE METRIC (INTRINSIC)
 ######################################

@@ -28,10 +28,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-# Flags to control the display
-PLOTSPACE = True
-PLOTDS2 = True
-
 ######################################
 # DEFINITION OF THE METRIC (INTRINSIC)
 ######################################
@@ -200,7 +196,7 @@ derivation length: 15
 production:
 
 A(n):
-  nproduce F(slen)A(n+1)
+  nproduce StaticF(slen)A(n+1)
 
 interpretation:
 

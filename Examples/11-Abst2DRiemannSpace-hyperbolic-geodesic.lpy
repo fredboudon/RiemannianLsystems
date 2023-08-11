@@ -27,11 +27,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
-
-# Flags to control the display
-PLOTSPACE = True
-PLOTDS2 = True
 
 ######################################
 # DEFINITION OF THE METRIC (INTRINSIC)
@@ -99,7 +94,7 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
             # To draw one geodesic, set it to 1 and set dashed to False
 
 slen = 3 # 
-TEST = 1
+TEST = 2
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
@@ -124,7 +119,7 @@ derivation length: 4
 production:
 
 A(n):
-  nproduce F(slen)A(n+1)
+  nproduce StaticF(slen)A(n+1)
 
   
 interpretation:

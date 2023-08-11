@@ -27,12 +27,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
-
-# Flags to control the display
-PLOTSPACE = True
-PLOTDS2 = True
-
 ######################################
 # DEFINITION OF THE METRIC (INTRINSIC)
 ######################################
@@ -126,7 +120,7 @@ A(n):
     ba = 30
   else:
     ba = -30
-  nproduce F(slen) 
+  nproduce StaticF(slen) 
   if TREE:
     nproduce [+(ba)A(n+1)]
   nproduce A(n+1)
