@@ -1,0 +1,138 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+		
+     
+"""
+
+import numpy as np
+from math import ceil
+from random import random
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+PRINT_CURVATURES = False
+PLOTDS2 = False
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+length_greatcircle = 2*np.pi*R
+
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+
+origin_pt = [0.0, 0.0]    # in (u,v) coordinates
+target_pt =  [2., 0.7]  # in (u,v) coordinates
+
+target_pts = [[-1., 0.9], [-0.5, 0.7], [1., 0.7], [2., 1.3], [2., 0.4],[1.8,-0.4], [2.5,-0.4], [2.8,-0.4]]
+#target_pts = [[1., 0.7]]
+
+LINETO_MAXITER = 30
+
+TEST = 2 # 1,2
+Axiom:
+  nproduce SetSpace(Sphere(R))
+  nproduce ;(0)PlotSpace
+  turtle_init = origin_pt + [0,1]  # (u0,v0,p0,q0) needed to initialize the turtle on the surface
+  nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
+  # plots the point at the origin
+  nproduce Frame(0.2)
+  # plots the target point as a sphere on the surface
+  if TEST == 1:
+    nproduce [;(3)DrawPoint(target_pt,0.05)]
+  elif TEST == 2:
+    for tgpt in target_pts:
+      nproduce [;(3)DrawPoint(tgpt,0.05)]
+  nproduce S
+
+
+derivation length: 1 #nb_seg
+production:
+
+S:  
+  if TEST == 1:
+    nproduce [RiemannShootingLineTo(target_pt,20)]
+  if TEST == 2:
+    for tgpt in target_pts:
+      nproduce [RiemannShootingLineTo(tgpt,20)]
+
+interpretation:
+
+maximum depth: 2
+
+A:
+  produce
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
