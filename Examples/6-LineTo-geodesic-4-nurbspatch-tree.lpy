@@ -30,9 +30,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-PRINT_CURVATURES = False
-PLOTDS2 = False
-
 #######################
 # Units
 #######################
@@ -76,12 +73,14 @@ rb = 0.5
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
 origin_pt = [0., 0.]    # in (u,v) coordinates
-target_pts = [[0,0.3],[0.4,0.],[0,0.6],[0.7,0.],[0.0,0.9],[1.,0.3],[0.4,1.],[1,0.6],[0.8,1.],[1.0,0.75]]
-#target_pt = [0.8, 0.99]  # in (u,v) coordinates
+#target_pts = [[0,0.3],[0.4,0.],[0,0.6],[0.7,0.],[0.0,0.9],[1.,0.3],[0.4,1.],[1,0.6],[0.8,1.],[1.0,0.75]]
+target_pts = [[0,0.3], [0.4,0.],[0,0.6],[0.7,0.],[0,0.9],[1.,0.3],[0.4,1.],[1,0.6],[0.8,1.],[1.0,0.75]]  # in (u,v) coordinates
 
-## DEBUG: vary from 0 to 9 to see how the solution gets attracted towards the geodesic
-## HOWEVER, diverges after that ???
-LINETO_MAXITER = 10
+N = len(target_pts)
+
+#ERRORS:
+# Does not return for [0.0,0.9]
+
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
@@ -99,33 +98,28 @@ Axiom:
   # plots the target point as a sphere on the surface
   for tgpt in target_pts:
     nproduce ;(3)DrawPoint(tgpt,0.02)
-  nproduce S
+  nproduce S(0)
 
-
-derivation length: 1 #nb_seg
+derivation length: N+1 #nb_seg
 production:
-
-S:  
-  #nproduce [;(5)F(2)]
-  ## BUG: Very fragile:
-  ## - the number of input points is critical 
-  ## (too big --> diverge, in particular small segments at the beginning diverge)
-  for tgpt in target_pts:
+S(n):  
+  if n < N:
     nproduce F(0.1)
-    nproduce [RiemannLineTo(tgpt,20)]
-  nproduce +(15)F(0.6);(2)@O(0.02)
+    # RiemannLineTo:
+    # - First parameter = target point [u,v]
+    # - Second parameter = nb_segments + 1 to draw the geodesic
+    # - Third parameter = nb max of iteration of the Newton method (this third parameter is optional)
+    
+    if n != 4: # There is a bug at point [0,0.9] in target_pts: the algorithm does not return ! --> exclude it
+      nproduce [RiemannLineTo(target_pts[n],20)]
+    nproduce S(n+1)
+  else:
+    nproduce +(10)F(0.8)A
+
 
 interpretation:
-
-maximum depth: 2
-
 A:
-  u,v,p,q = turtle.uvpq
-  A = turtle.space.Shift(u,v)
-  velocity = A.dot(np.array([p,q]))
-  nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
-  #nproduce CovariantBasis(0.3)
-
+  nproduce ;(2)@O(0.03)
 
 endlsystem
 ###### INITIALISATION ######

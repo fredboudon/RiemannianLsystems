@@ -37,7 +37,7 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
 cm = 0.01 * meter
 
 # Surface parameters
-R = 2. * meter   # Radius of the sphere in meter
+R = 1. * meter   # Radius of the sphere in meter
 
 #######################
 # DISPLAY PARAMETERS

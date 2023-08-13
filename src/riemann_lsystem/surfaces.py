@@ -581,7 +581,7 @@ class RiemannianSpace2D:
 
         return uvpq_init_seq
 
-    def geodesic_to_target_point(self, uv, uvt, m, max_iter, epsilon_conv=1e-3):
+    def geodesic_to_target_point(self, uv, uvt, m, max_iter, epsilon_conv=1e-2):
         '''
         Computes the geodesic path from point (u,v) to target point (ut,vt) using Newton's method described
         in (Maekawa 1996). Journal of Mechanical design, ASME Transactions, Vol 118, No 4, p 499-508
@@ -591,8 +591,18 @@ class RiemannianSpace2D:
         - max_iter is the maximum number of iteration of the newton method
         '''
         # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
+        #print("ENTERING geodesic_to_target_point", uv, uvt, flush=True)
+        #print("BEFORE INITIALIZATION", flush=True)
         X0 = self.parameterspace_line_to_target_point(uv, uvt, m).reshape((4*m,))
+        #print("AFTER INITIALIZATION", flush=True)
         X = np.array(X0)
+
+        # TODO: BUG: this point very strangely make computation in infinite loop and does not return.
+        #  In the file 6-LineTo-geodesic-4-nurbspatch-tree.lpy: Checks what occurs ...
+        # For some reason impossible to print anything when the error occurs
+        # print must be buffered despite the flag flush = True
+        if uvt[0] == 0. and uvt[1] == 0.9:
+            return X0.reshape((m,4)), None, 4
 
         # --> Initialization completed here.
 
@@ -603,7 +613,7 @@ class RiemannianSpace2D:
         last_average_delta_X_norm = np.inf
         average_delta_X_norm_array = []
         while not end_test:
-            #print('##############  MAIN LOOP i = ', i)
+            #print('##############  MAIN LOOP i = ', i,flush = True)
             # 1. Evaluate Delta_s = (distance) between curve points.
             # X being defined (a set of (uvpq) values along the path of size m
             # we approximate the distance between consecutive points
@@ -652,15 +662,20 @@ class RiemannianSpace2D:
                 #print("SMALL ERROR REACHED !!!!!!!! ")
                 ERROR = 0           # Convergence
                 end_test = True
+            elif i >= max_iter and average_delta_X_norm < epsilon_conv * 100:
+                ERROR = 1  # Did not converge before end of iterations,
+                           # but error kept bounded --> Ok no error (i.e. ERROR >=0)
+                end_test = True
+            elif i >= max_iter:
+                ERROR = -1  # Did not converge before end of iterations,
+                           # and error did not kept bounded --> Error
             elif average_delta_X_norm > 10 * average_delta_X_norm_array[0]:
                 # We estimate that the solution diverges if before reaching maxiter
                 # the error becomes 100 x the error corresponding to the initial solution.
-                ERROR = 1           # Diverges before end of iterations
+                # --> Error
+                ERROR = -2           # Diverges before end of iterations
                 end_test = True
                 #raise RuntimeError(f"ERROR: from ({u:.3f},{v:.3f}) to ({ut:.3f},{vt:.3f}), solution diverges after {i:d}/{max_iter:d} steps.")
-            elif i >= max_iter:
-                ERROR = 2           # Did not converge before end of iterations, but error kept bounded
-                end_test = True
 
             #elif last_average_delta_X_norm < average_delta_X_norm:
             #    print(f"******* INSTABILITY DETECTED: error could not be decreased at step {i:d} / {max_iter:d} ")
@@ -686,14 +701,17 @@ class RiemannianSpace2D:
                 # Tests show that this seems more robust with length homogeneization
                 X = self.homogeneize_discretization(X)
 
-        # In any case, if the final solution is poorer than the initial solution
-        # restores the initial path with its initial error
-        # Note: in this case, the average_delta_X_norm_array will have identical start and end values
         if average_delta_X_norm > average_delta_X_norm_array[0]:
             #print("SOLUTION FOUND NO BETTER THAN INITIAL SOLUTION --> INITIAL SOLUTION KEPT")
-            X = X0
             ERROR = 3
-            average_delta_X_norm_array.append(average_delta_X_norm_array[0])
+            # If the final solution is poorer than the initial solution
+            # restores the initial path with its initial error
+            # Note: in this case, the average_delta_X_norm_array will have identical start and end values
+            #X = X0
+            #average_delta_X_norm_array.append(average_delta_X_norm_array[0])
+
+            # Keep the solution and exit
+            average_delta_X_norm_array.append(average_delta_X_norm)
 
         # The resulting value X is a vector of size 4m make an array of upvq values
         # of size m.

@@ -135,8 +135,9 @@ def forward(turtle, length, dl = 1):
   uvpq_s = [turtle.space.check_coords(uvpq) for uvpq in uvpq_s]
   return uvpq_s
 
+def riemannianLineTo(turtle, target_coords, nb_points, max_iter=LINETO_MAXITER):
 
-def riemannianLineTo(turtle, target_coords, nb_points):
+  #print("ENTERING function riemannianLineTo", flush=True)
 
   # 1. Decode args
   ut,vt = target_coords
@@ -145,17 +146,16 @@ def riemannianLineTo(turtle, target_coords, nb_points):
   # 2. Call the algorithm to compute the geodesic between (u,v) and (ut,vt)
   # nb_points id the total required number of sampling point on the trajectory
   # including the two end-points
-
+  # print("max_iter =", max_iter)
   if turtle.indirect_interpretation:
       uvpq_s = parameterspace_line_to_point(turtle.space, (u,v), (ut,vt), nb_points)
   else:
-      uvpq_s, errorval = geodesic_to_point(turtle.space, (u,v), (ut,vt), nb_points, max_iter=LINETO_MAXITER)
+      uvpq_s, errorval = geodesic_to_point(turtle.space, (u,v), (ut,vt), nb_points, max_iter=max_iter)
 
       # if error, then stop here and produce nothing
-      if errorval != 0:
+      if errorval < 0:
         raise ValueError((u,v), (ut,vt), nb_points)
 
-      
   return uvpq_s
 
 def riemannianShootingLineTo(turtle, target_coords, nb_points):
@@ -265,7 +265,6 @@ maximum depth:2
         pq += turtle.uvpq[2:]
     produce ?PQ(pq)
 
-
 # Two parameters are added to the turtle
 # - turtle.space is added by SetSpace refers to the Riemanian space
 # in which the turtle is moving
@@ -284,11 +283,9 @@ SetSpace(surface, *args):
   turtle.add_parameter('cumrotation', 0) # for parallel transport
   turtle.add_parameter('indirect_interpretation', False)  # to move the turtle indirectly in the parametre space and draw the result in the 3D space
 
-
 EndSpace():
   if hasattr(turtle, 'space'):
     turtle.remove_parameter('space')
-
 
 PlotSpace(*args):
     # when called as PlotSpace({'colorvalfunc' = f, 'cmap' = 'jet', 'Du' = 0.1, 'Dv' = 0.1, 'CCW' = True})
@@ -303,7 +300,6 @@ PlotDS2(*args):
         plotds2(turtle.space, **args[0])
     else:
         plotds2(turtle.space, *args)
-
 
 StartIndirectInterpretation:
   turtle.indirect_interpretation = True
@@ -460,14 +456,38 @@ Staticf(length, dl, cache):
 # Note step 3 to 5. are common with F and f
 
 RiemannLineTo(target_coords, nb_points):
-
+  #print("ENTERING module RiemannLineTo", flush=True)
   try:
     uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
   except:
+    print("Exception caught: do not produce a segment for point: ", target_coords)
+    produce
+    '''
     ii = turtle.indirect_interpretation
     turtle.indirect_interpretation = True
     uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
     turtle.indirect_interpretation = ii
+    '''
+
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  produce
+
+# Identical with max_iter parameter in addition
+RiemannLineTo(target_coords, nb_points,max_iter):
+  #print("ENTERING module RiemannLineTo (with max_iter)", flush=True)
+  try:
+    uvpq_s = riemannianLineTo(turtle, target_coords, nb_points, max_iter = max_iter)
+  except ValueError:
+    print(ValueError,"Exception caught: do not produce a segment for point: ", target_coords)
+    produce
+    '''
+    ii = turtle.indirect_interpretation
+    turtle.indirect_interpretation = True
+    uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
+    turtle.indirect_interpretation = ii
+    '''
 
   for p in apply_forward(turtle, uvpq_s):
         turtle.lineTo(p)

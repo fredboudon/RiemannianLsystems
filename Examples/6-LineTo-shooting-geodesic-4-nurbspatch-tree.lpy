@@ -112,7 +112,7 @@ S:
   ## (too big --> diverge, in particular small segments at the beginning diverge)
   for tgpt in target_pts:
     nproduce F(0.1)
-    nproduce [RiemannShootingLineTo(tgpt,20)]
+    nproduce [RiemannLineTo(tgpt,20)]
   nproduce +(15)F(0.6);(2)@O(0.02)
 
 interpretation:

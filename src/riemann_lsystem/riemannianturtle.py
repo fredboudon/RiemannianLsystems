@@ -318,14 +318,14 @@ def parameterspace_turtle_turn(p_uvpq, surf, deviation_angle):
 
     return uvpq
 
-def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20):
+def geodesic_to_point(space,uv,uvt,nb_points, max_iter):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 
     nb_points includes uv and ut,vt, meaning that for nb_points = 10 for instance, 8 intermediary points will be computed
     in addition to both u,v and ut,vt.
     '''
-
+    #print("ENTERING geodesic_to_point", flush=True)
     # Checks that (ut,vt) = coords of the target point are valid
     ut,vt = uvt
 
@@ -336,7 +336,7 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter=20):
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
-
+    #print("Error = ", errorval)
     return uvpq_s, errorval
 
 def geodesic_shooting_to_point(space,uv,uvt,nb_points):
@@ -368,13 +368,14 @@ def parameterspace_line_to_point(space, uv, uvt, nb_points):
     in addition to both u,v and ut,vt.
     '''
 
+    #print("ENTERING parameterspace_line_to_point", flush=True)
     # Checks that (ut,vt) = coords of the target point are valid
     ut,vt = uvt
 
     if not space.check_coords_domain(ut, vt):
         print("geodesic_to_point: target point out of space coord domain: ", ut, vt)
         return None
-
+    #print("ENTERING parameterspace_line_to_point, after checking coords")
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s = space.parameterspace_line_to_target_point(uv, uvt, nb_points)
