@@ -10,6 +10,7 @@
 """
 
 import numpy as np
+import numpy.linalg as linalg
 
 #from scipy.linalg import solve_banded # works for symmetric or hermitian matrices
 
@@ -45,7 +46,34 @@ def B(h,omega0,omega1,theta0,theta1):
 
     return np.array([B0,B1,B2,B3])
 
-def compute_residual_vec(space, X, delta_s):
+def compute_delta_s(surf,X,m):
+    # Here, X is assumed to have a shape (4*m,)
+
+    # X being defined (a set of (uvpq) values along the path of size m
+    # we approximate the distance between consecutive points
+    # in the Riemannian space by the euclidean chord between these points:
+    # There are m points and m-1 segments indexed 0 .. m-2 in delta_s
+    # with delta_s[k] being the distance P_k+1 - P_k on the curve.
+
+    delta_s = np.zeros(m - 1)
+    for k in range(m - 1):
+        # extracts u,v coords of consecutive points on the curve
+        u1, v1 = X[4 * k], X[4 * k + 1]
+        u2, v2 = X[4 * (k + 1)], X[4 * (k + 1) + 1]
+        # computes the corresponding points (np arrays) in the physical space
+        P1 = surf.S(u1, v1)
+        P2 = surf.S(u2, v2)
+        # the norm is euclidean as a proxy, relying on the fact
+        # that if the points are close enough, we can consider them
+        # almost in a locally euclidean space.
+        # Note that delta_s[k] contains P_k+1 - P_k on the curve
+        delta_s[k] = linalg.norm(P2 - P1)
+
+    print("compute_delta_s:", delta_s)
+    return delta_s
+
+
+def compute_residual_vec_old(space, X, delta_s):
     '''
     Compute the residual of the newton equation (function that should become 0)
 
@@ -95,7 +123,63 @@ def compute_residual_vec(space, X, delta_s):
     # R has dimension 4*m, according to the loop above, two values are missing
     # They correspond to the boundary conditions at the target point
     # [p_4m-1,q_4m-1,u_4m-1,v_4m-1] where the curve should pass through point (u_m-1,v_m-1).
-    R[4*m-2] = R[4*m-1] = 0.
+    R[4*m-2] = R[4*m-1] = 0. #BUG !!! Should be R[4*m-4] = R[4*m-3] = 0 see new procedure below
+
+    return R
+
+def compute_residual_vec(space, X, uv, utvt, delta_s):
+    '''
+    Compute the residual of the newton equation (function that should become 0)
+
+    - X is the state of the current path: a 4*m vector of the form
+    [u0,v0,p0,q0,u1,v1,q1,u1,v1, ...]
+    - delta_s is an array of dimension (m-1) of approximated distances ds_k between
+    consecutive points P_k, P_k+1 contained in X
+    [ds_0,ds_1,..., ds_m-2], where ds_k = |S(u_k+1,v_k+1)-S(u_k,v_k)|
+    '''
+    m, r = divmod(len(X),4)
+    assert(r == 0)   # the vector dim should be a multiple of 4
+
+    G = np.zeros(4*m)  # array of derivatives (corresponds to differential equations)
+    R = np.zeros(4*m)  # array of residuals between consecutive points in the curve
+
+    # Initialization of the G array for k = 0.
+
+    uvpq = (X[0], X[1], X[2], X[3])
+    # Compute G from the geodesic equations (second argument is not used --> set to 0)
+    new_uvpq = space.geodesic_eq(uvpq, 0)
+    G[0],G[1],G[2],G[3] = new_uvpq
+
+    # Initialization of the R array for k = 0 at u,v (and not p,q)
+    # residuals at u,v corresponds to boundary conditions, i.e should be 0
+    R[0] = X[0]-uv[0]
+    R[1] = X[1]-uv[1]
+
+    # then compute the rest of the vectors G (derivatives, used internally) and R (residuals)
+    for k in range(1,m): # k = 1,.., m-1
+        i = 4*k    # index corresponding to kth uvpq set in vector X
+
+        uvpq = (X[i], X[i + 1], X[i + 2], X[i + 3])
+
+        # Compute the discretization of G using the geodesic equations
+        # Note: the second argument is not used by the function geodesic_eq
+        # (0 here after is not used by the function but required in the signature).
+
+        new_uvpq = space.geodesic_eq(uvpq, 0)
+
+        for h in range(4):
+            j = i+h
+            # ex: k = 1, h = 0, => j = 4, j-2 = 2;
+            # ex: k = 2, h = 0, => j = 8, j-2 = 6
+
+            G[j] = new_uvpq[h]
+            R[j - 2] = (X[j] - X[j - 4]) / delta_s[k - 1] - 0.5 * (G[j] + G[j - 4])
+
+    # R has dimension 4*m, according to the loop above, two values are missing
+    # They correspond to the boundary conditions at the target point
+    # [u_4m-1,v_4m-1,p_4m-1,q_4m-1] where the curve should pass through point (u_m-1,v_m-1).
+    R[4*m-4] = X[4*m-4]-utvt[0]
+    R[4*m-3] = X[4*m-3]-utvt[1]
 
     return R
 
@@ -248,6 +332,74 @@ def standardized_L1norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
     #print(f"average sums u,v,p,q: {sum_u/dim : .3f}, {sum_v/dim : .3f}, {sum_p/dim : .3f}, {sum_q/dim : .3f}")
 
     return sum/dim
+
+
+
+
+
+#########################################################
+# Variant on Maekawa's BVP algorithm using least squares
+#########################################################
+
+def bvp_residuals(X, uv, utvt, surf, delta_s):
+
+    # Note that the endpoint constraints on uv and utvt
+    # also taken into account in the definitions of bounds.
+    # see find_solution_bvp() function below.
+
+    R = compute_residual_vec(surf, X, uv, utvt, delta_s)
+
+    return R   # residual vector: its L2 norm should be minimized.
+
+def find_solution_bvp(surf, uvpq_s, utvt):
+    '''
+    uvpq_s is the initial path (= sequence of uvpq starting at u0,v0 in direction p0,q0)
+    Finds the sequence of uvpq coordinates that leads from point (u0,v0)
+    to target point (ut,vt) on a given surface surf on a geodesic,
+    starting with a first guess in direction (p0,q0)
+    '''
+    m = len(uvpq_s)
+    uv = uvpq_s[0][:2]
+
+    X = uvpq_s.reshape(4*m,)
+
+    # array of min bounds on X values: fix the values of u0v0 and utvt
+    # so that they do not vary. All other values are unbounded.
+    bounds_min = np.empty(4*m)
+    bounds_min.fill(-np.inf)
+    bounds_min[0] = uvpq_s[0][0]-10-6
+    bounds_min[1] = uvpq_s[0][1]-10-6
+    bounds_min[m-4] = utvt[0]-10-6
+    bounds_min[m-3] = utvt[1]-10-6
+
+    bounds_max = np.empty(4*m)
+    bounds_max.fill(np.inf)
+    bounds_max[0] = uvpq_s[0][0]+10-6
+    bounds_max[1] = uvpq_s[0][1]+10-6
+    bounds_max[m-4] = utvt[0]+10-6
+    bounds_max[m-3] = utvt[1]+10-6
+
+    delta_s = compute_delta_s(surf,X,m)
+
+    J_mat = build_jacobian_csc(surf, X, delta_s)
+
+    #print(uv,utvt)
+    #print(X,delta_s)
+    #print(J_mat)
+    #X_sol = least_squares(bvp_residuals, X, J_mat_dense, bounds = (bounds_min,bounds_max), args = (uv,utvt,surf,delta_s))
+    X_sol = least_squares(bvp_residuals, X,
+                          jac_sparsity = J_mat,
+                          bounds=(bounds_min, bounds_max),
+                          args=(uv, utvt, surf, delta_s))
+    #X_sol = least_squares(bvp_residuals, X, args=(uv, utvt, surf, delta_s))
+
+    #print("*** Solution least squares= ", X_sol.x)
+    print("*** Reason for stopping --> ", X_sol.status)
+
+    return X_sol.x.reshape((m,4))  ## returns the found path (array of uvpq)
+
+
+
 
 
 #######################################################

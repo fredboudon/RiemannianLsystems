@@ -122,7 +122,7 @@ production:
 S:  
   nproduce [;(2)F(2.2)]
   for tgpt in target_pts:
-    nproduce [RiemannLineTo(tgpt,20)]
+    nproduce [RiemannLineTo2(tgpt,20)]
 
 interpretation:
 

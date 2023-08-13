@@ -339,6 +339,27 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter):
     #print("Error = ", errorval)
     return uvpq_s, errorval
 
+def geodesic_to_point_variant(space,uv,uvt,nb_points):
+    '''
+    Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
+
+    nb_points includes uv and ut,vt, meaning that for nb_points = 10 for instance, 8 intermediary points will be computed
+    in addition to both u,v and ut,vt.
+    '''
+
+    # Checks that (ut,vt) = coords of the target point are valid
+    ut,vt = uvt
+
+    if not space.check_coords_domain(ut, vt):
+        print("geodesic_to_point: target point out of space coord domain: ", ut, vt)
+        return None
+
+    # the returned value may be None if the preconditions are not respected
+    # e.g. (u,v) must be different from (ut,vt)
+    uvpq_s  = space.geodesic_to_target_point_variant(uv, uvt, nb_points)
+
+    return uvpq_s
+
 def geodesic_shooting_to_point(space,uv,uvt,nb_points):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.

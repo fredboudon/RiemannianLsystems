@@ -120,9 +120,12 @@ derivation length: 1 #nb_seg
 production:
 
 S:  
-  nproduce [;(2)F(2.2)]
+  #nproduce [;(2)F(2.2)]
   for tgpt in target_pts:
-    nproduce [RiemannLineTo(tgpt,20)]
+    # BVP Maekawa's method
+    nproduce [RiemannLineTo(tgpt,20)]   
+    # Variant BVP with least squares: first attempt
+    #nproduce [RiemannLineTo2(tgpt,20)] 
 
 interpretation:
 

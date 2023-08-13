@@ -269,12 +269,12 @@ RLineTo(uv, infos):
 RCMoveTo(target_coords, nb_points, infos):
   infos['init'] = turtle.uvpq
   try:
-    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+    uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
   except Exception as e:
     print('Error',e, norm(np.array(target_coords)-turtle.uvpq[:2]))
     ii = turtle.indirect_interpretation
     turtle.indirect_interpretation = True
-    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+    uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
     turtle.indirect_interpretation = ii
   infos['uvpq'] = uvpq_s
   infos['angle'] = estimateRotation(turtle, infos['init'][0],infos['init'][1], infos['init'][2:],uvpq_s[0][2:])
@@ -288,12 +288,12 @@ RCLineTo(target_coords, nb_points, infos):
   infos['init'] = turtle.uvpq
   try:
     error = False
-    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+    uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
   except Exception as e:
     error = True
     ii = turtle.indirect_interpretation
     turtle.indirect_interpretation = True
-    uvpq_s = riemaniannLineTo(turtle, target_coords, nb_points)
+    uvpq_s = riemannianLineTo(turtle, target_coords, nb_points)
     turtle.indirect_interpretation = ii
   infos['uvpq'] = uvpq_s
   infos['angle'] = estimateRotation(turtle, infos['init'][0],infos['init'][1], infos['init'][2:],uvpq_s[0][2:])

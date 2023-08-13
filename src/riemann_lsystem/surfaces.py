@@ -595,14 +595,15 @@ class RiemannianSpace2D:
         #print("BEFORE INITIALIZATION", flush=True)
         X0 = self.parameterspace_line_to_target_point(uv, uvt, m).reshape((4*m,))
         #print("AFTER INITIALIZATION", flush=True)
-        X = np.array(X0)
+        X = np.array(X0)    # to initialize X as a copy of X0
 
         # TODO: BUG: this point very strangely make computation in infinite loop and does not return.
         #  In the file 6-LineTo-geodesic-4-nurbspatch-tree.lpy: Checks what occurs ...
         # For some reason impossible to print anything when the error occurs
         # print must be buffered despite the flag flush = True
-        if uvt[0] == 0. and uvt[1] == 0.9:
-            return X0.reshape((m,4)), None, 4
+
+        #if uvt[0] == 0. and uvt[1] == 0.9:
+        #    return X0.reshape((m,4)), None, 4
 
         # --> Initialization completed here.
 
@@ -615,30 +616,15 @@ class RiemannianSpace2D:
         while not end_test:
             #print('##############  MAIN LOOP i = ', i,flush = True)
             # 1. Evaluate Delta_s = (distance) between curve points.
-            # X being defined (a set of (uvpq) values along the path of size m
-            # we approximate the distance between consecutive points
-            # in the Riemannian space by the euclidean chord between these points:
-            # There are m points and m-1 segments indexed 0 .. m-2 in delta_s
-            # with delta_s[k] being the distance P_k+1 - P_k on the curve.
 
-            delta_s = np.zeros(m-1)
-            for k in range(m-1):
-                # extracts u,v coords of consecutive points on the curve
-                u1, v1 = X[4 * k], X[4 * k + 1]
-                u2, v2 = X[4 * (k+1)], X[4*(k+1) +1]
-                # computes the corresponding points (np arrays) in the physical space
-                P1 = self.S(u1,v1)
-                P2 = self.S(u2,v2)
-                # the norm is euclidean as a proxy, relying on the fact
-                # that if the points are close enough, we can consider them
-                # almost in a locally euclidean space.
-                # Note that delta_s[k] contains P_k+1 - P_k on the curve
-                delta_s[k] = np.linalg.norm(P2-P1)
+            delta_s = compute_delta_s(self,X,m)
+
+            #print('delta_s = ', delta_s)
 
             # 2. Compute the residual vector R corresponding to state X
 
-            #print('delta_s = ', delta_s)
-            R = compute_residual_vec(self, X, delta_s)
+            #R = compute_residual_vec_old(self, X, delta_s)
+            R = compute_residual_vec(self, X, uv, uvt, delta_s)
             #print(R)
             #print(' ----> R norm = ', standardized_L1norm(R))
 
@@ -721,7 +707,22 @@ class RiemannianSpace2D:
         return geodesic_path, np.array(average_delta_X_norm_array), ERROR
 
     # finds the geodesic path between the current position uv and a
-    # target position utvt, made of m points
+    # target position utvt, made of m points by bvp optimization
+    # using least squares (variant of Maekawa).
+    def geodesic_to_target_point_variant(self, uv, utvt, m):
+
+        # Initializes the optimization with a path (array of values [u,v,p,q]) and a length:
+        # 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
+        initial_path = self.parameterspace_line_to_target_point(uv, utvt, m)
+
+        # finds the solution of shooting geodesics
+        geodesic_path = find_solution_bvp(self, initial_path, utvt)
+
+        return geodesic_path
+
+    # finds the geodesic path between the current position uv and a
+    # target position utvt, made of m points, by shooting optimization
+    # using least squares
     def geodesic_shooting_to_target_point(self, uv, utvt, m):
 
         # Initializes the optimization with a path (array of values [u,v,p,q]) and a length:
@@ -731,7 +732,7 @@ class RiemannianSpace2D:
         # finds the solution of shooting geodesics
         geodesic_path = find_shooting_solution(self, initial_path, utvt, m)
 
-        return geodesic_path #, np.array(average_delta_X_norm_array), ERROR
+        return geodesic_path
 
     def path_distance(self, uvpqs):
         """

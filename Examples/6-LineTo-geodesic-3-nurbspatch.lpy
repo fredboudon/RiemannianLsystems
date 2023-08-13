@@ -105,7 +105,7 @@ derivation length: 1 #nb_seg
 production:
 
 S:  
-  nproduce [;(5)F(2)]
+  nproduce [;(2)F(2)]
   ## BUG: Very fragile:
   ## - the number of input points is critical 
   ## (too big --> diverge, in particular small segments at the beginning diverge)

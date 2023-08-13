@@ -126,14 +126,7 @@ S:
 
 interpretation:
 
-maximum depth: 2
 
-A:
-  u,v,p,q = turtle.uvpq
-  A = turtle.space.Shift(u,v)
-  velocity = A.dot(np.array([p,q]))
-  nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
-  #nproduce CovariantBasis(0.3)
 
 
 endlsystem

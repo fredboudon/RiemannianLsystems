@@ -158,6 +158,23 @@ def riemannianLineTo(turtle, target_coords, nb_points, max_iter=LINETO_MAXITER):
 
   return uvpq_s
 
+def riemannianLineTo2(turtle, target_coords, nb_points):
+
+      # 1. Decode args
+      ut, vt = target_coords
+      u, v, p, q = turtle.uvpq
+
+      # 2. Call the algorithm to compute the geodesic between (u,v) and (ut,vt)
+      # nb_points id the total required number of sampling point on the trajectory
+      # including the two end-points
+
+      if turtle.indirect_interpretation:
+          uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
+      else:
+          uvpq_s = geodesic_to_point_variant(turtle.space, (u, v), (ut, vt), nb_points)
+
+      return uvpq_s
+
 def riemannianShootingLineTo(turtle, target_coords, nb_points):
 
       # 1. Decode args
@@ -489,6 +506,18 @@ RiemannLineTo(target_coords, nb_points,max_iter):
     turtle.indirect_interpretation = ii
     '''
 
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  produce
+
+# Variant LineTo method by shooting
+RiemannLineTo2(target_coords, nb_points):
+
+  uvpq_s = riemannianLineTo2(turtle, target_coords, nb_points)
+
+  # plots all the 3D points of the geodesic,
+  # and finally orient the Head along the last segment
   for p in apply_forward(turtle, uvpq_s):
         turtle.lineTo(p)
   orientHead(turtle)
