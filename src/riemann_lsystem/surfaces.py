@@ -535,7 +535,7 @@ class RiemannianSpace2D:
 
         return Xout
 
-    def parameterspace_to_target_point(self, uv, uvt, m):
+    def parameterspace_line_to_target_point(self, uv, uvt, m):
         # Initialization : computes a first the sequence of u,v indexes and their velocity values p,q .
         u,v = uv
         ut,vt = uvt
@@ -579,7 +579,6 @@ class RiemannianSpace2D:
         # combine these 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
         uvpq_init_seq = np.vstack((u_initseq, v_initseq, p_initseq, q_initseq)).T
 
-        # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
         return uvpq_init_seq
 
     def geodesic_to_target_point(self, uv, uvt, m, max_iter, epsilon_conv=1e-3):
@@ -591,8 +590,8 @@ class RiemannianSpace2D:
         - m is the number of discretization points nb_points (including endpoints (u,v) and (ut,vt))
         - max_iter is the maximum number of iteration of the newton method
         '''
-
-        X0 = self.parameterspace_to_target_point(uv, uvt, m).reshape((4*m,))
+        # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
+        X0 = self.parameterspace_line_to_target_point(uv, uvt, m).reshape((4*m,))
         X = np.array(X0)
 
         # --> Initialization completed here.
@@ -699,10 +698,22 @@ class RiemannianSpace2D:
         # The resulting value X is a vector of size 4m make an array of upvq values
         # of size m.
 
-        # the first 4 terms
         geodesic_path = X.reshape((m,4))
 
         return geodesic_path, np.array(average_delta_X_norm_array), ERROR
+
+    # finds the geodesic path between the current position uv and a
+    # target position utvt, made of m points
+    def geodesic_shooting_to_target_point(self, uv, utvt, m):
+
+        # Initializes the optimization with a path (array of values [u,v,p,q]) and a length:
+        # 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
+        initial_path = self.parameterspace_line_to_target_point(uv, utvt, m)
+
+        # finds the solution of shooting geodesics
+        geodesic_path = find_shooting_solution(self, initial_path, utvt, m)
+
+        return geodesic_path #, np.array(average_delta_X_norm_array), ERROR
 
     def path_distance(self, uvpqs):
         """

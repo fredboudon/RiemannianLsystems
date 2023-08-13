@@ -15,8 +15,8 @@ import numpy as np
 
 from scipy.sparse import csc_matrix      # sparse matrix solver
 from scipy.sparse.linalg import spsolve      # sparse matrix solver
-
-
+from scipy.integrate import odeint
+from scipy.optimize import least_squares
 
 def omega(pk,qk,CSj00,CSj01):
 
@@ -250,9 +250,57 @@ def standardized_L1norm(v, MU = 1., MV = 1., MP = 10., MQ = 10.):
     return sum/dim
 
 
+#######################################################
+# Alternative method: Shooting to find the target point
+#######################################################
 
+# Shoots straight in the direction pq = [p,q] over a distance l from point uv = [u,v] (considered constant)
 
+def shooting(pql, uv, surf, SUBDIV):
+    u,v = uv
+    p,q,l = pql
+    n = surf.norm(u, v, [p, q])
+    pp = p / n
+    qq = q / n
 
+    # computes the time tics at which the geodesic equation must be integrated
+    # over l: sudivides [0,l] into SUBDIV points (including extremities)
+    # defining SUBDIV-1 segments with equal space.
+    s = np.linspace(0, l, SUBDIV)
 
+    uvpq_s = odeint(surf.geodesic_eq, np.array([u, v, pp, qq]), s)
+    #print("shootin()--> uv = ", u,v )
+    #print(uvpq_s)
+    return uvpq_s
 
+def shooting_residuals(pql, uv, utvt, surf, SUBDIV):
+
+    uvpq_s = shooting(pql, uv, surf, SUBDIV)
+
+    ufvf = uvpq_s[-1][:2]  # extracts the last uvpq and only the two first elements (u,v)
+    residues_vec = ufvf - utvt
+    return residues_vec
+
+def find_shooting_solution(surf, uvpq_s, utvt, SUBDIV):
+    '''
+    uvpq_s is the initial path (= sequence of uvpq starting at u0,v0 in direction p0,q0)
+    Finds the sequence of uvpq coordinates that leads from point (u0,v0)
+    to target point (ut,vt) on a given surface surf on a geodesic,
+    starting with a first guess in direction (p0,q0)
+    '''
+
+    uv = uvpq_s[0][:2]
+    l = surf.path_distance(uvpq_s)
+    pql = np.array([uvpq_s[0][2], uvpq_s[0][3], l])
+    print("*** pql=", pql,"uv=",uv, "utvt=", utvt)
+    pql_sol = least_squares(shooting_residuals, pql,  args = (uv,utvt,surf,SUBDIV))
+
+    #print("*** Solution least squares= ", pql_sol)
+    print("*** Reason for stopping --> ", pql_sol.status)
+
+    # recomputes the found solution ... (with found p,q,l)
+    #print("uv", uv, "pql_sol.x", pql_sol.x)
+    uvpq_s = shooting(pql_sol.x, uv, surf, SUBDIV)
+    #print(uvpq_s)
+    return uvpq_s  ## returns the found path (array of uvpq)
 
