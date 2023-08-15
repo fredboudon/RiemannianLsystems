@@ -69,7 +69,7 @@ def compute_delta_s(surf,X,m):
         # Note that delta_s[k] contains P_k+1 - P_k on the curve
         delta_s[k] = linalg.norm(P2 - P1)
 
-    print("compute_delta_s:", delta_s)
+    #print("compute_delta_s:", delta_s)
     return delta_s
 
 

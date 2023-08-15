@@ -9,7 +9,7 @@
 
 import numpy as np
 from math import ceil
-from random import random
+from random import random, seed
 
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
@@ -25,8 +25,7 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-PRINT_CURVATURES = False
-PLOTDS2 = False
+seed(0)
 
 #######################
 # Units
@@ -70,11 +69,9 @@ rb = 0.5
 # can draw a dashed geodesic to show how f is acting
 # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
 
-origin_pt = [0.5, 0.5]    # in (u,v) coordinates
-#target_pt =  [2., 0.7]  # in (u,v) coordinates
-
-target_pts = [[-1., 0.9], [-0.5, 0.7], [1., 0.7], [2., 1.3], [2., 0.4],[1.8,-0.4], [2.5,-0.4], [2.8,-0.4]]
-#target_pts = [[1., 0.7]]
+origin_pt = [0.0, 0.0]    # in (u,v) coordinates
+target_pt =  [-1., 0.7]  # in (u,v) coordinates
+target_pts = []
 
 LINETO_MAXITER = 30
 
@@ -91,7 +88,18 @@ LINETO_MAXITER = 30
 #   else:
 #      mu = 0.06 
 
+TEST0 = 0   # Test 0 test one target point only
+TEST1 = 1   # Test 1 does not work for the moment on 0, 2Pi but only on 0,Pi
+TEST2 = 2   # Test 2 creates N random target points and draws a LineTo these poins 
+TEST3 = 3   # Test 3 Same as test 2, but create a point at each step (instead of all at the beginning.
+           # Test 3 does not work for the moment on 0, 2Pi but only on 0,Pi
+
+N = 30     # 30 is Ok. 40 doesnot work as a point seems to lead to infinite computation
+
+TEST = TEST1
+
 Axiom:
+  global target_pts
   # Sets the Riemannian space in which the turtle will move
   #nproduce SetSpace(Sphere(R),None)
   nproduce SetSpace(Sphere(ra))
@@ -111,32 +119,69 @@ Axiom:
   # plots the point at the origin
   nproduce Frame(0.2)
   # plots the target point as a sphere on the surface
-  for tgpt in target_pts:
-    nproduce ;(3)DrawPoint(tgpt,0.05)
-  nproduce S
+  if TEST == 0:
+    nproduce ;(3)DrawPoint(target_pt,0.05)
+    target_pts = [target_pt]
+    nproduce S
+  elif TEST == 1:
+    target_pts = [[-1., 0.9], [-0.5, 0.7], [1., 0.7], [2., 1.3], [2., 0.4],[1.8,-0.4], [2.5,-0.4], [2.8,-0.4]] 
+    #target_pts = [[1., 0.7]]
+    for tgpt in target_pts:
+      nproduce ;(3)DrawPoint(tgpt,0.05)
+    nproduce S
+  elif TEST == 2:
+    # creates 
+    u = []
+    v = []
+    for i in range(N):
+      x = np.pi * random()
+      u.append(x)
+    n = 0
+    while True:
+      y = -np.pi/2 + random()*np.pi
+      if y > np.pi/2 - 0.2 or y < -np.pi/2 + 0.2: # Stay away from the poles ...
+        continue
+      else:
+        v.append(y)
+        n+=1
+      if n > N: 
+        break
+    target_pts = []
+    for i in range(N):
+      tgpt = (u[i],v[i])
+      target_pts.append(tgpt)
+      nproduce ;(3)DrawPoint(tgpt,0.05)
+    nproduce S
+  elif TEST == 3:
+    nproduce A(0)
 
 
-derivation length: 1 #nb_seg
+derivation length: N #nb_seg
 production:
 
 S:  
-  #nproduce [;(2)F(2.2)]
+  nproduce [;(2)F(2.2)]
   for tgpt in target_pts:
     # BVP Maekawa's method
     nproduce [RiemannLineTo(tgpt,20)]   
-    # Variant BVP with least squares: first attempt
+    # Variant BVP with least squares: first attempt:
     #nproduce [RiemannLineTo2(tgpt,20)] 
 
+A(n):
+  x = random()
+  y = random()
+  u = x*np.pi
+  v = -np.pi/2 + y*np.pi
+  if v > np.pi/2 - 0.1 or v < -np.pi/2 + 0.1: # Stay away from the poles ...
+    produce A(n+1)
+  tgpt = [u,v]
+  print(tgpt)
+  nproduce [;(3)DrawPoint(tgpt,0.05)]
+  nproduce [RiemannLineTo(tgpt,20)] 
+  nproduce A(n+1)
+  
 interpretation:
 
-maximum depth: 2
-
-A:
-  u,v,p,q = turtle.uvpq
-  A = turtle.space.Shift(u,v)
-  velocity = A.dot(np.array([p,q]))
-  nproduce ;(5)_(0.01)DrawVect(velocity,0.5)
-  #nproduce CovariantBasis(0.3)
 
 
 endlsystem

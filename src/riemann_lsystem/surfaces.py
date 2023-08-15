@@ -92,7 +92,7 @@ class RiemannianSpace2D:
     but usually they will redefine the some of them.
     '''
 
-    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
+    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False, UPERIODIC = False, VPERIODIC=False):
       # functions to compute the metric
       self.g11 = g11
       self.g12 = g12
@@ -111,8 +111,13 @@ class RiemannianSpace2D:
 
       self.metric_tensor_params = metric_tensor_params
 
+      # Flag to decide whether to stop when a boundary is met during a forward progression
       self.STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U
-      self.STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_U
+      self.STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V
+
+      # periodicity of the parameter domain
+      self.UPERIODIC = UPERIODIC
+      self.VPERIODIC = VPERIODIC
 
     def S(self,u,v):
       """
@@ -131,14 +136,15 @@ class RiemannianSpace2D:
         '''
         boundary_reached = False
 
-        if self.STOP_AT_BOUNDARY_U:
+        # If U/V-PERIODIC the flags STOP_AT_BOUNDARY_U / STOP_AT_BOUNDARY_U are not considered
+        if self.STOP_AT_BOUNDARY_U and not self.UPERIODIC:
             if u > self.umax:
                 boundary_reached = True
                 u = self.umax
-            elif u < self.umin:
+            elif u < self.umin :
                 boundary_reached = True
                 u = self.umin
-        if self.STOP_AT_BOUNDARY_V:
+        if self.STOP_AT_BOUNDARY_V and not self.VPERIODIC:
             if v > self.vmax:
                 boundary_reached = True
                 v = self.vmax
@@ -169,6 +175,25 @@ class RiemannianSpace2D:
         self.STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U  # boolean value
         self.STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V  # boolean value
 
+    def all_periodic_points(self, u,v):
+        '''
+        In case of periodic parameter domains:
+        Returns the set of all points that are equivalent to u,v in the period preceding that of u,v
+        If not periodic, return a list containing only [u,v]
+        '''
+
+        if self.UPERIODIC and self.VPERIODIC: # Both U-V PERIODIC
+            Tu = self.umax - self.umin    #e.g. for a tore Tu = 2 Pi
+            Tv = self.vmax - self.vmin    #e.g. for a tore Tv = 2 Pi
+            return [(u,v),(u-Tu,v),(u,v-Tv),(u-Tu,v-Tv)]
+        elif self.UPERIODIC and not self.VPERIODIC: # U PERIODIC only
+            Tu = self.umax - self.umin
+            return [(u,v),(u-Tu,v)]
+        elif not self.UPERIODIC and self.VPERIODIC: # V PERIODIC only
+            Tu = self.umax - self.umin
+            return [(u,v),(u,v-tv)]
+        else: # NONE is periodic
+            return [(u, v)]
 
     def Shift(self,u,v):
       """
@@ -540,7 +565,7 @@ class RiemannianSpace2D:
         u,v = uv
         ut,vt = uvt
 
-        # print('Got to function geodesic_to_target_point !!!!! ')
+        # print('Got to function parameterspace_line_to_target_point !!!!! ')
         # at least the two endpoints
         assert( m >= 2 )
 
@@ -779,15 +804,15 @@ class ParametricSurface(RiemannianSpace2D):
       """
       print("Shift tensor: base ParametricSurface class - ABSTRACT: NO IMPLEMENTATION")
     '''
-    def __init__(self, umin,umax,vmin,vmax, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
-        super(ParametricSurface, self).__init__(umin=umin,umax=umax,vmin=vmin,vmax=vmax,STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
+    def __init__(self, umin,umax,vmin,vmax, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False,UPERIODIC = False, VPERIODIC=False):
+        super(ParametricSurface, self).__init__(umin=umin,umax=umax,vmin=vmin,vmax=vmax,STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V,UPERIODIC = UPERIODIC, VPERIODIC=VPERIODIC)
 
     def normalizeuv(self, u, v):
-      if self.utoric:
+      if self.UPERIODIC:
           u = self.umin + (u-self.umin) % (self.umax-self.umin) 
       else:
           u = min(self.umax,max(self.umin,u))
-      if self.vtoric:
+      if self.VPERIODIC:
           v = self.vmin + (v-self.vmin) % (self.vmax-self.vmin) 
       else:
           v = min(self.vmax,max(self.vmin,v))
@@ -1102,9 +1127,11 @@ class ParametricSurface(RiemannianSpace2D):
 class Sphere(ParametricSurface):
 
     def __init__(self, R = 1.0):
-        super(Sphere, self).__init__(umin=0, umax=2 * np.pi, vmin=-np.pi/2., vmax=np.pi/2.)
+        super(Sphere, self).__init__(umin=0, umax=2 * np.pi, vmin=-np.pi/2., vmax=np.pi/2.,UPERIODIC = True, VPERIODIC=False)
         self.R = R # radius of the sphere
         self.CIRCUM = 2*np.pi*self.R  # Circumference
+        self.uperiodic = True
+        self.vperiodoc = False
 
     # Surface position vector
     # uvpq is an 1x4 array of reals where:
@@ -1286,7 +1313,7 @@ class PseudoSphere(ParametricSurface):
       # warning: inverse function returns an array for a given input value
       min = inversefunc(pseudo_sphere_z, y_values=zmin, args=(R))
       max = inversefunc(pseudo_sphere_z, y_values=zmax, args=(R))
-      super(PseudoSphere, self).__init__(umin=min,umax=max,vmin=0,vmax=2*np.pi,STOP_AT_BOUNDARY_V=True) # only keep z in the domain
+      super(PseudoSphere, self).__init__(umin=min,umax=max,vmin=0,vmax=2*np.pi,STOP_AT_BOUNDARY_U=True,UPERIODIC = False, VPERIODIC=True) # only keep z in the domain
 
       self.R = R # radius of the sphere
       self.CIRCUM = 2*np.pi*self.R  # Circumference
@@ -1398,7 +1425,7 @@ class PseudoSphere(ParametricSurface):
 class EllipsoidOfRevolution(ParametricSurface):
 
     def __init__(self, a = 1.0, b = 0.5):
-      super(EllipsoidOfRevolution, self).__init__(umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2)
+      super(EllipsoidOfRevolution, self).__init__(umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2,UPERIODIC = True, VPERIODIC=False)
       self.a = a # radius of the circle at equator
       self.b = b # other radius
 
@@ -1579,7 +1606,7 @@ class EllipsoidOfRevolution(ParametricSurface):
 class Torus(ParametricSurface):
 
     def __init__(self, R = 1.0, r = 0.2):
-      super(Torus, self).__init__(umin=0,umax=2*np.pi,vmin=0.,vmax=2*np.pi)
+      super(Torus, self).__init__(umin=0,umax=2*np.pi,vmin=0.,vmax=2*np.pi,UPERIODIC = True, VPERIODIC=True)
       self.R = R # radius of the torus (center to medial circle)
       self.r = r # radius of the torus cylinder
 
@@ -1691,7 +1718,7 @@ class Paraboloid(ParametricSurface):
     """
 
     def __init__(self, radiusmax = 0.5):
-      super(Paraboloid, self).__init__(umin=0,umax=radiusmax,vmin=0.,vmax=2*np.pi)
+      super(Paraboloid, self).__init__(umin=0,umax=radiusmax,vmin=0.,vmax=2*np.pi,UPERIODIC = False, VPERIODIC=True)
 
     def S(self,u,v):
       """ Returns the coordinates (x,y,z) of a position vector restricted to the paraboloid surface
@@ -1765,7 +1792,7 @@ class Paraboloid(ParametricSurface):
 class MonkeySaddle(ParametricSurface):
 
     def __init__(self, a = 1., n=3, umax = 1.):
-      super(MonkeySaddle, self).__init__(umin=0,umax=umax,vmin=0.,vmax=2*np.pi)
+      super(MonkeySaddle, self).__init__(umin=0,umax=umax,vmin=0.,vmax=2*np.pi,UPERIODIC = False, VPERIODIC=True)
 
       self.a = a # dilation factor
       self.n = n # dilation factor
@@ -1859,7 +1886,9 @@ NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
 
 class Patch(ParametricSurface):
 
-    def __init__(self, patch, utoric = False, vtoric = False, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
+    # Note: replaced utoric, vtoric with UPERIODIC, VPERIODIC, initialized both to False by default
+    def __init__(self, patch, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False, UPERIODIC=False, VPERIODIC=False):
+
       self.patch = patch
 
       umin = min(self.patch.uknotList)
@@ -1867,10 +1896,7 @@ class Patch(ParametricSurface):
       vmin = min(self.patch.vknotList)
       vmax = max(self.patch.vknotList)
 
-      self.utoric = utoric
-      self.vtoric = vtoric
-
-      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_U)
+      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
 
 
     def getPointAt(self, u,v):
@@ -2038,11 +2064,11 @@ class ExtrusionSurface(Patch):
       extrusion.uknotList = [extrusion.axis.firstKnot,extrusion.axis.lastKnot]
       cs = extrusion.crossSection
       extrusion.vknotList = [cs.firstKnot,cs.lastKnot]
-      self.vtoric = (norm(cs.getPointAt(cs.firstKnot)-cs.getPointAt(cs.lastKnot)) < 1e-5)
+      VPERIODIC = (norm(cs.getPointAt(cs.firstKnot)-cs.getPointAt(cs.lastKnot)) < 1e-5)
       self.framecache = {}
       self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 
-      super(ExtrusionSurface, self).__init__(extrusion, vtoric=self.vtoric, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
+      super(ExtrusionSurface, self).__init__(extrusion, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V, VPERIODIC=VPERIODIC)
 
       self.build_cache()
 
@@ -2092,7 +2118,6 @@ class ExtrusionSurface(Patch):
       return self.patch.getSecondDerivativeVVAt(u,v, self.getFrame(u))
 
 
-
 class Revolution(ParametricSurface):
     """
     u = theta - azimuthal position around the symmetry axis
@@ -2103,7 +2128,7 @@ class Revolution(ParametricSurface):
     """
 
     def __init__(self, rfunc, args = [], zmin = -2*np.pi, zmax = 2*np.pi):
-      super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STOP_AT_BOUNDARY_V=True) # only keep z in the domain
+      super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STOP_AT_BOUNDARY_V=True, UPERIODIC=True ) # only keep z in the domain
 
       #print('args = ', args)
       #print('rfunc(2.,args)', rfunc(2.,args))

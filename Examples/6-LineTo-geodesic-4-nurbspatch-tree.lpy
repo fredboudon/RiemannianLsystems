@@ -110,8 +110,8 @@ S(n):
     # - Second parameter = nb_segments + 1 to draw the geodesic
     # - Third parameter = nb max of iteration of the Newton method (this third parameter is optional)
     
-    #if n != 4: # There is a bug at point [0,0.9] in target_pts: the algorithm does not return ! --> exclude it
-    nproduce [RiemannLineTo(target_pts[n],20)]
+    if n != 4: # There is a bug at point [0,0.9] in target_pts: the algorithm does not return ! --> exclude it
+      nproduce [RiemannLineTo(target_pts[n],20)]
     nproduce S(n+1)
   else:
     nproduce +(10)F(0.8)A

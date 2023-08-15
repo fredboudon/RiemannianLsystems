@@ -383,10 +383,10 @@ def geodesic_shooting_to_point(space,uv,uvt,nb_points):
 
 def parameterspace_line_to_point(space, uv, uvt, nb_points):
     '''
-    Computes sequences of coords (u,v) to go to uvt.
+    Computes sequences of coords (u,v) to go to uvt within the parameter space
 
-    nb_points includes uv and ut,vt, meaning that for nb_points = 10 for instance, 8 intermediary points will be computed
-    in addition to both u,v and ut,vt.
+    nb_points includes uv and ut,vt, meaning that for nb_points = 10 for instance,
+    8 intermediary points will be computed in addition to both u,v and ut,vt.
     '''
 
     #print("ENTERING parameterspace_line_to_point", flush=True)
