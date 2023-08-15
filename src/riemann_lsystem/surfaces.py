@@ -185,12 +185,16 @@ class RiemannianSpace2D:
         if self.UPERIODIC and self.VPERIODIC: # Both U-V PERIODIC
             Tu = self.umax - self.umin    #e.g. for a tore Tu = 2 Pi
             Tv = self.vmax - self.vmin    #e.g. for a tore Tv = 2 Pi
+            u = u % Tu
+            v = v % Tv
             return [(u,v),(u-Tu,v),(u,v-Tv),(u-Tu,v-Tv)]
         elif self.UPERIODIC and not self.VPERIODIC: # U PERIODIC only
             Tu = self.umax - self.umin
+            u = u % Tu
             return [(u,v),(u-Tu,v)]
         elif not self.UPERIODIC and self.VPERIODIC: # V PERIODIC only
-            Tu = self.umax - self.umin
+            tv = self.vmax - self.vmin
+            v = v % Tv
             return [(u,v),(u,v-tv)]
         else: # NONE is periodic
             return [(u, v)]
@@ -680,6 +684,7 @@ class RiemannianSpace2D:
             elif i >= max_iter:
                 ERROR = -1  # Did not converge before end of iterations,
                            # and error did not kept bounded --> Error
+                end_test = True
             elif average_delta_X_norm > 10 * average_delta_X_norm_array[0]:
                 # We estimate that the solution diverges if before reaching maxiter
                 # the error becomes 100 x the error corresponding to the initial solution.

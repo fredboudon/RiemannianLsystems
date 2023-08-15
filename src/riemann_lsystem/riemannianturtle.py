@@ -336,6 +336,8 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter):
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
+    #uvpq_s = space.parameterspace_line_to_target_point(uv, uvt, nb_points)
+    errorval =0
     #print("Error = ", errorval)
     return uvpq_s, errorval
 

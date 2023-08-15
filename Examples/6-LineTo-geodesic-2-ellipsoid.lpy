@@ -25,9 +25,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-PRINT_CURVATURES = False
-PLOTDS2 = False
-
 #######################
 # Units
 #######################
