@@ -444,11 +444,11 @@ def find_shooting_solution(surf, uvpq_s, utvt, SUBDIV):
     uv = uvpq_s[0][:2]
     l = surf.path_distance(uvpq_s)
     pql = np.array([uvpq_s[0][2], uvpq_s[0][3], l])
-    print("*** pql=", pql,"uv=",uv, "utvt=", utvt)
+    #print("*** pql=", pql,"uv=",uv, "utvt=", utvt)
     pql_sol = least_squares(shooting_residuals, pql,  args = (uv,utvt,surf,SUBDIV))
 
     #print("*** Solution least squares= ", pql_sol)
-    print("*** Reason for stopping --> ", pql_sol.status)
+    #print("*** find_shooting_solution: Reason for stopping --> ", pql_sol.status)
 
     # recomputes the found solution ... (with found p,q,l)
     #print("uv", uv, "pql_sol.x", pql_sol.x)

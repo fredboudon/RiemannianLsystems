@@ -113,7 +113,7 @@ S(n):
     nproduce [RiemannLineTo(target_pts[n],20)]
     nproduce S(n+1)
   else:
-    nproduce +(10)F(0.8)A
+    nproduce +(13)F(0.8)A
 
 
 interpretation:

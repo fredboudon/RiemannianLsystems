@@ -626,11 +626,6 @@ class RiemannianSpace2D:
         #print("AFTER INITIALIZATION", flush=True)
         X = np.array(X0)    # to initialize X as a copy of X0
 
-        # TODO: BUG: this point very strangely make computation in infinite loop and does not return.
-        #  In the file 6-LineTo-geodesic-4-nurbspatch-tree.lpy: Checks what occurs ...
-        # For some reason impossible to print anything when the error occurs
-        # print must be buffered despite the flag flush = True
-
         #if uvt[0] == 0. and uvt[1] == 0.9:
         #    return X0.reshape((m,4)), None, 4
 
@@ -682,7 +677,7 @@ class RiemannianSpace2D:
                            # but error kept bounded --> Ok no error (i.e. ERROR >=0)
                 end_test = True
             elif i >= max_iter:
-                ERROR = -1  # Did not converge before end of iterations,
+                ERROR = -1 # Did not converge before end of iterations,
                            # and error did not kept bounded --> Error
                 end_test = True
             elif average_delta_X_norm > 10 * average_delta_X_norm_array[0]:
@@ -697,7 +692,6 @@ class RiemannianSpace2D:
             #    print(f"******* INSTABILITY DETECTED: error could not be decreased at step {i:d} / {max_iter:d} ")
             #    end_test = True
             else:
-
                 i += 1
 
                 # Estimation of mu as a function of the  error
@@ -739,7 +733,7 @@ class RiemannianSpace2D:
     # finds the geodesic path between the current position uv and a
     # target position utvt, made of m points by bvp optimization
     # using least squares (variant of Maekawa).
-    def geodesic_to_target_point_variant(self, uv, utvt, m):
+    def geodesic_to_target_point_LS(self, uv, utvt, m):
 
         # Initializes the optimization with a path (array of values [u,v,p,q]) and a length:
         # 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]
@@ -753,7 +747,7 @@ class RiemannianSpace2D:
     # finds the geodesic path between the current position uv and a
     # target position utvt, made of m points, by shooting optimization
     # using least squares
-    def geodesic_shooting_to_target_point(self, uv, utvt, m):
+    def geodesic_to_target_point_shoot(self, uv, utvt, m):
 
         # Initializes the optimization with a path (array of values [u,v,p,q]) and a length:
         # 1D array as a (m,4) array [[u0,v0,p0,q0],[u1,v1,p1,q1], ...]

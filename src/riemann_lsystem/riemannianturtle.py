@@ -337,11 +337,11 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter):
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s, error_array, errorval = space.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
     #uvpq_s = space.parameterspace_line_to_target_point(uv, uvt, nb_points)
-    errorval =0
+    #errorval =0
     #print("Error = ", errorval)
     return uvpq_s, errorval
 
-def geodesic_to_point_variant(space,uv,uvt,nb_points):
+def geodesic_to_point_LS(space,uv,uvt,nb_points):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 
@@ -358,11 +358,11 @@ def geodesic_to_point_variant(space,uv,uvt,nb_points):
 
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
-    uvpq_s  = space.geodesic_to_target_point_variant(uv, uvt, nb_points)
+    uvpq_s  = space.geodesic_to_target_point_LS(uv, uvt, nb_points)
 
     return uvpq_s
 
-def geodesic_shooting_to_point(space,uv,uvt,nb_points):
+def geodesic_to_point_shoot(space,uv,uvt,nb_points):
     '''
     Computes initial sequences of coords (u,v) to pass to the newton method solver of the class.
 
@@ -379,7 +379,7 @@ def geodesic_shooting_to_point(space,uv,uvt,nb_points):
 
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
-    uvpq_s  = space.geodesic_shooting_to_target_point(uv, uvt, nb_points)
+    uvpq_s  = space.geodesic_to_target_point_shoot(uv, uvt, nb_points)
 
     return uvpq_s
 

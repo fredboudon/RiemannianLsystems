@@ -96,6 +96,7 @@ TEST3 = 3   # Test 3 Same as test 2, but create a point at each step (instead of
 
 N = 40     # 30 is Ok. 40 doesnot work as a point seems to lead to infinite computation
 
+RIGHT_HEM = False  # to draw points on the right hemisphere. If false Left memisphere is selected
 TEST = TEST2
 
 Axiom:
@@ -135,8 +136,8 @@ Axiom:
     u = []
     v = []
     for i in range(N):
-      #x = np.pi * random()             # For points on the right hemisphere
-      x = -np.pi * random()            # For points on the left hemisphere
+      if RIGHT_HEM : x = np.pi * random()             # For points on the right hemisphere
+      else: x = -np.pi * random()                    # For points on the left hemisphere
       u.append(x)
     n = 0
     while True:
@@ -163,6 +164,7 @@ production:
 
 S:  
   #nproduce [;(2)F(2.2)]
+  
   # Show in green the initial solution
   nproduce StartIndirectInterpretation
   for tgpt in target_pts:
@@ -175,7 +177,7 @@ S:
     # BVP Maekawa's method
     nproduce ;(3)[RiemannLineTo(tgpt,20)]   
     # Variant BVP with least squares: first attempt:
-    #nproduce [RiemannLineTo2(tgpt,20)] 
+    #nproduce [RiemannLineToLS(tgpt,20)]
 
 A(n):
   x = random()
