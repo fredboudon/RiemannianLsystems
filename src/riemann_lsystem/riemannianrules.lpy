@@ -98,6 +98,8 @@ def apply_forward(turtle, uvpq_s):
     # draw a line from the last visited point to the next one in abs coordinates
     if turtle.space.STOP_AT_BOUNDARY_U or turtle.space.STOP_AT_BOUNDARY_V:
       uu, vv, flag = turtle.space.check_coords_domain(uu,vv)
+    #print('apply_forward in for:', uu, vv, pp, qq)
+    #print('apply_forward in for: flag= ', flag)
     yield turtle.space.S(uu,vv)
     if flag: # the drawing stop when a boundary is reached
       break
@@ -105,6 +107,7 @@ def apply_forward(turtle, uvpq_s):
   # ask the parametric surface to check the computed coords and to possibly correct them
   turtle.boundary_reached = flag # by default boundary is not reached at (u,v)
   turtle.uvpq = turtle.space.check_coords([uu, vv, pp, qq])
+  #print('apply_forward:', turtle.uvpq )
 
 
 def forward(turtle, length, dl = 1):
@@ -115,8 +118,11 @@ def forward(turtle, length, dl = 1):
   # 1. Find the nb of segments into which the curve should be divided
   # This nb, which should be < MAXSTEPLEN, will be used to divide the length into steplen=length/stepnb
   # by the riemannian_turtle_move_forward() function.
-  stepnb = int(ceil(length / dl))
-  steplen = length / stepnb
+  #stepnb1 = int(ceil(length / dl))
+  stepnb = int(length // dl)+1   # integer division directly returning an int
+  #print("stepnb, stepnb1", stepnb, stepnb1)
+
+  # steplen = length / stepnb
   #   e.g.
   #     - if len = 1.8 and MAXSTEPLEN = 1.0
   #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
@@ -484,6 +490,7 @@ f(length, dl):
 
 StaticF(length, cache):
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
+        #print('StaticF p:',p)
         turtle.lineTo(p)
     orientHead(turtle)
     produce

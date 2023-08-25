@@ -130,7 +130,7 @@ def __initialiseContext__(context):
 		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
 	vasefunc = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0160347, 0.559939, 1),(0.440107, -0.0643654, 1),(0.905046, 0.267064, 1),(1, 0.135477, 1),(1, 0.00596927, 1)]) , 
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0160347, 0.559939, 1),(0.49309, 0.213797, 1),(0.905046, 0.267064, 1),(1, 0.135477, 1),(1, 0.00596927, 1)]) , 
 	    )
 	vasefunc.name = "vasefunc"
 	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',vasefunc)])

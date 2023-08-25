@@ -31,9 +31,6 @@ from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-PRINT_CURVATURES = True
-PLOTDS2 = False
-
 #######################
 # Units
 #######################
@@ -76,7 +73,7 @@ R = 1.   # Radius of the sphere, or main radius of the torus
 
 # If true, moves the turtle along great circles
 # If not, moves the turtle along a latitude
-GREATCIRCLES = True
+GREATCIRCLES = False
 if GREATCIRCLES :
   NBSTEPS = 3
 else:
@@ -88,7 +85,7 @@ STEPSIZE = R/10.     # size of a step (in a.u.) used to draw pieces of geodesic
 LINEWIDTH = 0.01
 
 # transported arrow
-AngleRelativeToTurtleHead = 0 #0, 30
+AngleRelativeToTurtleHead = -90 #0, 30
 
 # Initialize the surface coordinate and speed [u0,v0,p0,q0]
 # passed as the argument to Param. The second argument is the chosen parametric surface

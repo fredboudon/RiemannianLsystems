@@ -32,7 +32,7 @@ from riemann_lsystem.riemannianturtle import *
 ######################################
 
 ######################################################
-
+extern(FIELD_STRENGTH = 1.) # 0 is no field, 1. is max field
 
 # Hyperbolic metric (Halfplane PoinCaré-Beltrami)
 def g11_hyperbolic(u,v,*args):
@@ -50,9 +50,30 @@ def g12s_hyperbolic(v,u,*args):
 
 def g22_hyperbolic(u,v,*args):
     return 1./v**2
-    return 2. # to cancel space curvature
 def g22s_hyperbolic(v,u,*args):
     return g22_hyperbolic(u,v,*args)
+
+
+
+# Hyperbolic metric (Halfplane PoinCaré-Beltrami)
+def g11_hyperbolic2(u,v,*args):
+    y = 1/(v**2) 
+    return y**FIELD_STRENGTH
+def g11s_hyperbolic2(v,u,*args):
+    return g11_hyperbolic2(u,v,*args)
+
+# g12 == g21
+def g12_hyperbolic2(u,v,*args):
+    return 0.
+def g12s_hyperbolic2(v,u,*args):
+    return g12_hyperbolic2(u,v,*args)
+
+def g22_hyperbolic2(u,v,*args):
+    y = 1/(v**2) 
+    return y**FIELD_STRENGTH
+def g22s_hyperbolic2(v,u,*args):
+    return g22_hyperbolic2(u,v,*args)
+
 
 
 #######################
@@ -95,15 +116,20 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
             # To draw one geodesic, set it to 1 and set dashed to False
 
 slen = 0.5  # segment length
-TREE = True
+extern(TREE = True)
+extern(TEST = 2)
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
+  if TEST == 1:
+    metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
+  elif TEST == 2:
+    metric_funcs = {'g11' : g11_hyperbolic2, 'g12' : g12_hyperbolic2, 'g22' : g22_hyperbolic2, 'g11s' : g11s_hyperbolic2, 'g12s' : g12s_hyperbolic2, 'g22s' : g22s_hyperbolic2}
+
 
   # Note the second argument is optional and set the display 
   argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR' : 20,'CCW' : True}
-  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.5, umax = 1.5, vmin = 0.12, vmax = 2.2))
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2.2, umax = 2.2, vmin = 0.12, vmax = 3.3))
   nproduce ;(0)PlotSpace
   nproduce PlotDS2(dict(DS2_SCALEFACTOR = 20))
   nproduce InitTurtle([-0.1,0.12,0.15,0.9])
@@ -112,7 +138,6 @@ Axiom:
 
 derivation length: 6
 production:
-
 
 A(n):
   # branching angle
@@ -128,7 +153,7 @@ A(n):
 interpretation:
 
 A(n):
-  produce ;(2)@O(0.03)
+  produce ;(2)@O(0.02)
   
 interpretation:
 

@@ -35,20 +35,12 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
             # (F(1) for instance corresponds to a forward move of 1 meter)
 cm = 0.01 * meter
 
-# Surface parameters
-R = 2. * meter   # Radius of the sphere in meter
-
 #######################
 # DISPLAY PARAMETERS
 #######################
 
 # Flags to control the display
 PLOTSPACE = True
-
-# maximum len of subdivision step required to draw any line on the surface
-# this controls the resolution of the geodesic plot with respect to the
-# surface curvature
-MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
 LINEWIDTH  = 1. * cm
@@ -58,44 +50,77 @@ FRAMESIZE  = 0.3 * meter
 FRAMEWIDTH = 1 * cm
 
 #######################
-# SIMULATION PARAMETERS
+# Pin form definition
 #######################
-def vase(x, *args):
+def pin(x, args):
   if x < 0: 
     x = 0.
   # normalization of the argument before calling
-  radius = 1.0     # value by default
-  if args:
-    radius = args[0]
-  u = x / radius
+  scale = 1.0     # value by default
+  radius = 1.0
+  if len(args) > 0:
+    scale = args[0]
+    if len(args) > 1:
+      radius = args[1]
+  u = x / scale
   if u > 1.0:
     u = 1.0
   
-  # restoring the norm of the argument before returning
-  return radius * vasefunc.getValue(u)
+  # rescaling the norm of the argument before returning
+  return scale * pinfunc_4.getValue(u) * radius
 
-N = 200
+SCALE_FACTOR = 2     # multiplicative factor for the whole the pin form 
+RADIUS_FACTOR = 0.5  # multiplicative factor for the radius the pin form 
 
-ra = 1.
-rb = 0.5
+#######################
+# length and the discretization of the trajectory
+#######################
 
-seglen = ra/10.
-length_geodesic =  ra/5
+N = 50                  # number of segments to plot 
+steplen =  0.1 * meter # Length of a path segment (total path length = steplen * N
 
+# the discretization of a step length is controled by constant MAXSTELEN:
+# at each step, if a primitive F(steplen) is used, a segment of length 'steplen'
+# will be plotted. 
+# To plot the curve, a discretization of the curve in n points is made (including the end points)
+# with n-1 segments of equal size dl.
+# n and dl are detrmined as follows:
+# First a maximum size of a segment is defined by the constant MAXSTELE.
+# MAXSTELEN= 0.01 by default.
+# Then, compute:
+# 		n0 = int(length // MAXSTEPLEN)+1    (integer division by a float returns a float)
+# Then the curve is divided into n = n0-1 segments of equal length (and not n0 !) 
+# so that the the length dl of the segments is less or equal to MAXSTEPLEN 
+# (dl = length / (n0-1) ) and thus ensuring that dl <= MAXSTEPLEN.
 
-sensitivity = 2.0 # 1.0 rate of geometric tropism: it is in units of angle per distance units
+MAXSTEPLEN = 0.02 
+
+#######################
+# Controling the tropism field
+#######################
+
+sensitivity = 5 # 1.0 rate of geometric tropism: it is in units of angle per distance units
                  # how much Turtle Head must turn for a distance delta_s at the surface
                  # The actual angle is prop to the angle (between current Head and the principal direction) and to the distance ds
              
-delta_s =  1.0  # 0.05    # Length of a path segment (total path length = delta_s * N
+def PinScalarField(u,v):
+  # it is assumed that umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2
+  # this function return a scalar value between 0 and 1 (0 for v = -pi/2, 1 for v = +pi/2)
+  h = SCALE_FACTOR
+  v = h-v
+  return v/SCALE_FACTOR
 
-#MAXSTEPLEN = 0.3
 
 #########################
 # Selection of tests
 #########################
 
-TEST = 5           # To test different parametric surfaces
+GEODESIC = True           # Displays the pure Geodesic
+TUBE = False               # Displays the tube trajectory = geodesic + deviation due to gradient
+
+STOP_IN_SOURCE_REGION= True # If True, the computations of Geodesics stop as soon as they reach the source region.
+VSOURCE_REGION_DEF = 0.1      # Value of v under which we consider the source region is entered
+
 PRINT_TEST = 2     # To print different types of results related to curvature
 
 def unit_vector(vector):
@@ -116,85 +141,61 @@ def angle_between(v1, v2): # code from on stackoverflow
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
     
     
-def EllipsisScalarField(u,v):
-  # it is assumed that umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2
-  # this function return a scalar value between 0 and 1 (0 for v = -pi/2, 1 for v = +pi/2)
-  return v/np.pi + 0.5
-
-SIZE = 2
-def VaseScalarField(u,v):
-  # it is assumed that umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2
-  # this function return a scalar value between 0 and 1 (0 for v = -pi/2, 1 for v = +pi/2)
-  v = SIZE-v
-  
-  return v/SIZE
+module PrintCurvatures(scalefactor,color_plus,color_minus,linewidth)
 
 Axiom:
-  # Sets the Riemannian space in which the turtle will move
-  u0= 0. #np.pi/6
-  v0= 0.
-  a = np.pi/3. # to orient the turtle's head at the beginning
-  source = [0,0]
-  dic = {}
-  fieldfunc = EllipsisScalarField
-  if TEST == 1:
-    source = [0, np.pi/2]
-    nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
-  elif TEST == 2:
-    nproduce SetSpace(Torus(1,0.5))
-  elif TEST == 3:
-    nproduce SetSpace(MonkeySaddle(a = 1, n=3, umax = 1.))
-  elif TEST == 4:
-    dic = dict(CCW = False) 
-    # Not that in this case, the normals defined from the covariant basis 
-    # are turned inside, and the colors for positive/negative curvatures
-    # are inverted
-    nproduce SetSpace(Patch(patch1))
-  elif TEST == 5:
-    size = SIZE # passed as a supplementary arg to vase
-    fieldfunc = VaseScalarField
-    source = [0,0]
-    nproduce SetSpace(Revolution(vase, (size), zmin = 0, zmax = size))
-    u0= 0 #np.pi/6
-    v0= 1.85 
-    a = 0.08 # to orient the turtle's head at the beginning
-  elif TEST == 6:
-    nproduce SetSpace(Sphere(1.))
-  elif TEST == 7:
-    dic = dict(CCW = False)
-    nproduce SetSpace(Paraboloid(1))
-  elif TEST == 8:
-    dic = dict(CCW = False)
-    nproduce SetSpace(PseudoSphere(1, zmin = 0.1, zmax = 1-0.001))
-  elif TEST == 9:
-    nproduce SetSpace(ChineseHat(1))
+ # Default initial conditions
+  u0= 0.   # azimuthal position
+  v0= 1.9 # altitude (max = SCALE_FACTOR)
+  initial_angle = -118  # 0 is pointing upwards the pin form  
+  
+  field_source = [0,0]
+  fieldfunc = PinScalarField
+  
+  # Draws the space (pin-like form)
+  nproduce SetSpace(Revolution(pin, [SCALE_FACTOR, RADIUS_FACTOR], zmin = 0, zmax = SCALE_FACTOR))
     
-  dic = {'colorvalfunc': fieldfunc, 'cmap' : 'jet', 'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
+  #dic = {'colorvalfunc': fieldfunc, 'cmap' : 'jet', 'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
+  dic = {'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
   nproduce ;(0)PlotSpace(dic)
-  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  
+  # Plots Frame and field source location
   nproduce [
-  # origin of the scalar field diffusion
-  nproduce [InitTurtle([source[0],source[1],0,1]);(3)@O(0.02)]
-  nproduce [;(5)_(LINEWIDTH)@O(0.02)]
+  # Indicates the origin of the scalar field diffusion
+  nproduce [InitTurtle([field_source[0],field_source[1],0,1])]
   # to draw the principal directions on the surface
   #nproduce ;(1)_(LINEWIDTH) S
   nproduce ]
-  # to create the bug
-  #nproduce InitTurtle([21.992213893795522, 1.159536336771708, 3.7862793867527493, 0.17969799842031692])
-  nproduce InitTurtle([u0,v0,1,-0.3])
-  nproduce _(LINEWIDTH) Frame(0.2)
-  nproduce  _(0.01)
-  #nproduce [;(2)?T(ParameterSet())A(N, fieldfunc)]
-  nproduce [G(N)]
-
+  
+  print("Pin form characteristics: Height = ", SCALE_FACTOR,"Half-way diam = ", 2*pin(SCALE_FACTOR/2,[SCALE_FACTOR, RADIUS_FACTOR]) )
+  
+  # Initial position and orientation of the trajectory to compute 
+  nproduce InitTurtle([u0,v0,0,1])
+  nproduce ;(2)@O(0.03)
+  nproduce +(initial_angle)
+  #nproduce _(LINEWIDTH) Frame(0.2) 
+  
+  # Draw the curve(s)
+  nproduce _(0.01) nproduce @Gc
+  if TUBE:
+    if GEODESIC:
+      c = 6
+    else:
+      c = 1
+    nproduce [;(c)?T(ParameterSet())A(fieldfunc)]
+  if GEODESIC:
+    nproduce [?T(ParameterSet())G(N)]
+  nproduce @Ge
+  
 derivation length: N
 production:
 
 # n is the count down of iteration numbers
-?T(t)A(n,f):
-    if n > 0:
-      # ?T(t) contains last parammeters of the turtle at the last interpretation, in particular uvpq
-      u0,v0,p0,q0 = t.uvpq
+?T(t)A(f):
+    # ?T(t) contains last parammeters of the turtle at the last interpretation, in particular uvpq
+    u0,v0,p0,q0 = t.uvpq
+    
+    if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
       
       def fswapped(v,u):
         return f(u,v)
@@ -229,15 +230,19 @@ production:
         alpha = -alpha  
       
       # deflection angle should be alpha in the limit of delta_s = infinity or sensitivity = infinity
-      deflection_angle = sensitivity * alpha * delta_s #/ (1 + sensitivity * delta_s)
+      deflection_angle = sensitivity * alpha * steplen 
       deflection_angle = np.degrees(deflection_angle)
       
       print("Deflection angle:", deflection_angle, "alpha", alpha)
       
-      produce +(deflection_angle) StaticF(delta_s) ?T(ParameterSet()) A(n-1,f)
+      # Plots 
+      if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
+        produce +(deflection_angle) StaticF(steplen) ?T(ParameterSet()) A(f)
 
-G(n):
-  nproduce ;(4)StaticF(delta_s)G(n-1)
+?T(t)G(n):
+  u0,v0,p0,q0 = t.uvpq
+  if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
+    nproduce ;(4)StaticF(steplen)?T(ParameterSet())G(n-1)
   
 interpretation:
 
@@ -245,62 +250,20 @@ maximum depth: 3
 
 S:
   n = 20
-  if TEST == 1: # Ellipsoid: Ok
-    ulist = np.linspace(0,2*pi,n)
-    vlist = np.linspace(-pi,pi,n)
-    scalefactor = 0.05
-    linewidth = 0.003
-  if TEST == 2: # Torus
-    ulist = np.linspace(0,2*pi,n)
-    vlist = np.linspace(-pi,pi,n)
-    scalefactor = 0.07
-    linewidth = 0.007
-  elif TEST == 3: # Monkey saddle: almost ok: change of color of curvature 
-    ulist = np.linspace(0,1,n)
-    vlist = np.linspace(0,2*pi,n)
-    scalefactor = 0.07
-    linewidth = 0.01
-  elif TEST == 4: # NurbsPatch: Ok (normal points inside)
-    ulist = np.linspace(0,1,n)
-    vlist = np.linspace(0,1,n)    
-    scalefactor = 0.01
-    linewidth = 0.002
-  elif TEST == 5: # Revolution surface : one curvature does not appear !!
-    ulist = np.linspace(0,2*pi,n)
-    vlist = np.linspace(0,SIZE,n)    
-    scalefactor = 0.01
-    linewidth = 0.01
-  elif TEST == 6: # Sphere: Ok
-    ulist = np.linspace(0,2*pi,n)
-    vlist = np.linspace(-pi,pi,n)    
-    scalefactor = 0.2
-    linewidth = 0.005
-  elif TEST == 7: # Paraboloid: Ok (normal points inside)
-    ulist = np.linspace(0,1,n)
-    vlist = np.linspace(0,2*pi,n)    
-    scalefactor = 0.06
-    linewidth = 0.002
-  elif TEST == 8: # Pseudosphere: Ok, but pos and neg curvatures seems inverted (normal points inside)
-    ulist = np.linspace(0.3,3,n)
-    vlist = np.linspace(0,2*pi,n)    
-    scalefactor = 0.05
-    linewidth = 0.005
-  elif TEST == 9: # Chinese hat: Does not work
-    ulist = np.linspace(0,0.99,n)
-    vlist = np.linspace(0,2*pi,n)    
-    scalefactor = 0.01
-    linewidth = 0.005
-  
+  ulist = np.linspace(0,2*pi,n)
+  vlist = np.linspace(0,SCALE_FACTOR,n)    
+  scalefactor = 0.01
+  linewidth = 0.01  
   color_plus = 5
   color_minus = 6
   for u in ulist:
     for v in vlist:
       nproduce RiemannMoveTo([u,v]) @O(0.005) 
-      nproduce T(scalefactor,color_plus,color_minus,linewidth)
+      nproduce PrintCurvatures(scalefactor,color_plus,color_minus,linewidth)
       #nproduce Frame(0.1)
   
   
-T(scalefactor,color_plus,color_minus,linewidth):
+PrintCurvatures(scalefactor,color_plus,color_minus,linewidth):
   u,v,p,q = turtle.uvpq
   print(f'u={u:.3f} v={v:.3f} p={p:.3f} q={q:.3f} ')
   
@@ -412,20 +375,34 @@ def __initialiseContext__(context):
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
-	patch1 = pgl.NurbsPatch(	
-	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0.0295491, 0.0172273, 0.0204014, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (0.325603, 0.00690836, 0.425017, 1), (0.303992, 0.200873, 0.366263, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.00441042, -0.518639, 0.489863, 1), (0.346984, -0.0268568, 0.48347, 1), (0.334252, 0.212297, 0.456407, 1), (-0.0147519, 0.496314, 0.461605, 1)], [(0, -0.5, 0.666667, 1), (0.367414, 0.0717941, 0.599293, 1), (0.325871, 0.177369, 0.550018, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0.000294821, 0.152723, 1.00003, 1), (0, 0.5, 1, 1)]]) , 
-vstride = 20 , 	    )
-	patch1.name = "patch1"
-	import openalea.plantgl.all as pgl
-	vasefunc = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0368201, 0.260583, 1),(0.506336, 0.0733913, 1),(0.867958, 0.190238, 1),(0.990524, 0.129466, 1),(1, 0.00596927, 1)]) , 
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.211184, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
 	    )
-	vasefunc.name = "vasefunc"
-	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1),('Function',vasefunc)])
+	pinfunc.name = "pinfunc"
+	pinfunc_2 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.15, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_2.name = "pinfunc_2"
+	pinfunc_3 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.075, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_3.name = "pinfunc_3"
+	pinfunc_4 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_4.name = "pinfunc_4"
+	pinfunc_5 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, -0.05, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_5.name = "pinfunc_5"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',pinfunc),('Function',pinfunc_2),('Function',pinfunc_3),('Function',pinfunc_4),('Function',pinfunc_5)])
 	parameterset = [panel_0,]
-	context["__functions__"] = [('vasefunc',vasefunc),]
+	context["__functions__"] = [('pinfunc',pinfunc),('pinfunc_2',pinfunc_2),('pinfunc_3',pinfunc_3),('pinfunc_4',pinfunc_4),('pinfunc_5',pinfunc_5),]
 	context["__curves__"] = []
 	context["__parameterset__"] = parameterset
-	context["patch1"] = patch1
-	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
+	context["pinfunc_2"] = pgl.QuantisedFunction(pinfunc_2)
+	context["pinfunc_3"] = pgl.QuantisedFunction(pinfunc_3)
+	context["pinfunc_4"] = pgl.QuantisedFunction(pinfunc_4)
+	context["pinfunc_5"] = pgl.QuantisedFunction(pinfunc_5)
 __references__ = '#'

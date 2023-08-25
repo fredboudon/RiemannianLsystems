@@ -57,8 +57,9 @@ from scipy.misc import derivative
 # Note that the original function func, may have optional arguments
 
 # Create a function with a single argument from a known list of arguments (function parameters)
-# given as a list: eg. gen_func(f,(2,3,10))
-# means f(x,2,3,10)
+# given as a list: eg. gen_func(f,(2,3,10)) means f(x,2,3,10)
+# This makes it possible to see f(x,y,z,t) as f(x) and y,z,t are considered as constant arguments
+# whose values are given at the construction of the function by gen_fun
 def gen_func(func, *args):
     def ff(x):
         return func(x, *args)
@@ -2120,13 +2121,13 @@ class ExtrusionSurface(Patch):
 class Revolution(ParametricSurface):
     """
     u = theta - azimuthal position around the symmetry axis
-    v = z - altitude on the symmetry axis
+    v = z     - altitude on the symmetry axis
 
     r is a function of z (i.e. v) that defines in 3D the radius of the point at altitude z
     The first and second derivatives are computed automatically
     """
 
-    def __init__(self, rfunc, args = [], zmin = -2*np.pi, zmax = 2*np.pi):
+    def __init__(self, rfunc, args = [], zmin = 0, zmax = 1):
       super(Revolution, self).__init__(umin=0,umax=2*np.pi,vmin=zmin,vmax=zmax,STOP_AT_BOUNDARY_V=True, UPERIODIC=True ) # only keep z in the domain
 
       #print('args = ', args)
@@ -2237,20 +2238,20 @@ class Revolution(ParametricSurface):
         r1 = self.rprime(v)
         r2 = self.rsecond(v)
         den = 1 + r1 ** 2
-
+        #print ('geodesic_eq: r = ', r2)
         # Are we on a degenerated point (Gamma coeff diverging)
         if np.isclose(r, 0.):
             # If yes slightly approximates the equation to avoid divergence at the pole
             # by pretending that p keeps constant while the point is in the narrow
             # degenerated region.
 
-            #print("Surface of revolution: Degenerated point detected ...")
+            #print("geodesic_eq: Surface of revolution: Degenerated point detected ...")
 
             # makes the approximation that p does not change close to this very narrow region this avoids the
             # divergence of p at the poles
-
             return [p, q, p, -r1 * r2 * (q ** 2) / den + r * r1 * (p ** 2) / den]
         else:  # standard equation
+            #print("geodesic_eq: [uvpqp'q']",[u, v, p, q, -2 * p * q * r1 / r, -r1 * r2 * (q ** 2) / den + r * r1 * (p ** 2) / den])
             return [p, q, -2 * p * q * r1 / r, -r1 * r2 * (q ** 2) / den + r * r1 * (p ** 2) / den]
 
 

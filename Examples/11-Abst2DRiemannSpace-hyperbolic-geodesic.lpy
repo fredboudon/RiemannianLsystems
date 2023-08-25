@@ -94,7 +94,7 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
             # To draw one geodesic, set it to 1 and set dashed to False
 
 slen = 3 # 
-TEST = 2
+TEST = 2  # 1: 
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move

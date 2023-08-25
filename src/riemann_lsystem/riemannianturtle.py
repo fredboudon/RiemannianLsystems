@@ -171,10 +171,9 @@ def riemannian_turtle_init(uvpq, space):
 
 def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = True, INT_METHOD = 1):
     uu, vv, pp, qq = p_uvpq
-    # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
+    #print ("riemannian_turtle_move_forward 0: input uvpq = ", [uu,vv,pp,qq] )
 
-    # if endflag and deviation_angle != 0 :
-    #  print ("uvpq just after turning = ", [uu,vv,npq[0:2]] )
+    # print("Norm pq", np.linalg.norm(np.array([pp,qq])))
     #  print ("pq norm before rot = ", surf.norm(uu,vv,np.array([pp,qq])))
     #  print ("pq norm after rot  = ", surf.norm(uu,vv,npq[0:2]) )
 
@@ -212,7 +211,9 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
 
         # Now we can compute the time tics at which the geodesic equation must be integrated
         # over the entire delta_s
+
         s = np.linspace(0, delta_s, SUBDIV)
+        #print('riemannian_turtle_move_forward 1: delta = ', delta_s, 'SUBDIV = ', SUBDIV, 's = ', s)
 
     # 2. second method (v != 1, delta_s is scaled by 1/v)
     else :
@@ -237,10 +238,15 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
     # solve_ivp seems to be more rapid TODO: compare efficiency of both method in time.
     # however when degenerated points are encountered apparently odeint behaves better in some cases than solve_ivp
     # (see for instance file: 1-geodesic-sphere.lpy, AXIOMTEST = 1 and TEST = 3 (spherical triangle))
-    if INT_METHOD == 1:    # integration method = odeint
+    if INT_METHOD == 1:    # Default integration method = odeint
         # scipy.integrate.odeint(func, y0, t, args=(), Dfun=None, col_deriv=0, full_output=0, ml=None, mu=None, rtol=None, atol=None, tcrit=None, h0=0.0, hmax=0.0, hmin=0.0, ixpr=0, mxstep=0, mxhnil=0, mxordn=12, mxords=5, printmessg=0, tfirst=False)
-        uvpq_s = odeint(surf.geodesic_eq, np.array([uu, vv, npq[0], npq[1]]), s)
-        #print(uvpq_s)
+
+        uvpq_s, resdict = odeint(surf.geodesic_eq, np.array([uu, vv, npq[0], npq[1]]), s, rtol = 1.49012e-5, atol = 1.49012e-5, full_output = 1)
+        #uvpq_s = odeint(surf.geodesic_eq, np.array([uu, vv, npq[0], npq[1]]), s)
+        #print("riemannian_turtle_move_forward 2: computed uvpq_s: ")
+        #if not resdict['imxer'] == -1:
+        #print("*******  ******  ", resdict['imxer'] )
+        #print (uvpq_s)
     else:                 # integration method = solve_ivp
         # scipy.integrate.solve_ivp(fun, t_span, y0, method='RK45', t_eval=None, dense_output=False, events=None, vectorized=False, args=None, **options)
         # by default uses RungeKutta of order 4/5
