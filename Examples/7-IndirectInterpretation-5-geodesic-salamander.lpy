@@ -278,7 +278,7 @@ RCMoveTo(target_coords, nb_points, infos):
     turtle.indirect_interpretation = ii
   infos['uvpq'] = uvpq_s
   infos['angle'] = estimateRotation(turtle, infos['init'][0],infos['init'][1], infos['init'][2:],uvpq_s[0][2:])
-  infos['length'] = turtle.space.path_distance(uvpq_s)
+  infos['length'] = turtle.space.path_length(uvpq_s)
   turtle.move(turtle.space.S(uvpq_s[-1][0],uvpq_s[-1][1]))
   turtle.uvpq = uvpq_s[-1]
   orientHead(turtle)
@@ -297,7 +297,7 @@ RCLineTo(target_coords, nb_points, infos):
     turtle.indirect_interpretation = ii
   infos['uvpq'] = uvpq_s
   infos['angle'] = estimateRotation(turtle, infos['init'][0],infos['init'][1], infos['init'][2:],uvpq_s[0][2:])
-  infos['length'] = turtle.space.path_distance(uvpq_s)
+  infos['length'] = turtle.space.path_length(uvpq_s)
   if error:
     c = turtle.getColor()
     turtle.setColor(7)

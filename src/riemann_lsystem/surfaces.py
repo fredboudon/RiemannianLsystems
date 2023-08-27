@@ -266,6 +266,18 @@ class RiemannianSpace2D:
 
       return vector
 
+    def pushforward(self,u,v,vec):
+      '''
+      Implements the push-forward operator divrectly on a vector v of shape 2 x 1 (2D array)
+      '''
+      A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
+
+      # Computes the 3D vector corresponding to the vector p,q
+      # in the tangent plane at point u,v.
+      pushedvector = A.dot(np.array(vec))
+
+      return pushedvector
+
     def metric_tensor(self, u, v):
         args = self.metric_tensor_params # args is a store in the object as a tuple
         guu = self.g11(u, v, *args)      # args is unpacked before calling the function
@@ -759,9 +771,9 @@ class RiemannianSpace2D:
 
         return geodesic_path
 
-    def path_distance(self, uvpqs):
+    def path_length(self, uvpqs):
         """
-        Compute the geometric distance between set of points given by uvpqs
+        Compute the geometric distance between set of points given by uvpqs (uvpq sequence)
         """
         P1 = self.S(uvpqs[0][0], uvpqs[0][1])
         dist = 0.
@@ -780,7 +792,7 @@ class RiemannianSpace2D:
 
         uvpq, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
-        dist = self.path_distance(uvpq)
+        dist = self.path_length(uvpq)
 
         #print("Dist(A,B) = ", dist)
         return dist, errarray, errorval

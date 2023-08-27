@@ -169,7 +169,7 @@ def riemannianLineTo(turtle, target_coords, nb_points, variant = '', max_iter=LI
       ut,vt = tgpt
       if turtle.indirect_interpretation:
         uvpq_s = parameterspace_line_to_point(turtle.space, (u,v), (ut,vt), nb_points)
-        length = turtle.space.path_distance(uvpq_s) # the length of the path on the surface is used !!
+        length = turtle.space.path_length(uvpq_s) # the length of the path on the surface is used !!
       else:
         #print("Processing target point: ", ut,vt, flush=True)
         if variant == 'LS': # To avoid calling geodesic_to_point when debugging
@@ -180,7 +180,7 @@ def riemannianLineTo(turtle, target_coords, nb_points, variant = '', max_iter=LI
             error_val = 0
         else:
             uvpq_s, errorval = geodesic_to_point(turtle.space, (u,v), (ut,vt), nb_points, max_iter=max_iter)
-      length = turtle.space.path_distance(uvpq_s)
+      length = turtle.space.path_length(uvpq_s)
       if length < min_length:
           min_length = length
           uvpq_s_opt = uvpq_s
@@ -207,15 +207,15 @@ def riemannianLineToLS(turtle, target_coords, nb_points):
           ut, vt = tgpt
           if turtle.indirect_interpretation:
               uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
-              length = turtle.space.path_distance(uvpq_s)
+              length = turtle.space.path_length(uvpq_s)
           else:
               # print("Processing target point: ", ut,vt, flush=True)
               if DEBUG:  # To avoid calling geodesic_to_point when debugging
                   uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
-                  length = turtle.space.path_distance(uvpq_s)
+                  length = turtle.space.path_length(uvpq_s)
               else:
                   uvpq_s = geodesic_to_point_variant(turtle.space, (u, v), (ut, vt), nb_points)
-                  length = turtle.space.path_distance(uvpq_s)
+                  length = turtle.space.path_length(uvpq_s)
           if length < min_length:
               min_length = length
               uvpq_s_opt = uvpq_s
@@ -238,15 +238,15 @@ def riemannianLineToShoot(turtle, target_coords, nb_points):
           ut, vt = tgpt
           if turtle.indirect_interpretation:
               uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
-              length = turtle.space.path_distance(uvpq_s)  # should be updated with correct computation
+              length = turtle.space.path_length(uvpq_s)  # should be updated with correct computation
           else:
               # print("Processing target point: ", ut,vt, flush=True)
               if DEBUG:  # To avoid calling geodesic_to_point when debugging
                   uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
-                  length = turtle.space.path_distance(uvpq_s)
+                  length = turtle.space.path_length(uvpq_s)
               else:
                   uvpq_s = geodesic_shooting_to_point(turtle.space, (u, v), (ut, vt), nb_points)
-                  length = turtle.space.path_distance(uvpq_s)
+                  length = turtle.space.path_length(uvpq_s)
           if length < min_length:
               min_length = length
               uvpq_s_opt = uvpq_s
@@ -294,6 +294,18 @@ def turn(turtle, angle):
 
 production:
 decomposition:
+
+# These decomposition rules introduce a variable cache that will be kept in the L-string
+# and make it possible to reuse computations done in this step (such as the uvpq trajectory
+# for future use.
+# These rules check the last argument and check whether it is a dictionary. If not
+# they add a dictionary argument to the module (and thus change their signature :-(
+
+# Note that StaticF must belong to the deep lstring and not to the lstring produced by the interpretation rules
+# as the added argument of
+
+# TODO: HOWEVER this modifies the signature of the StaticF arguments and prevent them to be used in
+#      the pattern matching rules (as the number of arguments will be used in the matching rule)
 StaticF(length):
     produce StaticF(length, {})
 
@@ -489,6 +501,9 @@ f(length, dl):
 ## Static Version
 
 StaticF(length, cache):
+    # cache is a dic. May be empty or not
+    # if not, a forward will be called by cached_forward and
+    # will fill in the cache dict with a 'uvpq' entry
     for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
         #print('StaticF p:',p)
         turtle.lineTo(p)

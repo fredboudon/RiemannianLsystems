@@ -67,7 +67,7 @@ def pin(x, args):
     u = 1.0
   
   # rescaling the norm of the argument before returning
-  return scale * pinfunc_4.getValue(u) * radius
+  return scale * pinfunc_3.getValue(u) * radius
 
 SCALE_FACTOR = 2     # multiplicative factor for the whole the pin form 
 RADIUS_FACTOR = 0.5  # multiplicative factor for the radius the pin form 
