@@ -42,53 +42,75 @@ def line_intersection(points1, points2):
         return None
 
 class LineIntersection:
-    def __init__(self, numericratio = 1):
-        self.points = {}
+    def __init__(self, numericalratio = 1):
+        """
+        This register set of lines and is able to determine if an intersection exists with a new line.
+        """
+        # A dictionnary of id, set of points composing a line
+        self.lines = {}
+        # A simple bounding volume hierarchy represented as a dict associating line ids with min and max coordinates
         self.bvh = {}
-        self.numericratio = numericratio
+        # A ratio with which all coordinates are multiplied to avoid numerical issues
+        self.numericalratio = numericalratio
 
     def __contains__(self, lineid):
-        return lineid in self.points
+        return lineid in self.lines
 
     def ids(self):
-        return self.points.keys()
+        """ Return all the ids of the lines """
+        return self.lines.keys()
 
     def add_line(self, points, id = None):
-        points = np.array(points)*self.numericratio
-        if not id in self.points:
-            self.points[id] = points
+        """ Add a new line. Return its id """
+        points = np.array(points)*self.numericalratio
+        if not id in self.lines:
+            self.lines[id] = points
         else:
-            self.points[id] = np.concatenate((self.points[id],points))
-        self.bvh[id] = bbox(self.points[id])
+            self.lines[id] = np.concatenate((self.lines[id],points))
+        self.bvh[id] = bbox(self.lines[id])
         return id
 
     def line_points(self, lineid):
-        return self.points[lineid]
+        """ Return the points of a line """
+        return self.lines[lineid]
 
     def bboxes(self, pos):
+        """ Return the bounding box ids containing the points """
         result = []
         for bid, bbxL in self.bvh.item():
-            if bbox_pt_intersect(np.array(pos)*self.numericratio, bbxL):
+            if bbox_pt_intersect(np.array(pos)*self.numericalratio, bbxL):
                result.append(bid)
         return result
 
     def nb_bboxes(self, pos):
+        """ Return the number of bounding boxes containing the point """
         return len(self.bboxes(pos))
 
     def test_inter_intersection(self, lid1, lid2):
+        """
+        Test intersection between 2 lines of self.
+        """
         #return bbox_intersect(self.bvh[lid1], self.bvh[lid2])
-        return self.test_intersection(self.points[lid1]/self.numericratio, exclude=[lid for lid in self.ids() if lid != lid2])
+        return self.test_intersection(self.lines[lid1]/self.numericalratio, exclude=[lid for lid in self.ids() if lid != lid2])
 
     def test_intersection_to_other(self, lid1):
+        """
+        Test intersection of one line of self with the others.
+        """
         #return bbox_intersect(self.bvh[lid1], self.bvh[lid2])
-        return self.test_intersection(self.points[lid1]/self.numericratio, exclude=[lid1])
+        return self.test_intersection(self.lines[lid1]/self.numericalratio, exclude=[lid1])
 
     def test_intersection(self, points, bbxtestonly = False, verbose = False, exclude = []):
         """
+        Test the intersection of the line defined by points with line defined in self.
+        ::Args::
+         - bbxtestonly : make only the bounding box test
+         - verbose : print information during test
+         - exclude : list of ids of lines of self to not test
         Return False in case of non intersection
         Return point id before intersection, line id with which it intersect
         """
-        points = np.array(points)*self.numericratio
+        points = np.array(points)*self.numericalratio
         bbxC = bbox(points)
 
         exclude = set(exclude)
