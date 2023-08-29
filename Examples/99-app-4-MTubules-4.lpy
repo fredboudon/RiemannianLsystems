@@ -79,7 +79,7 @@ N = 10           #  Number of initial segments of size DL
 PolRate = 1      # cm/sec
 DepRate = 1      # cm/sec
 
-K = 1           # number of microtubules
+K = 10           # number of microtubules
 
 Axiom:
   nproduce SetSpace(EllipsoidOfRevolution(ra,rb))

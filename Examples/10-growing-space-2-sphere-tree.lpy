@@ -80,7 +80,7 @@ q0 = 1.
 intersections = LineIntersection()
 budid = 0
 
-nb_initstep = max_rank
+nb_initstep = max_rank  # Controls the growth of the initial structure, before starting to grow the space
 nb_growthstep = 20
 
 
@@ -96,6 +96,7 @@ def Start():
 def StartEach():
   global intersections,activebuds
   frameDisplay(True)
+  # Creates a place to store all the lines drawn by the turtle during one production step
   intersections = LineIntersection()
   activebuds = 0
 
@@ -104,11 +105,17 @@ def EndEach(lstring, lscene):
   assert not lscene is None
   print('*******',getIterationNb())
   if activebuds == 0:
+<<<<<<< HEAD
     spacegrowth = True
+=======
+    # Flag indicating whether the space must grow (or not)
+    togrowth = True
+>>>>>>> b076780cbe7f9a67e2aa5c127a7b436aaae3898c
     
 
 space = EllipsoidOfRevolution(R,1.5*R) #Sphere(R)
 
+# function of the number of boxes intersecting a point
 def energy(u,v):
   return intersections.nb_bboxes((u,v))
 
@@ -124,7 +131,7 @@ Axiom:
   global budid
   # Sets the Riemannian space in which the turtle will move
   nproduce MySpace(0)
-  dx = 0.05
+  dx = 0.05  # dx in the vizualization of MySpace
   nproduce ;(0)PlotSpace() #energy, 'jet', dx, dx)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
   nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0]);(1) +(1)  A(0, 0, max_rank, {'intersect' : False}, budid)]
