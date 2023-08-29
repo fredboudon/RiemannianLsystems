@@ -123,7 +123,7 @@ def energy2(u,v):
     return 1 - (b % 2)
 
 def to_uv(uvpq, minindex = 0, maxindex = -1):
-  return [(u,v) for u,v,p,q in uvpq[minindex:maxindex]]
+  return [(u,v) for u,v,p,q in uvpq]
 
 module MySpace(time, space)
 module PotentialMetamer
@@ -148,11 +148,10 @@ MySpace(t, space):
     # Simulate growth of the space
     print('Growth')
     R += dR
-    spacegrowth = False
-    
-  if t >= nb_initstep:
+    spacegrowth = False    
     # Allow tree structure to ramify more after initialization
     max_order = 5
+    
   space = EllipsoidOfRevolution(R,1.5*R) # Sphere(R)
   nproduce MySpace(t+1, space)
 
@@ -162,16 +161,17 @@ PotentialMetamer(length, order, rank, max_rank, segmentinfo, bid):
   # max_rank the maximum rank allowed.
   # test is the result of the intersection test made in the interpretation part.
   global lineset, budid
+  
   bangle = 60
   if 'uvpq' in segmentinfo and len(segmentinfo['uvpq']) > 0:
-      # ramification is limited in term of segment rank and ramification order.
+      # segment info should have been computed.
       uvpqs = segmentinfo['uvpq']
       if segmentinfo['intersect']:
         # if intersection occurs
         if DORMANT_BUD:
           nproduce  A(order, rank, max_rank, segmentinfo, bid)          
         elif LINKVEINS:
-          lineset.add_line(to_uv(uvpqs,segmentinfo['intersectpos']), bid)
+          lineset.add_line(to_uv(uvpqs,maxindex=segmentinfo['intersectpos']), bid)
           nproduce Segment(uvpqs, order, bid)
       else:
         
@@ -184,10 +184,8 @@ PotentialMetamer(length, order, rank, max_rank, segmentinfo, bid):
           nproduce [-(bangle * pow(-1,order)) A(order+1, 0, mrank, {}, budid+1) ]
           nproduce  A(order, rank+1, max_rank, {}, budid+2)
           budid += 3
-  else:
-      produce A(order, rank, max_rank, segmentinfo, bid) 
 
-Segment(uvpqs, bid):
+Segment(uvpqs, order, bid):
   # Register segment in the intersections object to make it detectable when testing new growth
   global lineset
   lineset.add_line(to_uv(uvpqs), bid)
@@ -235,10 +233,10 @@ PotentialMetamer(length, order, rank, max_rank, segmentinfo, bid):
       segmentinfo['uvpq']=uvpq_s[:int(len(uvpq_s)/DETECT_RATIO)]
       intersection = lineset.test_intersection(to_uv(uvpq_s))
     
-    if intersection and order > 0:
+    if not intersection is False :
         # Intersection occurs
-        segmentinfo['intersect']=True
-        segmentinfo['intersectpos']=intersection[0]
+        segmentinfo['intersect'] = True
+        segmentinfo['intersectpos'] = intersection[0]
     else :
       # No intersection
       global activebuds
@@ -249,7 +247,7 @@ PotentialMetamer(length, order, rank, max_rank, segmentinfo, bid):
     
     if DISPLAY_BUDS:
       # display a sphere
-      nproduce ,(2 if not segmentinfo['intersect'] else 3)@O()
+      nproduce ,(2 if not segmentinfo['intersect'] else 3)@Di(2) @O()
     if ID:
       # display id
       nproduce [RiemannMoveTo(uvpq_s[1][:2]) RiemannPinpoint(uvpq_s[1][2:])^(90)f(5),(10) Label(str(bid),16)]

@@ -123,7 +123,7 @@ class LineSet:
         :param bbxtestonly : make only the bounding box test
         :param verbose : print information during test
         :param exclude : list of ids of lines of self to not test
-        :return: False in case of non intersection, (point id before intersection, line id with which it intersect) else
+        :return: False in case of non intersection, (point id before intersection, point id before intersection of intersected line, line id with which it intersect) else
         """
         linepoints = np.array(linepoints)*self.numericalratio
         bbxC = bbox(linepoints)
