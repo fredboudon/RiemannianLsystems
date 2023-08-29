@@ -18,8 +18,8 @@ def segmentIntersect(p1a,p1b,p2a,p2b):
     if alpha <= 0 or 1-alpha <= 0 : return False
     return True #, p1a+beta*d1, p2a+alpha*d2
 
-def bbox(points):
-    return (np.min(points,axis=0),np.max(points,axis=0))
+def bbox(pointset):
+    return (np.min(pointset,axis=0),np.max(pointset,axis=0))
 
 def bbox_intersect(bbx1, bbx2):
     for i in range(2):
@@ -33,20 +33,20 @@ def bbox_pt_intersect(pt, bbx):
         if pt[i] <  bbx[0][i] : return False
     return True
 
-def line_intersection(points1, points2):
-        for i, (p1a, p1b) in enumerate(zip(points1,points1[1:])):
-            for p2a, p2b in zip(points2,points2[1:]):
+def line_intersection(pointset1, pointset2):
+        for i, (p1a, p1b) in enumerate(zip(pointset1,pointset1[1:])):
+            for j, (p2a, p2b) in enumerate(zip(pointset2,pointset2[1:])):
                 if segmentIntersect(p1a,p1b,
                                     p2a,p2b):
-                    return i
+                    return i,j
         return None
 
 class LineIntersection:
     def __init__(self, numericalratio = 1):
         """
-        This register set of lines and is able to determine if an intersection exists with a new line.
+        This object registers set of lines and is able to determine if an intersection exists with a new line.
         """
-        # A dictionnary of id, set of points composing a line
+        # A dictionnary of (id, set of points composing a line)
         self.lines = {}
         # A simple bounding volume hierarchy represented as a dict associating line ids with min and max coordinates
         self.bvh = {}
@@ -75,7 +75,7 @@ class LineIntersection:
         return self.lines[lineid]
 
     def bboxes(self, pos):
-        """ Return the bounding box ids containing the points """
+        """ Return the bounding box ids containing the point pos """
         result = []
         for bid, bbxL in self.bvh.item():
             if bbox_pt_intersect(np.array(pos)*self.numericalratio, bbxL):
@@ -83,7 +83,7 @@ class LineIntersection:
         return result
 
     def nb_bboxes(self, pos):
-        """ Return the number of bounding boxes containing the point """
+        """ Return the number of bounding boxes containing the point pos """
         return len(self.bboxes(pos))
 
     def test_inter_intersection(self, lid1, lid2):
@@ -100,18 +100,19 @@ class LineIntersection:
         #return bbox_intersect(self.bvh[lid1], self.bvh[lid2])
         return self.test_intersection(self.lines[lid1]/self.numericalratio, exclude=[lid1])
 
-    def test_intersection(self, points, bbxtestonly = False, verbose = False, exclude = []):
+    def test_intersection(self, linepoints, bbxtestonly = False, verbose = False, exclude = []):
         """
-        Test the intersection of the line defined by points with line defined in self.
+        Test the intersection of the line defined by points with lines defined in self.
         ::Args::
+         - linepoints : set of points that represent the line to test
          - bbxtestonly : make only the bounding box test
          - verbose : print information during test
          - exclude : list of ids of lines of self to not test
         Return False in case of non intersection
-        Return point id before intersection, line id with which it intersect
+        Return (point id before intersection, line id with which it intersect)
         """
-        points = np.array(points)*self.numericalratio
-        bbxC = bbox(points)
+        linepoints = np.array(linepoints)*self.numericalratio
+        bbxC = bbox(linepoints)
 
         exclude = set(exclude)
         linetotest = set([])
@@ -123,9 +124,9 @@ class LineIntersection:
 
         intersections = []
         for l in linetotest:
-            intersect = line_intersection(points, self.line_points(l))
-            if not intersect is None:
-                intersections.append((intersect,l))
+            intersect1, intersect2 = line_intersection(linepoints, self.line_points(l))
+            if not intersect1 is None:
+                intersections.append((intersect1,l))
 
         if verbose:
             print(list(sorted(set([(self.lineids[l],l) for l in linetotest]))),' --> ', [(self.lineids[l],l,i) for l,i in intersections])

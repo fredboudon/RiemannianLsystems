@@ -87,7 +87,7 @@ nb_growthstep = 20
 DETECT_RATIO = 1.3
 
 activebuds = 1
-togrowth = False
+spacegrowth = False
 
 def Start():
   global budid 
@@ -100,11 +100,11 @@ def StartEach():
   activebuds = 0
 
 def EndEach(lstring, lscene):
-  global activebuds, togrowth
+  global activebuds, spacegrowth
   assert not lscene is None
   print('*******',getIterationNb())
   if activebuds == 0:
-    togrowth = True
+    spacegrowth = True
     
 
 space = EllipsoidOfRevolution(R,1.5*R) #Sphere(R)
@@ -134,26 +134,34 @@ derivation length: nb_initstep +nb_growthstep
 production:
 
 MySpace(t):
-  global R,space,max_order,togrowth
-  if togrowth:
-    #MAXSTEPLEN *= (1+dR/R)
+  global R,space,max_order,spacegrowth
+  if spacegrowth:
+    # Simulate growth of the space
     print('Growth')
     R += dR
-    togrowth = False
+    spacegrowth = False
     
   if getIterationNb() >= nb_initstep:
+    # Allow tree structure to ramify more after initialization
     max_order = 5
   space = EllipsoidOfRevolution(R,1.5*R) # Sphere(R)
   nproduce MySpace(t+1)
 
 A(n, r, max_rank, test, bid):
+  # n contains the rank of the segment.
+  # r the order of ramification.
+  # max_rank the maximum rank allowed.
+  # test is the result of the intersection test made in the interpretation part.
   global intersections, budid
   bangle = 60
   if (n < max_order and r <= max_rank) and 'uvpq' in test:
+    # ramification is limited in term of segment rank and ramification order.
     if len(test['uvpq']) > 0:
       uvpqs = test['uvpq']
       if test['intersect']:
+        # if intersection occurs
         if DORMANT_BUD:
+          # 
           nproduce  A(n, r, max_rank, test, bid)          
         else:
           intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
@@ -176,6 +184,7 @@ A(n, r, max_rank, test, bid):
       produce A(n, r, max_rank, test, bid) 
 
 Segment(uvpqs,it, bid):
+  # Register segment in the intersections object to make it detectable when testing new growth
   global intersections
   intersections.add_line([(u,v) for u,v,p,q in uvpqs], bid)
 
