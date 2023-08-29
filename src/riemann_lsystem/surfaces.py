@@ -1899,7 +1899,7 @@ NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
 class Patch(ParametricSurface):
 
     # Note: replaced utoric, vtoric with UPERIODIC, VPERIODIC, initialized both to False by default
-    def __init__(self, patch, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False, UPERIODIC=False, VPERIODIC=False):
+    def __init__(self, patch, STOP_AT_BOUNDARY_U = True, STOP_AT_BOUNDARY_V = True, UPERIODIC=False, VPERIODIC=False):
 
       self.patch = patch
 

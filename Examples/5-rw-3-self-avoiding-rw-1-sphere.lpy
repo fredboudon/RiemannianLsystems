@@ -16,7 +16,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from random import random, seed
+from random import random, randint, seed
 
 # To import libs from other directories
 #(append dynamically other dirs to PYTHONPATH variable)
@@ -26,7 +26,10 @@ import riemann_lsystem.surfaces
 surfaces = reload(riemann_lsystem.surfaces)
 import riemann_lsystem.riemannianturtle
 riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+import riemann_lsystem.lineintersection as li
+reload(li)
 
+from riemann_lsystem.lineintersection import *
 from riemann_lsystem.surfaces import *
 from riemann_lsystem.riemannianturtle import *
 
@@ -63,35 +66,29 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETER
 #######################
 
-extern(NBSTEPS = 40)
-extern(WALKS = 10)
+#seed(1.21)  #1.21  
 
-seed(1)
+extern(NBSTEPS = 200)
+extern(WALKS = 1)
 
 # Surface parameters
 extern(R = 1 * meter)    # Radius of the sphere in meter
-extern(slen=0.05 * meter)
+extern(slen=0.1 * meter)
 extern(dt=1)  # in seconds
 
-# theoretical diffusion coef D in a 2D flat space:
-D = (slen**2)/(4*dt)
-
-# OUTPUT
-distance = None
-
-# LineTo parameters
-LINETO_MAXITER = 20
-NB_POINTS = 20
-
-SPHERE = 1
+# Selection of the surface
+SPHERE = 1     # seed(1.21). most of the walks converge very rapidly to a deadlock
 PSEUDOSPHERE = 2
 
-SURFACE = SPHERE
+SURFACE = PSEUDOSPHERE
 
-# Temporary global value
-Nstep = 0
+# Set of trajectories already existing since the beginning of the simulation
+trajectories = LineIntersection()
 
-#origin_pt = None
+da = 1 # (in degrees)
+MAX_TRIES = 10
+
+TEST = 2
 
 ###### Arrays for result:
 # Array of geodesic lengths for each walk. This array is updated at each timestep.
@@ -102,9 +99,15 @@ geodesicLenTrue = np.zeros(WALKS)
 def End():
   global geodesicLen, geodesicLenTrue
   #print(geodesicLen)
-  print('**************')
+  print('SIMULATION END **************')
   #print(geodesicLenTrue)
   
+def StartEach():
+  global trajectory
+  frameDisplay(True)
+  # Creates a place to store all the lines drawn by the turtle during one production step
+  trajectory = LineIntersection()
+  activebuds = 0
 
 Axiom: 
   global origin_pt
@@ -125,16 +128,48 @@ Axiom:
   nproduce InitTurtle(turtle_init)
   nproduce ;(4)@O(0.02);(6)_(LINEWIDTH)
   for w in range(WALKS):
-    nproduce [A(w,origin_pt)]
+    nproduce [?T(ParameterSet())A(w,origin_pt)]
 
 derivation length: NBSTEPS
 production:
 
-A(w,origin_pt):
-  a = 360*random()
-  uvpq_s = forward(slen)
-  nproduce +(a)StaticF(slen)A(w,origin_pt)
-
+?T(t)A(w,origin_pt):
+  if TEST == 1: # Simple (naice approach): a lot of deadlock positions
+    a = 360*random()
+    #r = randint(0,3)
+    #a = 90*r
+    uvpq_s = forward(t,slen, MAXSTEPLEN)
+    #print("forward : ", uvpq_s)
+    uvs = [(s[0],s[1]) for s in uvpq_s]
+    intersection = trajectories.test_intersection(uvs)
+    #print(intersection)
+    if not intersection:
+      nproduce StaticF(slen, {'uvpq':uvpq_s})
+    trajectories.add_line(uvs)
+    
+    #nproduce +(a)StaticF(slen)
+    nproduce +(a)?T(t)A(w,origin_pt)
+  elif TEST == 2: # here in case of intersection, an angle as close as the previous engle is drawn:
+    a = 360*random()
+    i = 0
+    while i <= MAX_TRIES:
+      uvpq_s = forward(t,slen, MAXSTEPLEN)
+      #print("forward : ", uvpq_s)
+      uvs = [(s[0],s[1]) for s in uvpq_s]
+      intersection = trajectories.test_intersection(uvs)
+      #print(intersection)
+      if not intersection:
+        break
+      a += da
+      i += 1
+    
+    if not intersection:
+      nproduce StaticF(slen, {'uvpq':uvpq_s})
+      trajectories.add_line(uvs)
+    
+    #nproduce +(a)StaticF(slen)
+    nproduce +(a)?T(t)A(w,origin_pt)
+ 
 interpretation:
 
 A(w, origin_pt):
