@@ -3,6 +3,7 @@ import numpy as np
 import bisect
 
 def segmentIntersect(p1a,p1b,p2a,p2b):
+    """ Predicate """
     d0 = p2a-p1a
     d1 = p1b-p1a
     d2 = p2b-p2a
@@ -19,22 +20,37 @@ def segmentIntersect(p1a,p1b,p2a,p2b):
     return True #, p1a+beta*d1, p2a+alpha*d2
 
 def bbox(points):
+    """
+    - points= n points (n being whatever, each point of shape = 2x1
+    - returns 2 points corresponding to min and max coords of the bbox
+    """
     return (np.min(points,axis=0),np.max(points,axis=0))
 
 def bbox_intersect(bbx1, bbx2):
+    """ Test whether 2 bbox intersect:
+    - bbox: 2 points of min and max coords of bbox
+    """
     for i in range(2):
         if bbx1[0][i] >  bbx2[1][i] : return False
         if bbx1[1][i] <  bbx2[0][i] : return False
     return True
 
 def bbox_pt_intersect(pt, bbx):
+    """ Test whether pt is in bbox including the border:
+    - bbox: 2 points of min and max coords of bbox
+    """
+
     for i in range(2):
-        if pt[i] >  bbx[1][i] : return False
+        if pt[i] >  bbx[1][i] : return False-
         if pt[i] <  bbx[0][i] : return False
     return True
 
 def line_intersection(points1, points2):
-        for i, (p1a, p1b) in enumerate(zip(points1,points1[1:])):
+    """ Test whether two sequences of segments intersect each other at least once
+    - returns the index of the first segment that intersects a segment in the second list
+    """
+    #runs over the segments of the first list, and then over the segments of the second list
+    for i, (p1a, p1b) in enumerate(zip(points1,points1[1:])):
             for p2a, p2b in zip(points2,points2[1:]):
                 if segmentIntersect(p1a,p1b,
                                     p2a,p2b):
@@ -42,6 +58,15 @@ def line_intersection(points1, points2):
         return None
 
 class LineIntersection:
+    '''
+    The idea is to test the intersection of a new line with a set of preexisting lines representing polylines
+    (a polyline is called called 'line' here.
+
+    - line is an np.array of shape nx2
+    - lines = dict {line_id: list of line}
+    - bvh = bounding volume hierarchy (the hierachical aspect is not used here) = dict of bounding boxes = {line_id: bbox}
+    bbox here is a tuple of two points
+    '''
     def __init__(self, numericalratio = 1):
         """
         This register set of lines and is able to determine if an intersection exists with a new line.
@@ -75,7 +100,10 @@ class LineIntersection:
         return self.lines[lineid]
 
     def bboxes(self, pos):
-        """ Return the bounding box ids containing the points """
+        """
+        For a given 2D point,
+        returns the list bounding box ids containing the point
+        """
         result = []
         for bid, bbxL in self.bvh.item():
             if bbox_pt_intersect(np.array(pos)*self.numericalratio, bbxL):
@@ -100,15 +128,15 @@ class LineIntersection:
         #return bbox_intersect(self.bvh[lid1], self.bvh[lid2])
         return self.test_intersection(self.lines[lid1]/self.numericalratio, exclude=[lid1])
 
-    def test_intersection(self, points, bbxtestonly = False, verbose = False, exclude = []):
+    def test_intersection(self, linepoints, bbxtestonly = False, verbose = False, exclude = []):
         """
-        Test the intersection of the line defined by points with line defined in self.
+        Test the intersection of the line defined by linepoints with lines defined in self.
         ::Args::
          - bbxtestonly : make only the bounding box test
          - verbose : print information during test
          - exclude : list of ids of lines of self to not test
         Return False in case of non intersection
-        Return point id before intersection, line id with which it intersect
+        Return point id before intersection, line id with which it intersects
         """
         points = np.array(points)*self.numericalratio
         bbxC = bbox(points)

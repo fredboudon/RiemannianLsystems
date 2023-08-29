@@ -59,13 +59,9 @@ FRAMEWIDTH = 1 * cm
 #######################
 # SIMULATION PARAMETERS
 #######################
-def vase(x, *args):
-  if x < 0: 
-    x = 0.
-  u = (x) / 10.
-  radius = 10
-  return radius*vasefunc.getValue(u)
-
+extern(FRACTAL_DEPTH = 3)
+extern(T = 40)  # Controls the depth of the eggs (0 is flat)
+extern(dt = 0.04)
 
 ra = 1.
 rb = 0.5
@@ -73,8 +69,7 @@ rb = 0.5
 seglen = ra/10.
 length_geodesic =  ra/5
 
-T = 0  # Controls the depth of the eggs (0 is flat)
-
+m, n = 11,11
 
 #########################
 # Selectiong of tests
@@ -124,6 +119,10 @@ matctrlpts = [[[0,0,0,ctrlptw[0,0]],[1,0,0,ctrlptw[1,0]],[2,0,0,ctrlptw[2,0]],[3
 def gaus1d(x=0, mx=0, sx=1):
   return 1. / (2. * np.pi * sx) * np.exp(-((x - mx)**2. / (2. * sx**2.)))
 
+# Normalized 2D gaussian
+def gaus2d(x=0, y=0, mx=0, my=0, sx=1, sy=1):
+  return 1. / (2. * np.pi * sx * sy) * np.exp(-((x - mx)**2. / (2. * sx**2.) + (y - my)**2. / (2. * sy**2.)))
+  
 # Eggbox: a = height of bumps, b = wave length
 def eggbox(x=0, y=0, a=1, b=1):
   return a * (np.cos(2*np.pi * x/b) + np.sin(2* np.pi*y/b))
@@ -190,8 +189,6 @@ def matgrowthrate_z_mn(m,n,func, **args):
 
 NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
 
-delta_t = 0.04
-m, n = 11,11
 
 # growth rates
 gr11 = 0.5
@@ -219,6 +216,9 @@ def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y):
   return True
 
 TEST = 2
+
+module NSpace
+
 Axiom:
   if TEST == 1: # Vertical development (gaussian)
     bump_pos = 5
@@ -256,23 +256,23 @@ Axiom:
   v0= 0.1
   nproduce InitTurtle([u0,v0,0,1])
   #nproduce InitTurtle([u0,v0,0,1])
-  nproduce [;(3)@O(0.1)]
+  #nproduce [;(3)@O(0.1)]
+  
   for t in range(T):  # deforme eggbox as a function of time
     for i in range(m):
       for j in range(n):
-        move_ctrlpt_vertical(nspace,delta_t, (i,j), grid_growthrates_z[i,j])
+        move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
         if grid_growthrates_x != None and grid_growthrates_y != None:
-          move_ctrlpt_horizontal(nspace,delta_t, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
-  nproduce ;(1)S(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
-  nproduce ;(2)_(LINEWIDTH*1.5) F(8.0)
+          move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
+  
+  nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
+  nproduce ;(5)_(LINEWIDTH*1.5) F(8.0)
 
-derivation length: 5
+derivation length: FRACTAL_DEPTH
 production:
 
 F(x):
   produce F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)-(90)F(x/3.0)-(90)f(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)
-
-interpretation:
 
 
 
