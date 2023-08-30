@@ -74,10 +74,11 @@ dt = 0.04
 m, n = 11,11
 
 # Set of trajectories already existing since the beginning of the simulation
-trajectories = LineIntersection()
+trajectories = LineSet()
 
 MAXORDER = 2
 
+SEG_ID = 0
 #########################
 # Selectiong of tests
 #########################
@@ -249,7 +250,7 @@ Axiom:
     grid_growthrates_z = grid_growthrates_z*scale
     
   mat = matctrlpts_mn(m,n)
-  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3)
+  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3, ccw = False)
   #NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
   # Sets the Riemannian space in which the turtle will move
   dic = {}
@@ -277,13 +278,14 @@ Axiom:
   nproduce _(LINEWIDTH);(5)?T(ParameterSet())A(0,0,0,0)
 
 
-derivation length: 7
+derivation length: 9
 production:
 
 # state = 1 is 'spatially blocked'
 # state = 0 is 'spatially free to go'
 # delay = n is the amount of time the bud must wait before being activated 
 ?T(t)A(order,rank,delay,state):
+    global SEG_ID
     #if delay == 0 and order < MAXORDER and (rank < 2 or order == 0):
     if delay == 0:
       slen = 1
@@ -291,20 +293,22 @@ production:
       #print("forward : ", uvpq_s)
       uvs = [(s[0],s[1]) for s in uvpq_s]
       intersection = trajectories.test_intersection(uvs)
-      if order == 1 and rank == 0:
-        print(intersection)
+      #if order == 1 and rank == 0:
+      #  print(intersection)
       if not intersection:
         a = 40
         nproduce StaticF(slen, {'uvpq':uvpq_s})
         nproduce [+(a)?T(ParameterSet())A(order+1,0, 1, 0)]
         nproduce [-(a)?T(ParameterSet())A(order+1,0, 1, 0)]
         nproduce ?T(t)A(order, rank+1,delay,0)
-        trajectories.add_line(uvs)
+        SEG_ID += 1
+        trajectories.add_line(uvs, SEG_ID)
       else: # intersectoion detected
-        if order == 1:
-          pass
-          nproduce [;(6)StaticF(slen, {'uvpq':uvpq_s})]
-        nproduce ?T(t)A(order,rank,delay,1)
+        #nproduce [;(0)StaticF(slen, {'uvpq':uvpq_s})]
+        print("A: ",intersection[0])
+        #if intersection[0] > 0:
+        nproduce [;(0)StaticF(slen, {'uvpq':uvpq_s[:intersection[0]+1]})]
+        #nproduce ?T(t)A(order,rank,delay,1)
       
     else:
       nproduce ?T(t)A(order,rank,delay-1,state)
@@ -314,7 +318,7 @@ interpretation:
 
 A(order,rank,delay, state):
   color = 3 if delay == 1 else 4 if state == 1 else 2
-  nproduce F(0.2);(color)@O(0.1)
+  #nproduce F(0.2);(color)@O(0.1)
 endlsystem
 
 
