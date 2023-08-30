@@ -545,6 +545,27 @@ Staticf(length, dl, cache):
     orientHead(turtle)
     produce
 
+P(uvpq_s):
+    # cache is a dic. May be empty or not
+    # if not, a forward will be called by cached_forward and
+    # will fill in the cache dict with a 'uvpq' entry
+    for p in apply_forward(turtle, uvpq_s):
+        #print('StaticF p:',p)
+        turtle.lineTo(p)
+    orientHead(turtle)
+    produce
+
+P(uvpq_s, topdiam):
+    stepnb = len(uvpq_s)
+    currentdiam =turtle.getWidth()
+    ddiam = (topdiam - currentdiam)/stepnb
+
+    for p in apply_forward(turtle, uvpq_s):
+        currentdiam += ddiam
+        turtle.lineTo(p, currentdiam)
+    orientHead(turtle)
+    produce
+
 # To plot a geodesic from a point (u,v) to a point (ut,vt)
 # The call in L-Py should be: LineTo((ut,vt), 30) which would draw a geodesic from
 # the current position of the turtle to the target point S(ut,vt)

@@ -285,29 +285,32 @@ production:
 # state = 0 is 'spatially free to go'
 # delay = n is the amount of time the bud must wait before being activated 
 ?T(t)A(order,rank,delay,state):
-    global SEG_ID
     #if delay == 0 and order < MAXORDER and (rank < 2 or order == 0):
     if delay == 0:
       slen = 1
       uvpq_s = forward(t,slen, MAXSTEPLEN)
       #print("forward : ", uvpq_s)
-      uvs = [(s[0],s[1]) for s in uvpq_s]
+      #if np.linalg.norm(uvpq_s[0]-t.uvpq) < 1e-5:
+      #  uvs = [(s[0],s[1]) for s in uvpq_s]
+      #else:
+      uvs = [(t.uvpq[0],t.uvpq[1])]+[(s[0],s[1]) for s in uvpq_s]
       intersection = trajectories.test_intersection(uvs)
       #if order == 1 and rank == 0:
       #  print(intersection)
       if not intersection:
         a = 40
-        nproduce StaticF(slen, {'uvpq':uvpq_s})
+        trajectories.add_line_from_point(t.uvpq,uvs)
+        nproduce P(uvpq_s)
         nproduce [+(a)?T(ParameterSet())A(order+1,0, 1, 0)]
         nproduce [-(a)?T(ParameterSet())A(order+1,0, 1, 0)]
         nproduce ?T(t)A(order, rank+1,delay,0)
-        SEG_ID += 1
-        trajectories.add_line(uvs, SEG_ID)
-      else: # intersectoion detected
+      else: # intersection detected
         #nproduce [;(0)StaticF(slen, {'uvpq':uvpq_s})]
-        print("A: ",intersection[0])
-        #if intersection[0] > 0:
-        nproduce [;(0)StaticF(slen, {'uvpq':uvpq_s[:intersection[0]+1]})]
+        lastuvpq = [intersection[3][0],intersection[3][1],uvpq_s[intersection[0]][2],uvpq_s[intersection[0]][3]]
+        totaluvpq = uvpq_s[:intersection[0]]+[lastuvpq]
+        
+        trajectories.add_line_from_point(t.uvpq,[(s[0],s[1]) for s in totaluvpq])
+        nproduce [;(0)P(totaluvpq)]
         #nproduce ?T(t)A(order,rank,delay,1)
       
     else:

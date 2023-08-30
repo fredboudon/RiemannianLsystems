@@ -2,20 +2,20 @@
 import numpy as np
 import bisect
 
-def segmentIntersect(p1a,p1b,p2a,p2b):
+def segmentIntersection(p1a,p1b,p2a,p2b):
     """ Predicate """
     d0 = p2a-p1a
     d1 = p1b-p1a
     d2 = p2b-p2a
     a = np.cross(d1,d2)
-    if abs(a) < 1e-10 : return False
+    if abs(a) < 1e-10 : return None
     b = np.cross(d0,d1)
     c = np.cross(d0,d2)
     beta = b/a
     alpha = c/a
-    if beta <= 0 or 1-beta <= 0 : return False
-    if alpha <= 0 or 1-alpha <= 0 : return False
-    return True #, p1a+beta*d1, p2a+alpha*d2
+    if beta <= 0 or 1-beta <= 0 : return None
+    if alpha <= 0 or 1-alpha <= 0 : return None
+    return p1a+alpha*d1 #p2a+alpha*d2
 
 def bbox(pointset):
     """
@@ -53,9 +53,9 @@ def line_intersection(pointset1, pointset2):
     #runs over the segments of the first list, and then over the segments of the second list
     for i, (p1a, p1b) in enumerate(zip(pointset1,pointset1[1:])):
             for j, (p2a, p2b) in enumerate(zip(pointset2,pointset2[1:])):
-                if segmentIntersect(p1a,p1b,
-                                    p2a,p2b):
-                    return i,j
+                intsct = segmentIntersection(p1a,p1b, p2a,p2b)
+                if not intsct is None:
+                    return i, j, intsct
     return None
 
 class LineSet:
@@ -100,6 +100,10 @@ class LineSet:
             self.lines[id] = np.concatenate((self.lines[id],linepoints))
         self.bvh[id] = bbox(self.lines[id])
         return id
+    
+    def add_line_from_point(self, initpoint, linepoints, id = None) -> int:
+        lpoints = [[initpoint[i] for i in range(len(linepoints[0]))]]+linepoints
+        self.add_line(lpoints, id)
 
     def line_points(self, lineid) -> np.array:
         """ Return the points of a line """
@@ -145,7 +149,7 @@ class LineSet:
         for l in linetotest:
             intersect = line_intersection(linepoints, self.line_points(l))
             if not intersect is None:
-                intersections.append((intersect[0],intersect[1],l))
+                intersections.append((intersect[0], intersect[1],l,intersect[2]))
 
         if verbose:
             print(list(sorted(set([(self.lineids[l],l) for l in linetotest]))),' --> ', [(self.lineids[l],l,i) for l,i in intersections])
@@ -167,7 +171,6 @@ class LineSet:
         """
         return self.test_intersection(self.lines[lid1]/self.numericalratio, exclude=[lid1])
 
- 
 def test():
     nr = 1000
     a = np.array([ 0.31316293, -0.05532964])*nr
