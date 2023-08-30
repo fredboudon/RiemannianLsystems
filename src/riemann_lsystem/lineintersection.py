@@ -89,6 +89,11 @@ class LineSet:
     def add_line(self, linepoints, id = None) -> int:
         """ Add a new line. Return its id """
         linepoints = np.array(linepoints)*self.numericalratio
+        if id is None:
+            if len(self.lines) == 0:
+                id = 0
+            else:
+                id = max(self.lines.keys())+1
         if not id in self.lines:
             self.lines[id] = linepoints
         else:
