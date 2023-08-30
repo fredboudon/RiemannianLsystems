@@ -277,7 +277,7 @@ Axiom:
   nproduce _(LINEWIDTH);(5)?T(ParameterSet())A(0,0,0,0)
 
 
-derivation length: 10
+derivation length: 7
 production:
 
 # state = 1 is 'spatially blocked'
@@ -291,7 +291,8 @@ production:
       #print("forward : ", uvpq_s)
       uvs = [(s[0],s[1]) for s in uvpq_s]
       intersection = trajectories.test_intersection(uvs)
-      #print(intersection)
+      if order == 1 and rank == 0:
+        print(intersection)
       if not intersection:
         a = 40
         nproduce StaticF(slen, {'uvpq':uvpq_s})
@@ -299,10 +300,10 @@ production:
         nproduce [-(a)?T(ParameterSet())A(order+1,0, 1, 0)]
         nproduce ?T(t)A(order, rank+1,delay,0)
         trajectories.add_line(uvs)
-      else:
+      else: # intersectoion detected
         if order == 1:
           pass
-          #nproduce [;(6)StaticF(slen, {'uvpq':uvpq_s})]
+          nproduce [;(6)StaticF(slen, {'uvpq':uvpq_s})]
         nproduce ?T(t)A(order,rank,delay,1)
       
     else:
@@ -312,7 +313,6 @@ production:
 interpretation:
 
 A(order,rank,delay, state):
-  
   color = 3 if delay == 1 else 4 if state == 1 else 2
   nproduce F(0.2);(color)@O(0.1)
 endlsystem
