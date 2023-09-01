@@ -135,7 +135,7 @@ production:
     
     # Compute the potential 'forward' path of size pol_lenbuff
     uvpq_s = forward(tstate,DL, MAXSTEPLEN)
-    #print("forward : ", uvpq_s)
+    print("forward : ", uvpq_s)
     
     # Construct the corresponding line made of uv coords
     # 1. The turtle has current coordinates uvpq
@@ -145,6 +145,7 @@ production:
     intersection = trajectories.test_intersection(uvs)
     #print(intersection)
     #print(trajectories.lines)
+    #print("LENGTH TRAJECTORIES: ", len(trajectories.lines))
     
     if not intersection:
       sid = trajectories.add_line_from_point(tstate.uvpq,uvs) 
@@ -203,15 +204,14 @@ production:
 # So for this, decomposition rules are needed. They will make it possible to empty
 # the dep_length buffer when it augments by eating (depolymerizing) more than one segment
 # during the same dt step. See below.
-B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
+InitTurtle(uvpq)B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
   #print("dep_lenbuff", dep_lenbuff)
   dep_lenbuff += DepRate * dt
   if dep_lenbuff >= DL:
     uvpq = tstate.uvpq
+    trajectories.remove_line(line_id)
     nproduce InitTurtle(uvpq)
     nproduce B(t+dt, dep_lenbuff-dl)
-  else:
-    nproduce B(t+dt, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(ParameterSet())
 
 
 
@@ -220,7 +220,7 @@ maximum depth: 1000
 # Decomposition rule to empty the dep_lenbuffer before the next step
 # and remove as many segments as necessary (maximum imposed by maximum depth variable)
 #
-B(t, dep_lenbuff)S(dl, uvpq0, uvpq_s, sid)?T(tstate):
+InitTurtle(uvpq) B(t, dep_lenbuff)S(dl, uvpq0, uvpq_s, sid)?T(tstate):
   #print("decomposition:", dep_lenbuff)
   if dep_lenbuff >= DL:
     uvpq = tstate.uvpq

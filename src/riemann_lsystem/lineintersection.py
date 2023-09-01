@@ -101,7 +101,7 @@ class LineSet:
         self.bvh[id] = bbox(self.lines[id])
         return id
 
-    def remove_line(self, id) -> int:
+    def remove_line(self, id) -> bool:
         """ Removes a line with id from the list of dictionary entries
         as a side effect, this also removes the corresponding entry in the bbox dictionary
         Returns True if the action was successful (id was found), False otherwise"""
