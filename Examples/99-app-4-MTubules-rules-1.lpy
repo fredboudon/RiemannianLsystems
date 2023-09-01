@@ -105,9 +105,8 @@ Axiom:
     origin_pt[0] = random()*2*np.pi
     origin_pt[1] = - np.pi/2 + random()*np.pi
     turtle_init = origin_pt + [0., 1.]
-    nproduce InitTurtle(turtle_init)
-    nproduce +(alpha)
     turtle_init = riemannian_turtle_turn(turtle_init,space,alpha)
+    nproduce InitTurtle(turtle_init)
     nproduce B(0, 0)
     for i in range(N):
       # S(path_length, path_origin, path_sequence, line_id)
