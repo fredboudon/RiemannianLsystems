@@ -143,8 +143,6 @@ B(t, dep_lenbuff)S(x)?T(state):
     uvpq = state.uvpq
     nproduce InitTurtle(uvpq)
     nproduce B(t, dep_lenbuff-x)
-  else:
-    nproduce B(t, dep_lenbuff)S(x)?T(ParameterSet())
 
 interpretation:
 

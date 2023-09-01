@@ -149,8 +149,8 @@ production:
       nproduce S(lpath, uvpq, uvpq_s)?T(ParameterSet())
       produce A(t+dt,pol_lenbuff-DL)
     else:
-      produce A(t+dt,pol_lenbuff)
       print('INTERSECTION DETECTED !')
+      produce A(t+dt,pol_lenbuff)
   else:
     nproduce A(t+dt,pol_lenbuff)
     
@@ -211,17 +211,17 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
 
 decomposition:
 maximum depth: 1000
-# Decomposition rule to emty the dep_lenbuffer before the next step
+# Decomposition rule to empty the dep_lenbuffer before the next step
 # and remove as many segments as necessary (maximum imposed by maximum depth variable)
 #
 B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
   #print("decomposition:", dep_lenbuff)
   if dep_lenbuff >= DL:
     uvpq = tstate.uvpq
-    nproduce InitTurtle(uvpq)
+    # the following rule does not seem required. But keep it and check why exactly
+    nproduce InitTurtle(uvpq)  
     nproduce B(t, dep_lenbuff-dl)
-  #else:
-  #  nproduce B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
+
 
 
 
