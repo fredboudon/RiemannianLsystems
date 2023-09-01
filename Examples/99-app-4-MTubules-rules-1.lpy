@@ -87,9 +87,13 @@ K = 2           # number of microtubules
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
 
+def energy(u,v):
+  return trajectories.nb_bboxes((u,v))
+
 Axiom:
-  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
-  nproduce ;(0)PlotSpace
+  space = EllipsoidOfRevolution(ra,rb)
+  nproduce SetSpace(space)
+  nproduce ;(0)PlotSpace(energy)
   turtle_init = origin_pt + [0., 1.] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
   nproduce _(LINEWIDTH)InitTurtle(turtle_init)
   nproduce Frame(0.2)
@@ -101,12 +105,16 @@ Axiom:
     turtle_init = origin_pt + [0., 1.]
     nproduce InitTurtle(turtle_init)
     nproduce +(alpha)
+    turtle_init = riemannian_turtle_turn(turtle_init,space,alpha)
     nproduce B(0, 0)
     for i in range(N):
       # S(path_length, path_origin, path_sequence)
       # If path_sequence is not specified, then S it will be computed by a F
       # If path_sequence is specified, it will be displayed by a P
-      nproduce S(DL,turtle_init,{})?T(ParameterSet())
+      uvpq_s = forward_in_space(space,turtle_init,DL, MAXSTEPLEN)
+      sid = trajectories.add_line_from_point(turtle_init,[(u,v) for u,v,p,q in uvpq_s])
+      nproduce S(DL,turtle_init,uvpq_s, sid)?T(ParameterSet())
+      turtle_init = uvpq_s[-1]
     nproduce A(0, 0)
 
 derivation length: 100 
@@ -135,7 +143,7 @@ production:
     #print(intersection)
     
     if not intersection:
-      trajectories.add_line_from_point(tstate.uvpq,uvs) 
+      sid = trajectories.add_line_from_point(tstate.uvpq,uvs) 
       uvpq = tstate.uvpq
       uvpq_t = [uvpq] + uvpq_s # Adding the current turtle position 
                              # in front of uvpq_s to compute the path length
@@ -143,7 +151,7 @@ production:
       #print('uvpq_s', uvpq_s)
       #print('uvpq_t', uvpq_t)
       lpath = tstate.space.path_length(uvpq_t)
-      nproduce S(lpath, uvpq, uvpq_s)?T(ParameterSet())
+      nproduce S(lpath, uvpq, uvpq_s, sid)?T(ParameterSet())
     else:
       print('INTERSECTION DETECTED !')
       
@@ -215,14 +223,13 @@ maximum depth: 1000
 # Decomposition rule to emty the dep_lenbuffer before the next step
 # and remove as many segments as necessary (maximum imposed by maximum depth variable)
 #
-B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
+B(t, dep_lenbuff)S(dl, uvpq0, uvpq_s, sid)?T(tstate):
   #print("decomposition:", dep_lenbuff)
   if dep_lenbuff >= DL:
     uvpq = tstate.uvpq
+    trajectories.remove_line(sid)
     nproduce InitTurtle(uvpq)
     nproduce B(t, dep_lenbuff-dl)
-  else:
-    nproduce B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
 
 
 
@@ -234,7 +241,7 @@ A(t,pol_lenbuff):
 B(t,dep_lenbuff):
   nproduce ;(3)@O(0.03)
 
-S(dl,uvpq0,uvpq_s): 
+S(dl,uvpq0, uvpq_s, sid): 
   if uvpq_s == {}:
     produce F(dl)
   else:
