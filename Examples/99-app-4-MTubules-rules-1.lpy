@@ -132,7 +132,7 @@ production:
     
     # Compute the potential 'forward' path of size pol_lenbuff
     uvpq_s = forward(tstate,DL, MAXSTEPLEN)
-    #print("forward : ", uvpq_s)
+    print("forward : ", uvpq_s)
     
     # Construct the corresponding line made of uv coords
     # 1. The turtle has current coordinates uvpq
@@ -142,6 +142,7 @@ production:
     intersection = trajectories.test_intersection(uvs)
     #print(intersection)
     #print(trajectories.lines)
+    #print("LENGTH TRAJECTORIES: ", len(trajectories.lines))
     
     if not intersection:
       line_id = trajectories.add_line_from_point(tstate.uvpq,uvs) 
@@ -206,6 +207,7 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
   dep_lenbuff += DepRate * dt
   if dep_lenbuff >= DL:
     uvpq = tstate.uvpq
+    trajectories.remove_line(line_id)
     nproduce InitTurtle(uvpq)
     nproduce B(t+dt, dep_lenbuff-dl)
   else:
@@ -222,6 +224,7 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
   #print("decomposition:", dep_lenbuff)
   if dep_lenbuff >= DL:
     uvpq = tstate.uvpq
+    trajectories.remove_line(line_id)
     # the following rule does not seem required. But keep it and check why exactly
     nproduce InitTurtle(uvpq)  
     nproduce B(t, dep_lenbuff-dl)
