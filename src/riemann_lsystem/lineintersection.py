@@ -100,7 +100,19 @@ class LineSet:
             self.lines[id] = np.concatenate((self.lines[id],linepoints))
         self.bvh[id] = bbox(self.lines[id])
         return id
-    
+
+    def remove_line(self, id) -> int:
+        """ Removes a line with id from the list of dictionary entries
+        as a side effect, this also removes the corresponding entry in the bbox dictionary
+        Returns True if the action was successful (id was found), False otherwise"""
+
+        if id in self.lines:
+            del self.lines[id]
+            del self.bvh[id]
+            return True
+        else:
+            return False
+
     def add_line_from_point(self, initpoint, linepoints, id = None) -> int:
         lpoints = [[initpoint[i] for i in range(len(linepoints[0]))]]+linepoints
         self.add_line(lpoints, id)
