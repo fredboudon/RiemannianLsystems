@@ -200,6 +200,16 @@ class RiemannianSpace2D:
         else: # NONE is periodic
             return [(u, v)]
 
+    def normalize_toric_coords(self, uvpq_s):
+        '''Compute a unique representation of the coordinates when they are toric'''
+        if self.UPERIODIC or self.VPERIODIC:
+            for k in range(len(uvpq_s)):
+                if self.UPERIODIC:
+                    uvpq_s[k][0] = uvpq_s[k][0] % (self.umin - self.umax)
+                if self.VPERIODIC:
+                    uvpq_s[k][1] = uvpq_s[k][1] % (self.vmin - self.vmax)
+        return uvpq_s
+
     def Shift(self,u,v):
       """
       Also called: Pushforward operator.

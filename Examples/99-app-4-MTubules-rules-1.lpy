@@ -76,13 +76,17 @@ dt = 0.1         # sec
 
 # Managing the discretization of MT segments
 DL = 10 * cm      # size of segment that are synthesized or depolymerized (no physical meaning, just quantization)
-N = 20           #  Number of initial segments of size DL
+N = 5           #  Number of initial segments of size DL
 
 
-PolRate = 0.5      # cm/sec
+PolRate = 0.6      # cm/sec
 DepRate = 0.5      # cm/sec
 
-K = 2           # number of microtubules
+#For viza-ualization of MT disapearing
+CRate = 0.01
+CThreshold = 0.01
+
+K = 100           # number of microtubules
 
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
@@ -98,7 +102,7 @@ Axiom:
   nproduce ;(0)PlotSpace
   turtle_init = origin_pt + [0., 1.] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
   nproduce _(LINEWIDTH)InitTurtle(turtle_init)
-  nproduce Frame(0.2)
+  #nproduce Frame(0.2)
   uv = (origin_pt[0]+0.3,origin_pt[1]+0.5)
   for k in range(K):
     nproduce [
@@ -117,7 +121,7 @@ Axiom:
     nproduce A(0, 0)
     nproduce ]
 
-derivation length: 100 
+derivation length: 1000 
 production:
 
 # Polymerization at the + end (A)
@@ -132,7 +136,7 @@ production:
     
     # Compute the potential 'forward' path of size pol_lenbuff
     uvpq_s = forward(tstate,DL, MAXSTEPLEN)
-    print("forward : ", uvpq_s)
+    #print("forward : ", uvpq_s)
     
     # Construct the corresponding line made of uv coords
     # 1. The turtle has current coordinates uvpq
@@ -149,6 +153,7 @@ production:
       uvpq = tstate.uvpq
       uvpq_t = [uvpq] + uvpq_s # Adding the current turtle position 
                              # in front of uvpq_s to compute the path length
+      uvpq_t = tstate.space.normalize_toric_coords(uvpq_t)
       #print('uvpq', uvpq)
       #print('uvpq_s', uvpq_s)
       #print('uvpq_t', uvpq_t)
@@ -156,7 +161,7 @@ production:
       nproduce S(lpath, uvpq, uvpq_s, get_new_line_id())?T(ParameterSet())
       produce A(t+dt,pol_lenbuff-DL)
     else:
-      print('INTERSECTION DETECTED !')
+      #print('INTERSECTION DETECTED !')
       produce A(t+dt,pol_lenbuff)
   else:
     nproduce A(t+dt,pol_lenbuff)
@@ -213,13 +218,21 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
   else:
     nproduce B(t+dt, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(ParameterSet())
 
+B(t1, dep_lenbuff) A(t2, pol_lenbuff):
+  produce C(0, 0.08)
 
+C(t,r):
+  if r < CThreshold:
+    produce
+  else:
+    r -= CRate *dt
+    produce C(t+dt,r)
 
 decomposition:
 maximum depth: 1000
 # Decomposition rule to empty the dep_lenbuffer before the next step
 # and remove as many segments as necessary (maximum imposed by maximum depth variable)
-#
+
 B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
   #print("decomposition:", dep_lenbuff)
   if dep_lenbuff >= DL:
@@ -239,6 +252,9 @@ A(t,pol_lenbuff):
   
 B(t,dep_lenbuff):
   nproduce ;(3)@O(0.03)
+  
+C(t,r):
+  produce ;(6)@O(r)
 
 S(dl,uvpq0,uvpq_s,line_id): 
   if uvpq_s == {}:
