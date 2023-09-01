@@ -66,9 +66,9 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETER
 #######################
 
-#seed(1.21)  #1.21  
+seed(1.13)  #1.21  
 
-extern(NBSTEPS = 200)
+extern(NBSTEPS = 400)
 extern(WALKS = 1)
 
 # Surface parameters
@@ -80,10 +80,10 @@ extern(dt=1)  # in seconds
 SPHERE = 1     # seed(1.21). most of the walks converge very rapidly to a deadlock
 PSEUDOSPHERE = 2
 
-SURFACE = PSEUDOSPHERE
+SURFACE = SPHERE
 
 # Set of trajectories already existing since the beginning of the simulation
-trajectories = LineIntersection()
+trajectories = LineSet()
 
 da = 1 # (in degrees)
 MAX_TRIES = 10
@@ -106,7 +106,7 @@ def StartEach():
   global trajectory
   frameDisplay(True)
   # Creates a place to store all the lines drawn by the turtle during one production step
-  trajectory = LineIntersection()
+  #trajectory = LineSet()
   activebuds = 0
 
 Axiom: 
@@ -140,36 +140,44 @@ production:
     #a = 90*r
     uvpq_s = forward(t,slen, MAXSTEPLEN)
     #print("forward : ", uvpq_s)
-    uvs = [(s[0],s[1]) for s in uvpq_s]
+    
+    # Construct the corresponding line made of uv coords
+    # 1. The turtle has current coordinates uvpq
+    curpos = [(t.uvpq[0],t.uvpq[1])]
+    # 2. Make the list of all uv positions on the path, including current postion in front
+    uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
     intersection = trajectories.test_intersection(uvs)
+    
     #print(intersection)
     if not intersection:
-      nproduce StaticF(slen, {'uvpq':uvpq_s})
-    trajectories.add_line(uvs)
+      nproduce P(uvpq_s)
+      trajectories.add_line_from_point(t.uvpq,uvs) 
     
     #nproduce +(a)StaticF(slen)
     nproduce +(a)?T(t)A(w,origin_pt)
+    
   elif TEST == 2: # here in case of intersection, an angle as close as the previous engle is drawn:
     a = 360*random()
     i = 0
     while i <= MAX_TRIES:
       uvpq_s = forward(t,slen, MAXSTEPLEN)
       #print("forward : ", uvpq_s)
-      uvs = [(s[0],s[1]) for s in uvpq_s]
+      # Construct the corresponding line made of uv coords
+      # 1. The turtle has current coordinates uvpq
+      curpos = [(t.uvpq[0],t.uvpq[1])]
+      # 2. Make the list of all uv positions on the path, including current postion in front
+      uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
       intersection = trajectories.test_intersection(uvs)
-      #print(intersection)
       if not intersection:
         break
       a += da
       i += 1
     
     if not intersection:
-      nproduce StaticF(slen, {'uvpq':uvpq_s})
-      trajectories.add_line(uvs)
-    
-    #nproduce +(a)StaticF(slen)
+      nproduce P(uvpq_s)
+      trajectories.add_line_from_point(t.uvpq,uvs) 
     nproduce +(a)?T(t)A(w,origin_pt)
- 
+
 interpretation:
 
 A(w, origin_pt):

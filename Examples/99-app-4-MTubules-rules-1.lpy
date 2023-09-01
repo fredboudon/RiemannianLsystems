@@ -19,7 +19,10 @@ import riemann_lsystem.surfaces
 surfaces = reload(riemann_lsystem.surfaces)
 import riemann_lsystem.riemannianturtle
 riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+import riemann_lsystem.lineintersection as li
+reload(li)
 
+from riemann_lsystem.lineintersection import *
 from riemann_lsystem.surfaces import *
 from riemann_lsystem.riemannianturtle import *
 
@@ -49,7 +52,7 @@ PLOTSPACE = True
 # maximum len of subdivision step required to draw any line on the surface
 # this controls the resolution of the geodesic plot with respect to the
 # surface curvature
-MAXSTEPLEN = 1 * cm  # Should be > 0.0
+MAXSTEPLEN = 4 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
 LINEWIDTH  = 1. * cm
@@ -73,13 +76,16 @@ dt = 0.1         # sec
 
 # Managing the discretization of MT segments
 DL = 10 * cm      # size of segment that are synthesized or depolymerized (no physical meaning, just quantization)
-N = 10           #  Number of initial segments of size DL
+N = 20           #  Number of initial segments of size DL
 
 
 PolRate = 1      # cm/sec
 DepRate = 1      # cm/sec
 
-K = 1           # number of microtubules
+K = 2           # number of microtubules
+
+# Set of trajectories already existing since the beginning of the simulation
+trajectories = LineSet()
 
 Axiom:
   nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
@@ -97,7 +103,10 @@ Axiom:
     nproduce +(alpha)
     nproduce B(0, 0)
     for i in range(N):
-      nproduce S(DL)?T(ParameterSet())
+      # S(path_length, path_origin, path_sequence)
+      # If path_sequence is not specified, then S it will be computed by a F
+      # If path_sequence is specified, it will be displayed by a P
+      nproduce S(DL,turtle_init,{})?T(ParameterSet())
     nproduce A(0, 0)
 
 derivation length: 100 
@@ -106,12 +115,81 @@ production:
 # Polymerization at the + end (A)
 # an A polymerizes at a rate PolRate and creates a segment as soon as its size reaches PolDL.
 # the length being constructed is stored in a buffer in the state of A: pol_lenbuff
-A(t, pol_lenbuff):
+?T(tstate) < A(t, pol_lenbuff):
   pol_lenbuff += PolRate * dt
   if pol_lenbuff >= DL:
+    # The MT should create a segment of length pol_lenbuff (> DL)
+    # This is possible if no intersections with other segments are detected in creating this new segment.
+    # Otherwise some rules of interaction will need to be applied
+    
+    # Compute the potential 'forward' path of size pol_lenbuff
+    uvpq_s = forward(tstate,pol_lenbuff, MAXSTEPLEN)
+    #print("forward : ", uvpq_s)
+    
+    # Construct the corresponding line made of uv coords
+    # 1. The turtle has current coordinates uvpq
+    curpos = [(tstate.uvpq[0],tstate.uvpq[1])]
+    # 2. Make the list of all uv positions on the path, including current postion in front
+    uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
+    intersection = trajectories.test_intersection(uvs)
+    #print(intersection)
+    
+    if not intersection:
+      trajectories.add_line_from_point(tstate.uvpq,uvs) 
+      uvpq = tstate.uvpq
+      uvpq_t = [uvpq] + uvpq_s # Adding the current turtle position 
+                             # in front of uvpq_s to compute the path length
+      #print('uvpq', uvpq)
+      #print('uvpq_s', uvpq_s)
+      #print('uvpq_t', uvpq_t)
+      lpath = tstate.space.path_length(uvpq_t)
+      nproduce S(lpath, uvpq, uvpq_s)?T(ParameterSet())
+    else:
+      print('INTERSECTION DETECTED !')
+      
+    '''
+    else:
+      # position (u1,v1) and (p1,q1) of the segment at the intersection:
+      # intersection[0] is the index of the point before intersection in the list uvpq_s
+      uv1 = uvpq_s[intersection[0]][:2]   # first two elements of uvpq
+      pq1) = uvpq_s[intersection[0]][-2:]  # last two elements of uvpq
+      # position P2 and V2 of the segment at the intersection:
+      intersected_line_id = intersection[2]
+      intersected_uvs = line_points(intersected_line_id)
+      # intersection[1] is the index of the point before intersection in the list of intersected uvs
+      uv2 = intersected_uvs[intersection[1]] # no pq in this list --> gives directly uv
+      #(p2,q2) = intersected_uvs[intersection[1]] # NOT AVAILABLE in LineSet for the moment !! 
+      # --> use the difference between consecutive points, which defines the direction in this plane
+      uv22 = intersected_uvs[intersection[1]+1]
+      pq2estimed = uv22 - uv2
+      # The two points (u1,v1) and (u2,v2) being in general different, 
+      # one cannot use the scalar products from the surface (that depends on uv).
+      # We thus retreive the intersection point (ui,vi)of the two segments to execute a scalar product 
+      # in a common tangent plane.
+      (ui,vi) = uvpq_s[intersection[3]]
+      # We can now dot product pq1 and pq2 estimated in this tangent plane:
+      sprod = t.space.dot_product(ui,vi,pq1,pq2estimed)
+      #compute the normed of the two vectors
+      n1 = t.space.norm(ui,vi,pq1)
+      n2 = t.space.norm(ui,vi,pq2estimed)
+      # extract the angle of the two vectors
+      incident_angle = np.acos(sprod/(n1*n2))
+      
+      if sprod >= 0:
+        n_uvpq = rotate_surface_vector(self,ui,vi,pq1[0],pq1[1],-2*angle)
+      else:
+        n_uvpq = rotate_surface_vector(self,ui,vi,pq1[0],pq1[1],2*angle)
+    '''
     # Produce a segment
-    nproduce S(pol_lenbuff)?T(ParameterSet())
   nproduce A(t+dt,0)
+
+
+
+
+
+
+
+
 
 # Depolymerization at the - end (B)
 # The problem is that if depolymerization is rapid, in dt it can do much more than DL
@@ -120,29 +198,33 @@ A(t, pol_lenbuff):
 # So for this, decomposition rules are needed. They will make it possible to empty
 # the dep_length buffer when it augments by eating (depolymerizing) more than one segment
 # during the same dt step. See below.
-B(t, dep_lenbuff)S(x)?T(state):
+B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
   #print("dep_lenbuff", dep_lenbuff)
   dep_lenbuff += DepRate * dt
   if dep_lenbuff >= DL:
-    uvpq = state.uvpq
+    uvpq = tstate.uvpq
     nproduce InitTurtle(uvpq)
-    nproduce B(t+dt, dep_lenbuff-x)
+    nproduce B(t+dt, dep_lenbuff-dl)
   else:
-    nproduce B(t+dt, dep_lenbuff)S(x)?T(ParameterSet())
+    nproduce B(t+dt, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
+
+
 
 decomposition:
 maximum depth: 1000
 # Decomposition rule to emty the dep_lenbuffer before the next step
 # and remove as many segments as necessary (maximum imposed by maximum depth variable)
 #
-B(t, dep_lenbuff)S(x)?T(state):
+B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
   #print("decomposition:", dep_lenbuff)
   if dep_lenbuff >= DL:
-    uvpq = state.uvpq
+    uvpq = tstate.uvpq
     nproduce InitTurtle(uvpq)
-    nproduce B(t, dep_lenbuff-x)
+    nproduce B(t, dep_lenbuff-dl)
   else:
-    nproduce B(t, dep_lenbuff)S(x)?T(ParameterSet())
+    nproduce B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
+
+
 
 interpretation:
 
@@ -152,9 +234,12 @@ A(t,pol_lenbuff):
 B(t,dep_lenbuff):
   nproduce ;(3)@O(0.03)
 
-S(dl): 
-  produce F(dl)
-  
+S(dl,uvpq0,uvpq_s): 
+  if uvpq_s == {}:
+    produce F(dl)
+  else:
+    produce P(uvpq_s)
+
 endlsystem
 ###### INITIALISATION ######
 

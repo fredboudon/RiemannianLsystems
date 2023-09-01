@@ -303,6 +303,20 @@ class RiemannianSpace2D:
       g = self.metric_tensor(u,v)
       return np.sqrt(S1*S1*g[0,0]+S1*S2*g[0,1]+S2*S1*g[1,0]+S2*S2*g[1,1])
 
+    def dot_product(self,u,v,S,T):
+      """
+      uses the metric tensor at point u,v to compute the scalar product of two surface vectors S and T
+      of components (S0,S1) and (T0,T1)in the local covariant basis
+      """
+      #print("norm: ******")
+      #print("S = ", S)
+      S0 = S[0]
+      S1 = S[1]
+      T0 = T[0]
+      T1 = T[1]
+      g = self.metric_tensor(u,v)
+      return np.sqrt(S0*T0*g[0,0]+S0*T1*g[0,1]+S1*T0*g[1,0]+S1*T1*g[1,1])
+
     def ds(self,u,v,du,dv):
       """
       uses the metric tensor at point u,v to compute the ds at a point (u,v) in direction (du,dv)
