@@ -79,8 +79,8 @@ DL = 10 * cm      # size of segment that are synthesized or depolymerized (no ph
 N = 20           #  Number of initial segments of size DL
 
 
-PolRate = 1      # cm/sec
-DepRate = 1      # cm/sec
+PolRate = 0.5      # cm/sec
+DepRate = 0.5      # cm/sec
 
 K = 2           # number of microtubules
 
@@ -95,6 +95,7 @@ Axiom:
   nproduce Frame(0.2)
   uv = (origin_pt[0]+0.3,origin_pt[1]+0.5)
   for k in range(K):
+    nproduce [
     alpha = random() * 360
     origin_pt[0] = random()*2*np.pi
     origin_pt[1] = - np.pi/2 + random()*np.pi
@@ -108,6 +109,7 @@ Axiom:
       # If path_sequence is specified, it will be displayed by a P
       nproduce S(DL,turtle_init,{})?T(ParameterSet())
     nproduce A(0, 0)
+    nproduce ]
 
 derivation length: 100 
 production:
@@ -123,7 +125,7 @@ production:
     # Otherwise some rules of interaction will need to be applied
     
     # Compute the potential 'forward' path of size pol_lenbuff
-    uvpq_s = forward(tstate,pol_lenbuff, MAXSTEPLEN)
+    uvpq_s = forward(tstate,DL, MAXSTEPLEN)
     #print("forward : ", uvpq_s)
     
     # Construct the corresponding line made of uv coords
@@ -133,6 +135,7 @@ production:
     uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
     intersection = trajectories.test_intersection(uvs)
     #print(intersection)
+    #print(trajectories.lines)
     
     if not intersection:
       trajectories.add_line_from_point(tstate.uvpq,uvs) 
@@ -144,11 +147,14 @@ production:
       #print('uvpq_t', uvpq_t)
       lpath = tstate.space.path_length(uvpq_t)
       nproduce S(lpath, uvpq, uvpq_s)?T(ParameterSet())
+      produce A(t+dt,pol_lenbuff-DL)
     else:
+      produce A(t+dt,pol_lenbuff)
       print('INTERSECTION DETECTED !')
-      
+  else:
+    nproduce A(t+dt,pol_lenbuff)
+    
     '''
-    else:
       # position (u1,v1) and (p1,q1) of the segment at the intersection:
       # intersection[0] is the index of the point before intersection in the list uvpq_s
       uv1 = uvpq_s[intersection[0]][:2]   # first two elements of uvpq
@@ -180,13 +186,6 @@ production:
       else:
         n_uvpq = rotate_surface_vector(self,ui,vi,pq1[0],pq1[1],2*angle)
     '''
-    # Produce a segment
-  nproduce A(t+dt,0)
-
-
-
-
-
 
 
 
@@ -221,8 +220,8 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
     uvpq = tstate.uvpq
     nproduce InitTurtle(uvpq)
     nproduce B(t, dep_lenbuff-dl)
-  else:
-    nproduce B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
+  #else:
+  #  nproduce B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
 
 
 
@@ -236,7 +235,10 @@ B(t,dep_lenbuff):
 
 S(dl,uvpq0,uvpq_s): 
   if uvpq_s == {}:
-    produce F(dl)
+    uvpq_s2 = forward(turtle,dl,MAXSTEPLEN)
+    uvs = [(s[0],s[1]) for s in uvpq_s2]
+    trajectories.add_line_from_point(turtle.uvpq,uvs) 
+    produce P(uvpq_s2)
   else:
     produce P(uvpq_s)
 
