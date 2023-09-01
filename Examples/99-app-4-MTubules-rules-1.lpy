@@ -79,13 +79,14 @@ DL = 10 * cm      # size of segment that are synthesized or depolymerized (no ph
 N = 20           #  Number of initial segments of size DL
 
 
-PolRate = 1      # cm/sec
-DepRate = 1      # cm/sec
+PolRate = 0.5      # cm/sec
+DepRate = 0.5      # cm/sec
 
 K = 2           # number of microtubules
 
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
+
 
 def energy(u,v):
   return trajectories.nb_bboxes((u,v))
@@ -99,6 +100,7 @@ Axiom:
   nproduce Frame(0.2)
   uv = (origin_pt[0]+0.3,origin_pt[1]+0.5)
   for k in range(K):
+    nproduce [
     alpha = random() * 360
     origin_pt[0] = random()*2*np.pi
     origin_pt[1] = - np.pi/2 + random()*np.pi
@@ -108,7 +110,7 @@ Axiom:
     turtle_init = riemannian_turtle_turn(turtle_init,space,alpha)
     nproduce B(0, 0)
     for i in range(N):
-      # S(path_length, path_origin, path_sequence)
+      # S(path_length, path_origin, path_sequence, line_id)
       # If path_sequence is not specified, then S it will be computed by a F
       # If path_sequence is specified, it will be displayed by a P
       uvpq_s = forward_in_space(space,turtle_init,DL, MAXSTEPLEN)
@@ -116,6 +118,7 @@ Axiom:
       nproduce S(DL,turtle_init,uvpq_s, sid)?T(ParameterSet())
       turtle_init = uvpq_s[-1]
     nproduce A(0, 0)
+    nproduce ]
 
 derivation length: 100 
 production:
@@ -131,7 +134,7 @@ production:
     # Otherwise some rules of interaction will need to be applied
     
     # Compute the potential 'forward' path of size pol_lenbuff
-    uvpq_s = forward(tstate,pol_lenbuff, MAXSTEPLEN)
+    uvpq_s = forward(tstate,DL, MAXSTEPLEN)
     #print("forward : ", uvpq_s)
     
     # Construct the corresponding line made of uv coords
@@ -141,6 +144,7 @@ production:
     uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
     intersection = trajectories.test_intersection(uvs)
     #print(intersection)
+    #print(trajectories.lines)
     
     if not intersection:
       sid = trajectories.add_line_from_point(tstate.uvpq,uvs) 
@@ -154,9 +158,11 @@ production:
       nproduce S(lpath, uvpq, uvpq_s, sid)?T(ParameterSet())
     else:
       print('INTERSECTION DETECTED !')
-      
+      produce A(t+dt,pol_lenbuff)
+  else:
+    nproduce A(t+dt,pol_lenbuff)
+    
     '''
-    else:
       # position (u1,v1) and (p1,q1) of the segment at the intersection:
       # intersection[0] is the index of the point before intersection in the list uvpq_s
       uv1 = uvpq_s[intersection[0]][:2]   # first two elements of uvpq
@@ -188,15 +194,6 @@ production:
       else:
         n_uvpq = rotate_surface_vector(self,ui,vi,pq1[0],pq1[1],2*angle)
     '''
-    # Produce a segment
-  nproduce A(t+dt,0)
-
-
-
-
-
-
-
 
 
 # Depolymerization at the - end (B)
@@ -206,7 +203,7 @@ production:
 # So for this, decomposition rules are needed. They will make it possible to empty
 # the dep_length buffer when it augments by eating (depolymerizing) more than one segment
 # during the same dt step. See below.
-B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
+B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
   #print("dep_lenbuff", dep_lenbuff)
   dep_lenbuff += DepRate * dt
   if dep_lenbuff >= DL:
@@ -214,13 +211,13 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(tstate):
     nproduce InitTurtle(uvpq)
     nproduce B(t+dt, dep_lenbuff-dl)
   else:
-    nproduce B(t+dt, dep_lenbuff)S(dl,uvpq0,uvpq_s)?T(ParameterSet())
+    nproduce B(t+dt, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(ParameterSet())
 
 
 
 decomposition:
 maximum depth: 1000
-# Decomposition rule to emty the dep_lenbuffer before the next step
+# Decomposition rule to empty the dep_lenbuffer before the next step
 # and remove as many segments as necessary (maximum imposed by maximum depth variable)
 #
 B(t, dep_lenbuff)S(dl, uvpq0, uvpq_s, sid)?T(tstate):
@@ -243,7 +240,11 @@ B(t,dep_lenbuff):
 
 S(dl,uvpq0, uvpq_s, sid): 
   if uvpq_s == {}:
-    produce F(dl)
+    uvpq_s2 = forward(turtle,dl,MAXSTEPLEN)
+    uvs = [(s[0],s[1]) for s in uvpq_s2]
+    # As the line was not created in the LineSet() object, create it now with the previouly defined given line_id 
+    trajectories.add_line_from_point(turtle.uvpq,uvs,line_id) 
+    produce P(uvpq_s2)
   else:
     produce P(uvpq_s)
 

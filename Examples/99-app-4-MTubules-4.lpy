@@ -76,8 +76,8 @@ DL = 10 * cm      # size of segment that are synthesized or depolymerized (no ph
 N = 10           #  Number of initial segments of size DL
 
 
-PolRate = 1      # cm/sec
-DepRate = 1      # cm/sec
+PolRate = 0.5      # cm/sec
+DepRate = 0.5      # cm/sec
 
 K = 1           # number of microtubules
 
@@ -100,7 +100,7 @@ Axiom:
       nproduce S(DL)?T(ParameterSet())
     nproduce A(0, 0)
 
-derivation length: 100 
+derivation length: 1000 
 production:
 
 # Polymerization at the + end (A)
@@ -110,8 +110,10 @@ A(t, pol_lenbuff):
   pol_lenbuff += PolRate * dt
   if pol_lenbuff >= DL:
     # Produce a segment
-    nproduce S(pol_lenbuff)?T(ParameterSet())
-  nproduce A(t+dt,0)
+    nproduce S(DL)?T(ParameterSet())
+    nproduce A(t+dt,pol_lenbuff-DL)
+  else:
+    nproduce A(t+dt,pol_lenbuff)
 
 # Depolymerization at the - end (B)
 # The problem is that if depolymerization is rapid, in dt it can do much more than DL
@@ -128,7 +130,7 @@ B(t, dep_lenbuff)S(x)?T(state):
     nproduce InitTurtle(uvpq)
     nproduce B(t+dt, dep_lenbuff-x)
   else:
-    nproduce B(t+dt, dep_lenbuff)S(x)?T(ParameterSet())
+    nproduce B(t+dt,dep_lenbuff) S(x) ?T(ParameterSet())
 
 decomposition:
 maximum depth: 1000
@@ -141,8 +143,6 @@ B(t, dep_lenbuff)S(x)?T(state):
     uvpq = state.uvpq
     nproduce InitTurtle(uvpq)
     nproduce B(t, dep_lenbuff-x)
-  else:
-    nproduce B(t, dep_lenbuff)S(x)?T(ParameterSet())
 
 interpretation:
 
