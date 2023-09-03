@@ -85,6 +85,7 @@ DepRate = 0.5      # cm/sec
 #For viza-ualization of MT disapearing
 CRate = 0.01
 CThreshold = 0.01
+CRInit = 0.06
 
 K = 100           # number of microtubules
 
@@ -163,7 +164,7 @@ production:
       #print('uvpq_t', uvpq_t)
       lpath = tstate.space.path_length(uvpq_t)
       #nproduce S(lpath, uvpq, uvpq_s, get_new_line_id())?T(ParameterSet())
-      nproduce S(lpath, uvpq, uvpq_s, line_id())?T(ParameterSet())
+      nproduce S(lpath, uvpq, uvpq_s, line_id)?T(ParameterSet())
       produce A(t+dt,pol_lenbuff-DL)
     else:
       #print('INTERSECTION DETECTED !')
@@ -224,7 +225,7 @@ B(t, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(tstate):
     nproduce B(t+dt, dep_lenbuff)S(dl,uvpq0,uvpq_s,line_id)?T(ParameterSet())
 
 B(t1, dep_lenbuff) A(t2, pol_lenbuff):
-  produce C(0, 0.08)
+  produce C(0, CRInit)
 
 C(t,r):
   if r < CThreshold:
@@ -277,7 +278,7 @@ endlsystem
 __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
-    import openalea.plantgl.all as pgl
+	import openalea.plantgl.all as pgl
 	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
