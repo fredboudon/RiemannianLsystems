@@ -115,7 +115,11 @@ class LineSet:
 
     def add_line_from_point(self, initpoint, linepoints, id = None) -> int:
         lpoints = [[initpoint[i] for i in range(len(linepoints[0]))]]+linepoints
-        self.add_line(lpoints, id)
+        return self.add_line(lpoints, id)
+
+    def remove_line(self, id) :
+        del self.lines[id]
+        del self.bvh[id]
 
     def line_points(self, lineid) -> np.array:
         """ Return the points of a line """
@@ -127,8 +131,8 @@ class LineSet:
         returns the list bounding box ids containing the point
         """
         result = []
-        for bid, bbxL in self.bvh.item():
-            if bbox_point_intersection(np.array(pos)*self.numericalratio, bbxL):
+        for bid, bbxL in self.bvh.items():
+            if bbox_point_intersection(bbxL, np.array(pos)*self.numericalratio):
                result.append(bid)
         return result
 
