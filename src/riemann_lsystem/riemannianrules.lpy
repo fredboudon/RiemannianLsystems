@@ -698,6 +698,32 @@ DrawVect(vect, size):
   if not np.isclose(l1,0.):
     nproduce [PinpointRel(vect)Arrow(l1*size)]
 
+# Draw a vector at the current position of the turtle
+DrawVectpq(vectpq):
+    surf = turtle.space
+    u, v, p, q = turtle.uvpq
+    vect = surf.pushforward(u, v, vectpq)
+    # draw a line from the current position of the Turtle to the indicated position
+    # nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+    l1 = np.linalg.norm(vect)
+    # nproduce [_(0.01)LineRel(coord)]
+    # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+    if not np.isclose(l1, 0.):
+        nproduce[PinpointRel(vect)Arrow(l1)]
+
+# Draw a vector at the current position of the turtle
+DrawVectpq(vectpq, size):
+    surf = turtle.space
+    u, v, p, q = turtle.uvpq
+    vect = surf.pushforward(u,v,vectpq)
+    # draw a line from the current position of the Turtle to the indicated position
+    # nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+    l1 = np.linalg.norm(vect)
+    # nproduce [_(0.01)LineRel(coord)]
+    # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+    if not np.isclose(l1, 0.):
+        nproduce[PinpointRel(vect)Arrow(l1 * size)]
+
 DrawTensor2Lines(pdirs, eigenvals, size, color_positive, color_negative):
   ''' 
   pdirs are the eigen vectors of the 2-tensor

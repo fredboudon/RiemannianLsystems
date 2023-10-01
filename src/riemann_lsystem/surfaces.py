@@ -278,7 +278,8 @@ class RiemannianSpace2D:
 
     def pushforward(self,u,v,vec):
       '''
-      Implements the push-forward operator divrectly on a vector v of shape 2 x 1 (2D array)
+      Implements the push-forward operator divrectly on a vector v of shape 2 x 1 (2D array).
+      Similar to shift_vector (with different argument type)
       '''
       A = self.Shift(u,v) # Compute shitf tensor at the new u,v,
 
@@ -316,16 +317,17 @@ class RiemannianSpace2D:
     def dot_product(self,u,v,S,T):
       """
       uses the metric tensor at point u,v to compute the scalar product of two surface vectors S and T
-      of components (S0,S1) and (T0,T1)in the local covariant basis
+      of components (S0,S1) and (T0,T1) in the local covariant basis
       """
       #print("norm: ******")
-      #print("S = ", S)
+      #print("u,v,S, T= ", u,v,S, T)
       S0 = S[0]
       S1 = S[1]
       T0 = T[0]
       T1 = T[1]
       g = self.metric_tensor(u,v)
-      return np.sqrt(S0*T0*g[0,0]+S0*T1*g[0,1]+S1*T0*g[1,0]+S1*T1*g[1,1])
+      #print("metric:", g)
+      return S0*T0*g[0,0]+S0*T1*g[0,1]+S1*T0*g[1,0]+S1*T1*g[1,1]
 
     def ds(self,u,v,du,dv):
       """

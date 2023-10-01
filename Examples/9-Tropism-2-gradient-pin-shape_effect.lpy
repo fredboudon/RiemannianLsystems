@@ -186,6 +186,7 @@ Axiom:
   if GEODESIC:
     nproduce [?T(ParameterSet())G(N)]
   nproduce @Ge
+  nproduce S
   
 derivation length: N
 production:
@@ -249,114 +250,9 @@ interpretation:
 maximum depth: 3
 
 S:
-  n = 20
-  ulist = np.linspace(0,2*pi,n)
-  vlist = np.linspace(0,SCALE_FACTOR,n)    
-  scalefactor = 0.01
-  linewidth = 0.01  
-  color_plus = 5
-  color_minus = 6
-  for u in ulist:
-    for v in vlist:
-      nproduce RiemannMoveTo([u,v]) @O(0.005) 
-      nproduce PrintCurvatures(scalefactor,color_plus,color_minus,linewidth)
-      #nproduce Frame(0.1)
+  print("turtle uvpq = ", turtle.uvpq)
   
-  
-PrintCurvatures(scalefactor,color_plus,color_minus,linewidth):
-  u,v,p,q = turtle.uvpq
-  print(f'u={u:.3f} v={v:.3f} p={p:.3f} q={q:.3f} ')
-  
-  if PRINT_TEST == 1:
-    # Test: computed numerical coef o the fundamental forms I and II
-    E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
-    print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
-    if TEST == 8: # Pseudosphere
-      # theoretical values of E,F,G,L,M,N for pseudosphere :
-      EE = (R*np.tanh(u))**2
-      FF = 0
-      GG = (R/np.cosh(u))**2
-    
-      LL = -R*np.sinh(u)/(np.cosh(u)**2)
-      MM = 0
-      NN = -R*(1/np.cosh(u))*np.tanh(u)
-    
-      print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
-    
-  if PRINT_TEST == 2:
-    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
-    if np.isnan(kmax):
-      produce 
-      
-    if PRINT_CURVATURES:
-      print("Local curvatures:")
-      print("\tGauss = ", "{:.3f}".format(K), \
-            ", Mean = ", "{:.3f}".format(H), \
-            ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
-    
-    # principal directions returns the array of eigen-values, and the column matrix of eigen vectors
-    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
-    if PRINT_CURVATURES:
-      print("eigen values, eigen vectors:")
-      print(curvmin, curvmax)
-      print(pdirmin_uv, pdirmax_uv)
-    
-    #print("The norm of the eigen vectors should be 1: ", np.linalg.norm(evv[:,0]), np.linalg.norm(evv[:,1]) )
-    #produce _(FRAMEWIDTH)Frame(FRAMESIZE)
-    
-    # pdirs_uv are 
-    if pdirmin_uv == []:
-      produce
-    if pdirmax_uv == []:
-      produce
-      
-    # Compute the pushforward of principal direction 1 expressed in the covariant basis
-    pushforward = turtle.space.Shift(u,v)
-    pdirmax = pushforward.dot(pdirmax_uv)
-    print("pdirmax = ", pdirmax)
-    # Compute the local normal vector, and the second principal direction (perpendicular)
-    ndir = turtle.space.normal(u,v)
-    pdirmin = np.cross(pdirmax, ndir)
-    print("pdirmin = ", pdirmin)
-    
-    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
-    pdirs = [pdirmax,pdirmin]
-    print(pdirs)
-    #nproduce CovariantBasis(0.3)
-    pcurvs = [curvmax,curvmin]
-    
-    #nproduce ;(5)_(0.005)DrawVect(dir1,0.3)
-    #nproduce ;(6)_(0.005)DrawVect(dir2,0.3)
-    nproduce _(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)
-    
-    normal = turtle.space.normal(u,v)
-    nproduce DrawVect(normal, 0.1)
 
-  if PRINT_TEST == 3:
-    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
-    # pdirs_uv are 
-    if pdirmin_uv == []:
-      produce
-    if pdirmax_uv == []:
-      produce
-      
-    # Compute the pushforward of principal direction 1 expressed in the covariant basis
-    pushforward = turtle.space.Shift(u,v)
-    pdirmax = pushforward.dot(pdirmax_uv)
-    print("pdirmax = ", pdirmax)
-    # Compute the local normal vector, and the second principal direction (perpendicular)
-    ndir = turtle.space.normal(u,v)
-    pdirmin = np.cross(pdirmax, ndir)
-    print("pdirmin = ", pdirmin)
-    
-    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
-    pdirs = [pdirmax,pdirmin]
-    print(pdirs)
-    #nproduce CovariantBasis(0.3)
-    pcurvs = [curvmax,curvmin]
-
-    #nproduce DrawEllipsis(pdirs,pcurvs,scalefactor,color_plus,color_minus)
-    
 endlsystem
 
 

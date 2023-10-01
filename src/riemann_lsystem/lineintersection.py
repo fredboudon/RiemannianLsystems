@@ -48,7 +48,8 @@ def bbox_point_intersection(bbx, pt):
 
 def line_intersection(pointset1, pointset2):
     """ Test whether two sequences of segments intersect each other at least once
-    - returns the index of the id of the first segment that intersects a segment in the second list and the id of the segment of the second list
+    - returns the index of the id of the first segment that intersects a segment in
+    the second list and the id of the segment of the second list
     """
     #runs over the segments of the first list, and then over the segments of the second list
     for i, (p1a, p1b) in enumerate(zip(pointset1,pointset1[1:])):
@@ -150,10 +151,10 @@ class LineSet:
         :param exclude : list of ids of lines of self to not test
         :return: False in case of non intersection,
           otherwise returns
-          (point id before intersection,
-          point id before intersection of intersected line,
-          line id with which it intersect
-          found intersection point)
+          (index of the point id before intersection in linepoints,
+           index of the point id before intersection of intersected line,
+           line id with which it intersects
+           found intersection point)
         """
         linepoints = np.array(linepoints)*self.numericalratio
         bbxC = bbox(linepoints)
@@ -170,7 +171,7 @@ class LineSet:
         for l in linetotest:
             intersect = line_intersection(linepoints, self.line_points(l))
             if not intersect is None:
-                intersections.append((intersect[0], intersect[1],l,intersect[2]))
+                intersections.append((intersect[0], intersect[1], l, intersect[2]))
 
         if verbose:
             print(list(sorted(set([(self.lineids[l],l) for l in linetotest]))),' --> ', [(self.lineids[l],l,i) for l,i in intersections])
