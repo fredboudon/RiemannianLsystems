@@ -19,12 +19,15 @@ def segmentIntersection(p1a,p1b,p2a,p2b):
 
 def bbox(pointset):
     """
-    Compute the bounding bow of a set of points
+    Compute the bounding box of a set of points
 
     :param pointset: n points (n being whatever, each point of shape = 2x1
     :return: 2 points corresponding to min and max coords of the bbox
     """
     return (np.min(pointset,axis=0),np.max(pointset,axis=0))
+
+def bbox_union(bbx1, bbx2):
+    return ([min(bbx1[i],bbx2[i]) for i in range(len(bbx1))],[max(bbx1[i],bbx2[i]) for i in range(len(bbx1))])
 
 def bbox_bbox_intersection(bbx1, bbx2):
     """ 
@@ -46,7 +49,7 @@ def bbox_point_intersection(bbx, pt):
         if pt[i] <  bbx[0][i] : return False
     return True
 
-def line_intersection(pointset1, pointset2):
+def line_intersection(pointset1, pointset2, uperiodicrange = None):
     """ Test whether two sequences of segments intersect each other at least once
     - returns the index of the id of the first segment that intersects a segment in
     the second list and the id of the segment of the second list
@@ -54,10 +57,29 @@ def line_intersection(pointset1, pointset2):
     #runs over the segments of the first list, and then over the segments of the second list
     for i, (p1a, p1b) in enumerate(zip(pointset1,pointset1[1:])):
             for j, (p2a, p2b) in enumerate(zip(pointset2,pointset2[1:])):
+                
                 intsct = segmentIntersection(p1a,p1b, p2a,p2b)
                 if not intsct is None:
                     return i, j, intsct
     return None
+
+def border_crossing( p0, p1, uperiodicrange, coord = 0):
+    if uperiodicrange is None : return [p0,p1]
+    urange = uperiodicrange[1] - uperiodicrange[0]
+    start = int(((p0[coord]-uperiodicrange[0])//urange))
+    end = int(((p1[coord]-uperiodicrange[0])//urange))
+    def normalize_coord( u):
+        if uperiodicrange and u < uperiodicrange[0] or u > uperiodicrange[1]:
+            u = uperiodicrange[0] + (u-uperiodicrange[0]) % urange
+        return u
+    if start < end:
+        mrange = range(start+1,end+1)
+        borders = (uperiodicrange[1],uperiodicrange[0])
+    else:
+        mrange = range(start,end,-1)
+        borders = uperiodicrange
+    uvalues = [uperiodicrange[0]+urange*i for i in mrange]
+    return [[normalize_coord(v) if i == coord else v for i,v in enumerate(p0)]]+[[b if i == coord else p0[i]+(p1[i]-p0[i])*((u-p0[coord])/(p1[coord]-p0[coord])) for i in range(len(p0))] for u in uvalues for b in borders ]+[[normalize_coord(v) if i == coord else v for i,v in enumerate(p1)]]
 
 class LineSet:
     '''
@@ -69,7 +91,7 @@ class LineSet:
     - bvh = bounding volume hierarchy (the hierachical aspect is not used here) = dict of bounding boxes = {line_id: bbox}
     bbox here is a tuple of two points with min and max coordinates
     '''
-    def __init__(self, numericalratio = 1):
+    def __init__(self, numericalratio = 1, uperiodicrange = None, vperiodicrange = None):
         """
         This object registers set of lines and is able to determine if an intersection exists with a new line.
         """
@@ -79,6 +101,9 @@ class LineSet:
         self.bvh = {}
         # A ratio with which all coordinates are multiplied to avoid numerical issues
         self.numericalratio = numericalratio
+        # The periodicity information
+        self.uperiodicrange = uperiodicrange
+        self.vperiodicrange = vperiodicrange
 
     def __contains__(self, lineid):
         return lineid in self.lines
@@ -87,19 +112,51 @@ class LineSet:
         """ Return all the ids of the lines """
         return self.lines.keys()
 
+    def normalize_coord(self, uv):
+        u,v = uv
+        if self.uperiodicrange and u < self.uperiodicrange[0] or u > self.uperiodicrange[1]:
+            urange = self.uperiodicrange[1] - self.uperiodicrange[0]
+            u = self.uperiodicrange[0] + (u-self.uperiodicrange[0]) % urange
+        if self.vperiodicrange and v < self.vperiodicrange[0] or v > self.vperiodicrange[1]:
+            vrange = self.vperiodicrange[1] - self.vperiodicrange[0]
+            v = self.vperiodicrange[0] + (v-self.vperiodicrange[0]) % vrange
+        return (u,v)
+
+    def normalize_line(self, linepoints):
+        _linepoints = [[]]
+        for pi,pj in zip(linepoints,linepoints[1:]):
+            _sublinepoints = border_crossing(pi,pj, self.uperiodicrange, 0)
+            for i in range(len(_sublinepoints)//2):
+                pii,pjj = linepoints[2*i],linepoints[2*i+1]
+                _subsublinepoints = border_crossing(pii,pjj, self.vperiodicrange, 1)
+                for j in range(len(_subsublinepoints)//2):
+                    pii,pjj = linepoints[2*i],linepoints[2*i+1]
+                    if j == 0:
+                        _linepoints[-1].append(pii)
+                        _linepoints[-1].append(pjj)
+                    else:
+                        _linepoints.append([pii,pjj])
+
+            
+        linepoints = [np.array(_ilinepoints)*self.numericalratio for _ilinepoints in _linepoints]
+        from functools import reduce
+        bbx = reduce(bbox_union,[bbox(line) for line in linepoints])
+        return linepoints, bbx
+
     def add_line(self, linepoints, id = None) -> int:
         """ Add a new line. Return its id """
-        linepoints = np.array(linepoints)*self.numericalratio
+        linepoints, bbx = self.normalize_line(linepoints)
         if id is None:
             if len(self.lines) == 0:
                 id = 0
             else:
                 id = max(self.lines.keys())+1
-        if not id in self.lines:
-            self.lines[id] = linepoints
-        else:
-            self.lines[id] = np.concatenate((self.lines[id],linepoints))
-        self.bvh[id] = bbox(self.lines[id])
+        #if not id in self.lines:
+        self.lines[id] = linepoints
+        #else:
+            #raise ValueError(id)
+            # self.lines[id] = np.concatenate((self.lines[id],linepoints))
+        self.bvh[id] = bbx
         return id
 
     def remove_line(self, id) -> bool:
@@ -156,8 +213,9 @@ class LineSet:
            line id with which it intersects
            found intersection point)
         """
-        linepoints = np.array(linepoints)*self.numericalratio
-        bbxC = bbox(linepoints)
+        linepoints, bbxC = self.normalize_line(linepoints)
+        #linepoints = np.array(linepoints)*self.numericalratio
+        #bbxC = bbox(linepoints)
 
         exclude = set(exclude)
         linetotest = set([])
@@ -169,9 +227,11 @@ class LineSet:
 
         intersections = []
         for l in linetotest:
-            intersect = line_intersection(linepoints, self.line_points(l))
-            if not intersect is None:
-                intersections.append((intersect[0], intersect[1], l, intersect[2]))
+            for i,sublinei in enumerate(linepoints):
+                for j,sublinej in enumerate( self.line_points(l)):
+                    intersect = line_intersection(sublinei,sublinej)
+                    if not intersect is None:
+                        intersections.append((i, intersect[0], j, intersect[1], l, intersect[2]))
 
         if verbose:
             print(list(sorted(set([(self.lineids[l],l) for l in linetotest]))),' --> ', [(self.lineids[l],l,i) for l,i in intersections])
