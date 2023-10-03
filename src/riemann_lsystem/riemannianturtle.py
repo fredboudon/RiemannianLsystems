@@ -25,6 +25,8 @@ logging.basicConfig(level=logging.DEBUG)
 #logger.error('***** raised an error')
 """
 
+PERIODIC_COORD_NORMALIZATION = True
+
 def flatten(t):
   return [item for sublist in t for item in sublist]
 
@@ -261,6 +263,12 @@ def riemannian_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10, SPEED1 = Tr
         #print(sol.y)
         uvpq_s = np.transpose(sol.y)
 
+    # The problem is that as a result there may be discontinuous coordinates that are not properly handled in the
+    # Intersection module
+
+    if PERIODIC_COORD_NORMALIZATION:
+      surf.normalize_periodic_coords(uvpq_s)
+
     return uvpq_s
 
 def parameterspace_turtle_move_forward(p_uvpq, surf, delta_s, SUBDIV=10):
@@ -345,6 +353,10 @@ def geodesic_to_point(space,uv,uvt,nb_points, max_iter):
     #uvpq_s = space.parameterspace_line_to_target_point(uv, uvt, nb_points)
     #errorval =0
     #print("Error = ", errorval)
+
+    if PERIODIC_COORD_NORMALIZATION:
+      space.normalize_periodic_coords(uvpq_s)
+
     return uvpq_s, errorval
 
 def geodesic_to_point_LS(space,uv,uvt,nb_points):
@@ -365,6 +377,9 @@ def geodesic_to_point_LS(space,uv,uvt,nb_points):
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s  = space.geodesic_to_target_point_LS(uv, uvt, nb_points)
+
+    if True:
+      space.normalize_periodic_coords(uvpq_s)
 
     return uvpq_s
 
@@ -387,6 +402,9 @@ def geodesic_to_point_shoot(space,uv,uvt,nb_points):
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s  = space.geodesic_to_target_point_shoot(uv, uvt, nb_points)
 
+    if PERIODIC_COORD_NORMALIZATION:
+      space.normalize_periodic_coords(uvpq_s)
+
     return uvpq_s
 
 def parameterspace_line_to_point(space, uv, uvt, nb_points):
@@ -408,6 +426,9 @@ def parameterspace_line_to_point(space, uv, uvt, nb_points):
     # the returned value may be None if the preconditions are not respected
     # e.g. (u,v) must be different from (ut,vt)
     uvpq_s = space.parameterspace_line_to_target_point(uv, uvt, nb_points)
+
+    # NOTE: Periodic coordinates ARE NOT normalized here as this function is
+    # used to initialize geodesic_to_point functions.
 
     return uvpq_s
 

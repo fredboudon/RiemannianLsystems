@@ -109,7 +109,6 @@ def apply_forward(turtle, uvpq_s):
   turtle.uvpq = turtle.space.check_coords([uu, vv, pp, qq])
   #print('apply_forward:', turtle.uvpq )
 
-
 def forward(turtle, length, dl = 1):
   return forward_in_space(turtle.space, turtle.uvpq, length, dl, turtle.indirect_interpretation)
 
@@ -144,8 +143,8 @@ def forward_in_space(space, uvpq, length, dl = 1, indirect_interpretation = Fals
   uvpq_s = [space.check_coords(uvpq) for uvpq in uvpq_s]
   return uvpq_s
 
-def forward(turtle, length, dl = 1):
-  return forward_in_space(turtle.space, turtle.uvpq, length, dl, turtle.indirect_interpretation)
+#def forward(turtle, length, dl = 1):
+#  return forward_in_space(turtle.space, turtle.uvpq, length, dl, turtle.indirect_interpretation)
 
 
 def riemannianLineTo_in_space(space, uvpq, target_coords, nb_points, variant = '', max_iter=LINETO_MAXITER, indirect_interpretation = False):

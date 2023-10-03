@@ -176,6 +176,22 @@ class RiemannianSpace2D:
         self.STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U  # boolean value
         self.STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V  # boolean value
 
+    def normalize_periodic_ucoord(self,ucoord):
+        ''' In case of periodic coordinate returns the corresponding coord value in the [umin,umax] interval '''
+        return self.umin + (ucoord-self.umin) % (self.umax - self.umin)
+
+    def normalize_periodic_vcoord(self,vcoord):
+        ''' In case of periodic coordinate returns the corresponding coord value in the [vmin,vmax] interval '''
+        return self.vmin + (vcoord-self.vmin) % (self.vmax - self.vmin)
+
+    def normalize_periodic_coords(self, uvpq_s):
+      # normalizes periodic coordinates if any to be in the standard interval
+      for k in range(len(uvpq_s)):
+          if self.UPERIODIC:
+              uvpq_s[k][0] = self.normalize_periodic_ucoord(uvpq_s[k][0])
+          if self.VPERIODIC:
+              uvpq_s[k][1] = self.normalize_periodic_vcoord(uvpq_s[k][1])
+
     def all_periodic_points(self, u,v):
         '''
         In case of periodic parameter domains:
