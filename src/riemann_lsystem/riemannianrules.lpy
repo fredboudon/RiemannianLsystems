@@ -42,6 +42,7 @@ module ?UV(uv)
 module ?PQ(pq)
 
 module ParallelTransportedArrow(angleRelHead,size)
+module ParallelTransportReset
 #module DrawVect(vect) #FIXME: we should be able to declare same module with different signatures
 module DrawVect(vect,size)
 module DrawTensor2Lines(vect,vect2,size,color1,color2)
@@ -298,7 +299,7 @@ def turn(turtle, angle):
   else:
     turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
   orientHead(turtle)
-  # TODO: Modify the following line as when the rotation takes place indirecty in the parameter space, the cumrotation is different
+  # TODO: Modify the following line as when the rotation takes place indirectly in the parameter space, the cumrotation is different
   turtle.cumrotation += angle
   # print("Total turtle rotation during the path = ", turtle.cumrotation)
 
@@ -653,6 +654,11 @@ RiemannPinpoint(pq):
   turtle.uvpq[3] = pq[1]
   orientHead(turtle)
   produce
+
+# Reinitializes the variable keeping tranck of the cumulated angles by which the turtle turns on a path
+ParallelTransportReset:
+  turtle.cumrotation = 0
+  nproduce
 
 # Draw a vector that is parallel transported along the path that finishes at the current turtle position
 # The vector if of norm = size and is assumed to make an angle angleRelHead at the origin of the turtle's path
