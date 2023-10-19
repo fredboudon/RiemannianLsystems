@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.DEBUG)
 #logger.error('***** raised an error')
 """
 
-PERIODIC_COORD_NORMALIZATION = True
+PERIODIC_COORD_NORMALIZATION = False
 
 def flatten(t):
   return [item for sublist in t for item in sublist]

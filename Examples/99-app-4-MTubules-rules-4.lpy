@@ -158,7 +158,7 @@ Axiom:
     # PERIODIC_COORD_NORMALIZATION at True (problem of extra small detections after the first one which is Ok)
     # PERIODIC_COORD_NORMALIZATION at False (problem of undetected segments)
     # Select here a segment id to test (one at a time) in 0, K
-    activated_id = 9
+    activated_id = 1
     #ok: 1,2,5,6,7
     #pb : 3,4,8,9
     
@@ -284,11 +284,9 @@ production:
       #print("\tscalar product =  ", sprod)
       sgn1 = np.sign(sprod)
       
-      #compute the normed of the two vectors
+      # extract the angle of the two vectors
       n1 = tstate.space.norm(ui,vi,pq1)
       n2 = tstate.space.norm(ui,vi,pq2estimated)
-      
-      # extract the angle of the two vectors
       alpha = np.arccos(sprod/(n1*n2)) # is a positive number
       alpha = np.rad2deg(alpha)
       if alpha > 90:
@@ -296,7 +294,7 @@ production:
       print("\t--> (small) incident angle  = ", alpha)
       
       vec_0 = tstate.space.pushforward(ui,vi,pq2estimated) 
-      vec = tstate.space.pushforward(ui,vi,pq1)              # tgt vec of the intercepted line
+      vec = tstate.space.pushforward(ui,vi,pq1)                 # tgt vec of the intercepted line
       #vec = tstate.space.pushforward(ui,vi,tstate.uvpq[-2:])   # tgt vec of the current (intercepting) line
       
       #print("\tpq1 = ", pq1)
@@ -308,7 +306,7 @@ production:
       sgn2 = np.sign(np.dot(prodvec, tstate.space.normal(ui,vi)))
       
       sgn = sgn1 * sgn2
-      print("\t sgn final: ", sgn, "sgn scalar prod: ", sgn1, "sgn cross prod: ", sgn2)
+      #print("\t sgn final: ", sgn, "sgn scalar prod: ", sgn1, "sgn cross prod: ", sgn2)
       # comparison of the orientation of this vector with the normal direction on the surface at that point
       # print(prodvec)
       #epsilon = 1

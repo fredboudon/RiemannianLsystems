@@ -73,7 +73,7 @@ R = 1.   # Radius of the sphere, or main radius of the torus
 
 # If true, moves the turtle along great circles
 # If not, moves the turtle along a latitude
-GREATCIRCLES = False
+GREATCIRCLES = True
 if GREATCIRCLES :
   NBSTEPS = 3
 else:
@@ -85,7 +85,7 @@ STEPSIZE = R/10.     # size of a step (in a.u.) used to draw pieces of geodesic
 LINEWIDTH = 0.01
 
 # transported arrow
-AngleRelativeToTurtleHead = -90 #0, 30
+AngleRelativeToTurtleHead = -30 #0, 30
 
 # Initialize the surface coordinate and speed [u0,v0,p0,q0]
 # passed as the argument to Param. The second argument is the chosen parametric surface
@@ -122,11 +122,13 @@ Axiom:
   if GREATCIRCLES == True:
     NBSTEPS = 3
     nproduce InitTurtle([0,0,0,1])
+    nproduce ParallelTransportReset
     nproduce ;(3)_(LINEWIDTH)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5);(1)A(0)
   else:
     NBSTEPS = 68
     # look at parallel transport along a latitude that is not a great circle
     nproduce InitTurtle([0,np.sqrt(3)/2.,1,0])
+    nproduce ParallelTransportReset
     nproduce ;(3)_(LINEWIDTH)ParallelTransportedArrow(AngleRelativeToTurtleHead,0.5);(1)B(0)
   
 
