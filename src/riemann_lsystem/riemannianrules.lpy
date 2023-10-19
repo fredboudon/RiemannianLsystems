@@ -114,6 +114,7 @@ def forward(turtle, length, dl = 1):
   return forward_in_space(turtle.space, turtle.uvpq, length, dl, turtle.indirect_interpretation)
 
 def forward_in_space(space, uvpq, length, dl = 1, indirect_interpretation = False):
+  dl = min(length, dl)
   #0. Test if argument is null
   if length < 1e-100:
     # value considered as NULL:
