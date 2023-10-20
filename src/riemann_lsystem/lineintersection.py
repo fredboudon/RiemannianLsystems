@@ -55,31 +55,39 @@ def line_intersection(pointset1, pointset2):
     the second list and the id of the segment of the second list
     """
     #runs over the segments of the first list, and then over the segments of the second list
+    print(pointset1, pointset2)
     for i, (p1a, p1b) in enumerate(zip(pointset1,pointset1[1:])):
             for j, (p2a, p2b) in enumerate(zip(pointset2,pointset2[1:])):
-                
+                print('Test',p1a,p1b, p2a,p2b)              
                 intsct = segmentIntersection(p1a,p1b, p2a,p2b)
                 if not intsct is None:
                     return i, j, intsct
     return None
 
 def border_crossing( p0, p1, periodicrange, coord = 0):
-    if periodicrange is None : return [p0,p1]
-    urange = periodicrange[1] - periodicrange[0]
-    start = int(((p0[coord]-periodicrange[0])//urange))
-    end = int(((p1[coord]-periodicrange[0])//urange))
+    if periodicrange is None : 
+        return [p0,p1]
     def normalize_coord( u):
         if periodicrange and u < periodicrange[0] or u > periodicrange[1]:
             u = periodicrange[0] + (u-periodicrange[0]) % urange
         return u
-    if start < end:
+    def normalize_point(p):
+        return [normalize_coord(v) if i == coord else v for i,v in enumerate(p)]
+    urange = periodicrange[1] - periodicrange[0]
+    start = int(((p0[coord]-periodicrange[0])//urange))
+    end = int(((p1[coord]-periodicrange[0])//urange))
+    if start == end:
+        res = [normalize_point(p0),normalize_point(p1)]
+        return res
+    elif start < end:
         mrange = range(start+1,end+1)
         borders = (periodicrange[1],periodicrange[0])
     else:
         mrange = range(start,end,-1)
         borders = periodicrange
     uvalues = [periodicrange[0]+urange*i for i in mrange]
-    return [[normalize_coord(v) if i == coord else v for i,v in enumerate(p0)]]+[[b if i == coord else p0[i]+(p1[i]-p0[i])*((u-p0[coord])/(p1[coord]-p0[coord])) for i in range(len(p0))] for u in uvalues for b in borders ]+[[normalize_coord(v) if i == coord else v for i,v in enumerate(p1)]]
+    res = [normalize_point(p0)]+[[b if i == coord else p0[i]+(p1[i]-p0[i])*((u-p0[coord])/(p1[coord]-p0[coord])) for i in range(len(p0))] for u in uvalues for b in borders ]+[normalize_point(p1)]
+    return res
 
 class LineSet:
     '''
@@ -125,14 +133,13 @@ class LineSet:
     def normalize_line(self, linepoints):
         if self.uperiodicrange is None and self.vperiodicrange is None :  
             return [np.array(linepoints)], bbox(linepoints)
-        _linepoints = [[]]
+        _linepoints = []
         for pi,pj in zip(linepoints,linepoints[1:]):
             _sublinepoints = border_crossing(pi,pj, self.uperiodicrange, 0)
             for i in range(len(_sublinepoints)//2):
                 pii,pjj = _sublinepoints[2*i],_sublinepoints[2*i+1]
                 _subsublinepoints = border_crossing(pii,pjj, self.vperiodicrange, 1)
-                if i != 0:
-                    _linepoints.append([pii])                        
+                _linepoints.append([pii])                        
                 for j in range(len(_subsublinepoints)//2):
                     pii,pjj = _subsublinepoints[2*j],_subsublinepoints[2*j+1]
                     if j != 0:
@@ -269,7 +276,23 @@ def test():
     from openalea.plantgl.all import Viewer,Scene, Polyline2D,Translated
     Viewer.display(Scene([Translated(-a[0],-a[1],0,Polyline2D([a,b])),Translated(-a[0],-a[1],0,Polyline2D([c,d]))]))
 
+def test2():
+    from math import pi
+    a = [(-9.312379632169453e-17, 0.09935873376730332), (-9.500930985241659e-17, -0.0001545677755249164)]
+    b = [[6.25958653, 0.        ], [6.28318531, 0.        ]]
+    print(2*pi)
+    trajectories = LineSet(uperiodicrange=(0,2*pi))
+    print(a)
+    an, _ = trajectories.normalize_line(a)
+    print(an)
+    print(b)
+    bn, _ = trajectories.normalize_line(b)
+    print(bn)
+    intersect = line_intersection(an[0],bn[0])
+    print(intersect)
+    
+
 if __name__ == '__main__':
     print('test')
-    test()
+    test2()
 
