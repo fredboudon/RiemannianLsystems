@@ -13,8 +13,8 @@ def segmentIntersection(p1a,p1b,p2a,p2b):
     c = np.cross(d0,d2)
     beta = b/a
     alpha = c/a
-    if beta <= 0 or 1-beta <= 0 : return None
-    if alpha <= 0 or 1-alpha <= 0 : return None
+    if beta <= 0 or 1-beta < 0 : return None
+    if alpha <= 0 or 1-alpha < 0 : return None
     return p1a+alpha*d1 #p2a+alpha*d2
 
 def bbox(pointset):
@@ -112,6 +112,16 @@ class LineSet:
         # The periodicity information
         self.uperiodicrange = uperiodicrange
         self.vperiodicrange = vperiodicrange
+    
+    def setSpace(self, space):
+        if space.UPERIODIC:
+            self.uperiodicrange = (space.umin, space.umax)
+        else:
+            self.uperiodicrange = None
+        if space.VPERIODIC:
+            self.vperiodicrange = (space.vmin, space.vmax)
+        else:
+            self.vperiodicrange = None
 
     def __contains__(self, lineid):
         return lineid in self.lines

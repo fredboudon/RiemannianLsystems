@@ -7,7 +7,7 @@ from openalea.plantgl.scenegraph.nurbsshape import nurbHalfEllipse
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 import openalea.plantgl.all as pgl
-import nurbsswung as ns
+import riemann_lsystem.nurbsswung as ns
 reload(ns)
 
 from math import *
@@ -134,6 +134,7 @@ def __initialiseContext__(context):
 	profsphere.name = "profsphere"
 	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('Curve2D',profile0),('Curve2D',profile1),('Curve2D',profile2),('Curve2D',profile3),('Curve2D',profile5),('Curve2D',profile6),('Curve2D',profsphere)])
 	parameterset = [panel_0,]
+	context["__functions__"] = []
 	context["__curves__"] = [('profile0',profile0),('profile1',profile1),('profile2',profile2),('profile3',profile3),('profile5',profile5),('profile6',profile6),('profsphere',profsphere),]
 	context["__parameterset__"] = parameterset
 	context["profile0"] = profile0

@@ -93,7 +93,8 @@ MaxIncidenceAngle = 70 # degrees. max deflection angle (if higher, no deflection
 K = 10           # try 1,2,3, 10,100,1000 : number of microtubules
 
 # Set of trajectories already existing since the beginning of the simulation
-trajectories = LineSet(uperiodicrange=(space.umin,space.umax))
+trajectories = LineSet()
+trajectories.setSpace(space)
 LINE_ID = 0
 
 # TEST selection
@@ -151,7 +152,7 @@ Axiom:
     # PERIODIC_COORD_NORMALIZATION at True (problem of extra small detections after the first one which is Ok)
     # PERIODIC_COORD_NORMALIZATION at False (problem of undetected segments)
     # Select here a segment id to test (one at a time) in 0, K
-    activated_id = 9
+    activated_id = 0
     
     alpha = np.linspace(0, 360, K+1)
     turtle_init = [0,0,0,1]
@@ -207,6 +208,7 @@ production:
     # 3. Test the possible intersection of this potential line with 
     # already existing MTs stored in the global object trajectories
     intersection = trajectories.test_intersection(uvs)
+    print(intersection,uvs)
     # intersection is False if no intersection were detected
     # otherwise returns 
     #   (index of the point id before intersection in list uvs, 
