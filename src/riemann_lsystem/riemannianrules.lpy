@@ -262,7 +262,7 @@ def riemannianLineToShoot(turtle, target_coords, nb_points):
 '''
 
 def riemannianLineTo(turtle, target_coords, nb_points, variant = '', max_iter=LINETO_MAXITER):
-  riemannianLineTo_in_space(turtle.space, turtle.uvpq, target_coords, nb_points, variant, max_iter, turtle.indirect_interpretation)
+  return riemannianLineTo_in_space(turtle.space, turtle.uvpq, target_coords, nb_points, variant, max_iter, turtle.indirect_interpretation)
 
 
 
