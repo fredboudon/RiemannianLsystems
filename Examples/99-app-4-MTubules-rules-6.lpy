@@ -78,7 +78,7 @@ dt = 0.1         # sec
 
 # Managing the discretization of MT segments
 DL = 10 * cm      # size of segment that are synthesized or depolymerized (no physical meaning, just quantization)
-N = 3             #  Number of initial segments of size DL
+N = 20             #  Number of initial segments of size DL
 
 
 PolRate = 0.5      # cm/sec
@@ -88,9 +88,9 @@ DepRate = 0.5      # cm/sec
 CRate = 0.01
 CThreshold = 0.01
 CRInit = 0.05
-MaxIncidenceAngle = 70 # degrees. max deflection angle (if higher, no deflection)
+MaxIncidenceAngle = 45 # degrees. max deflection angle (if higher, no deflection)
 
-K = 10           # try 1,2,3, 10,100,1000 : number of microtubules
+K = 3           # try 1,2,3, 10,100,1000 : number of microtubules
 
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
@@ -98,7 +98,7 @@ trajectories.setSpace(space)
 LINE_ID = 0
 
 # TEST selection
-TEST = 2   # 1 : simulate K MT segments in random positions
+TEST = 1   # 1 : simulate K MT segments in random positions
            # 2 : test intersection with a line from different azimuths
 
 def get_new_line_id():
@@ -124,6 +124,8 @@ def StartEach():
 # - a A end (head, where polymerization occurs)
 # a ?T() module is systematically inserted between these modules so that the turtle state 
 # computed at the last interpretation is accessible in rules
+
+
 Axiom:
   global origin_pt, trajectories
   nproduce SetSpace(space)
@@ -132,8 +134,25 @@ Axiom:
   #nproduce ;(0)PlotSpace(intersection_energy)
   #turtle_init = origin_pt + [0., 1.] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
   nproduce ;(1)_(LINEWIDTH)
+  if TEST == 1: # K segments randomly placed
+    for k in range(K):
+      nproduce [
+      alpha = random() * 360
+      origin_pt[0] = random()*2*np.pi
+      origin_pt[1] = - np.pi/2 + random()*np.pi
+      turtle_init = origin_pt + [0., 1.]
+      nproduce InitTurtle(turtle_init)
+      nproduce +(alpha)
+      nproduce B(0, 0)
+      for i in range(N):
+        # S(path_length, path_origin, path_sequence, line_id)
+        # If path_sequence is not specified, then S it will be computed by a F
+        # If path_sequence is specified, it will be displayed by a P
+        nproduce S(DL,{},get_new_line_id())?T(ParameterSet())
+      nproduce A(0, 0)
+      nproduce ]
       
-  if TEST == 2: # K segments positionned at different azimuthal orientation with respect to a horizontal segment pointing to a central line
+  elif TEST == 2: # K segments positionned at different azimuthal orientation with respect to a horizontal segment pointing to a central line
     # horizontal segment 
     nproduce [InitTurtle([0,0,0,1]);(5)@O(0.03)]
     origin_pt = [-np.pi/6,0.]

@@ -9,7 +9,10 @@ len_seg = 1./nb_seg
 
 module Leaf
 
-Axiom: ;(2)_(0.01)Frame(0.3) Leaf(length, width)
+Axiom: 
+  nproduce ;(7)_(0.01)
+  #nproduce Frame(0.3) 
+  nproduce Leaf(length, width)
 
 
 derivation length: 1
@@ -29,6 +32,10 @@ endlsystem
 __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (82,92,64) , diffuse = 1.95652 , shininess = 0 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
 	import openalea.plantgl.all as pgl
 	width_law = pgl.NurbsCurve2D(	
 	    ctrlPointList = pgl.Point3Array([(0, 0.0818088, 1),(0.130729, 0.122043, 1),(0.28565, 0.171495, 1),(0.508165, 0.214097, 1),(0.714426, 0.203564, 1),(0.888084, 0.152662, 1),(1, 0.0407503, 1),(1, 0.00280155, 1)]) , 

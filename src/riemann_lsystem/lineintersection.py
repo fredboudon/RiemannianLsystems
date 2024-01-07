@@ -55,10 +55,10 @@ def line_intersection(pointset1, pointset2):
     the second list and the id of the segment of the second list
     """
     #runs over the segments of the first list, and then over the segments of the second list
-    print(pointset1, pointset2)
+    #print("line_intersection:",pointset1, pointset2)
     for i, (p1a, p1b) in enumerate(zip(pointset1,pointset1[1:])):
             for j, (p2a, p2b) in enumerate(zip(pointset2,pointset2[1:])):
-                print('Test',p1a,p1b, p2a,p2b)              
+                #print('line_intersection Test',p1a,p1b, p2a,p2b)
                 intsct = segmentIntersection(p1a,p1b, p2a,p2b)
                 if not intsct is None:
                     return i, j, intsct
