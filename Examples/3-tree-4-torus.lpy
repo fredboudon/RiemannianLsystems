@@ -4,7 +4,8 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	- Chinese hat (using a tractrix as the generator of a surface of revolution 
+	- Tree on a Chinese hat
+	TODO: plot the leaves a bit above the tangent plane to see them all (could use information on the local curvature!)
 
 """
 
@@ -38,7 +39,7 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
 cm = 0.01 * meter
 
 # Surface parameters
-R = 1. * meter   # Radius of the sphere in meter
+R = 2. * meter   # Radius of the sphere in meter
 
 #######################
 # DISPLAY PARAMETERS
@@ -51,7 +52,7 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 1.5 * cm
+LINEWIDTH  = 4. * cm
 
 # To control the Frame size
 FRAMESIZE  = 0.3 * meter
@@ -61,65 +62,73 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-# Pseudo sphere radius
-radius = 1.
-
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 3.5 
+slen = 0.2
 
-AXIOMTEST = 2
+# Tree parameter
+angle = 45
+
+# Length and step of the path
+LENGTH = 2* np.pi *R               # length on the surface of the drawn geodesic path (in a.u.)
+STEPSIZE = 0.09     # size of a step (in a.u.) used to draw pieces of geodesic
+LINEWIDTH = 0.02
+LEAVES = False
+ROTATELEAF = False
+
+
+def length(n):
+  return 4*STEPSIZE - 1*n * STEPSIZE/40.
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  #nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
-  dictarg = {'CCW' : False}
-  nproduce SetSpace(ChineseHat(radius, zmin = 0.1, zmax = radius-0.001), dictarg)
-  nproduce ;(0)PlotSpace
-  nproduce _(LINEWIDTH)
-  if AXIOMTEST == 1:
-    # test 1: Parallel geodesics from close points
-    # first group
-    nproduce [;(1)InitTurtle([0,0.15,0.5,0.5])A(0)]
-    # geodesique parallele
-    nproduce [;(2)InitTurtle([0.05,0.15,0.5,0.5])A(0)]
-    # second group
-    nproduce [;(3)InitTurtle([0,0.15,0.1,0.9])A(0)]
-    # geodesique parallele
-    nproduce [;(4)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
-    # third group
-    nproduce [;(5)InitTurtle([0,0.15,0.7,0.3])A(0)]
-    # geodesique parallele
-    nproduce [;(6)InitTurtle([0.05,0.15,0.7,0.3])A(0)]
-  elif AXIOMTEST == 2:
-    #test 2: several geodesics from one point
-    nb = 6
-    a = np.pi/20 # to orient the turtle's head at the beginning
-    for i in range(nb):  
-      b = np.pi/2-0.1 - a * i
-      nproduce [;(1+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
-
-
-derivation length: int(nb_seg)
+  nproduce SetSpace(Torus(R, R/3.7))
+  #nproduce ;(0)PlotSpace
+  nproduce ;(3)InitTurtle([0,np.pi,1,0])
+  nproduce ;(6)_(LINEWIDTH)A(0)
+ 
+derivation length: 9
 production:
 
 A(n):
-
-  nproduce F(length_geodesic/nb_seg)
+  # branching angle
+  if n % 2 == 0:
+    ba = -angle
+    la = 30
+  else:
+    ba = angle
+    la = -30
+  #print(length(n))
+  nproduce StaticF(0.25) [+(ba)
+  if LEAVES:
+    nproduce [L(la,0)]
+  nproduce A(n+1)]
   nproduce A(n+1)
+
+L(la,n):
+  if n > 5:
+    produce
+  else:
+    produce L(la,n+1)
 
 interpretation:
 
 A(n):
-  u,v,p,q = turtle.uvpq 
-  K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
-  print("Courbures: Gauss = ", "{:.3f}".format(K), \
-  ", Mean = ", "{:.3f}".format(H), \
-  ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
-  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+  produce #;(2)@O(0.1)
+  #if FRAME: nproduce _(0.01)Frame(0.2)
+
+L(la,n):
+  if n == 0:
+    produce
+  if ROTATELEAF:
+    turn = np.copysign(90,la)
+  else:
+    turn = 0
+  produce ;(2)-(la)/(turn)~l(1.0)
+
 
 
 endlsystem

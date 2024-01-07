@@ -86,9 +86,9 @@ def length(n):
 extern(root_altitude_max = -3.5)
 extern(root_altitude_min = 3.5)
 extern(alt_nb = 30)     # the interval [root_altitude_min, root_altitude_max] is divided into alt_nb intervals of equal sizes          
-extern(alt_index = 15)  # alt_index defines the altitude of the simulated tree 
+extern(alt_index = 9)  # 9,15, 21, alt_index defines the altitude of the simulated tree 
 
-extern(treedepth = 6)
+extern(treedepth = 7)
 
 #define the root_altitude as an index in an array of altitudes:
 rootalt_list = np.linspace(root_altitude_min,root_altitude_max,alt_nb)

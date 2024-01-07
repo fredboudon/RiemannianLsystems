@@ -2,9 +2,9 @@
 	L-systems in Riemannian geometry
 
 		Author: Ch. Godin, Inria
-		Date: 2019-2022
-
-	- Chinese hat (using a tractrix as the generator of a surface of revolution 
+		Date: 2019-2020
+		
+	Simulates a fractal on a pseudo sphere 
 
 """
 
@@ -16,6 +16,7 @@ from random import random
 #(append dynamically other dirs to PYTHONPATH variable)
 from importlib import reload
 
+import riemann_lsystem
 import riemann_lsystem.surfaces
 surfaces = reload(riemann_lsystem.surfaces)
 import riemann_lsystem.riemannianturtle
@@ -39,6 +40,7 @@ cm = 0.01 * meter
 
 # Surface parameters
 R = 1. * meter   # Radius of the sphere in meter
+r = 0.2 * meter
 
 #######################
 # DISPLAY PARAMETERS
@@ -51,7 +53,7 @@ R = 1. * meter   # Radius of the sphere in meter
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 1.5 * cm
+LINEWIDTH  = 0.5 * cm
 
 # To control the Frame size
 FRAMESIZE  = 0.3 * meter
@@ -61,64 +63,33 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-# Pseudo sphere radius
-radius = 1.
-
 # Tighten the nec of the pin form structure to see that the geodesic 
 # at some threshold is doomed to stay in the lower part and cannot reach the other part
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-length_geodesic = 3.5 
+slen = 0.5 # 0.7
 
-AXIOMTEST = 2
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  #nproduce SetSpace(PseudoSphere(radius, zmin = 0.1, zmax = radius-0.001))
-  dictarg = {'CCW' : False}
-  nproduce SetSpace(ChineseHat(radius, zmin = 0.1, zmax = radius-0.001), dictarg)
-  nproduce ;(0)PlotSpace
-  nproduce _(LINEWIDTH)
-  if AXIOMTEST == 1:
-    # test 1: Parallel geodesics from close points
-    # first group
-    nproduce [;(1)InitTurtle([0,0.15,0.5,0.5])A(0)]
-    # geodesique parallele
-    nproduce [;(2)InitTurtle([0.05,0.15,0.5,0.5])A(0)]
-    # second group
-    nproduce [;(3)InitTurtle([0,0.15,0.1,0.9])A(0)]
-    # geodesique parallele
-    nproduce [;(4)InitTurtle([0.05,0.15,0.1,0.9])A(0)]
-    # third group
-    nproduce [;(5)InitTurtle([0,0.15,0.7,0.3])A(0)]
-    # geodesique parallele
-    nproduce [;(6)InitTurtle([0.05,0.15,0.7,0.3])A(0)]
-  elif AXIOMTEST == 2:
-    #test 2: several geodesics from one point
-    nb = 6
-    a = np.pi/20 # to orient the turtle's head at the beginning
-    for i in range(nb):  
-      b = np.pi/2-0.1 - a * i
-      nproduce [;(1+i)InitTurtle([0,0.15,np.cos(b),np.sin(b)])A(0)]
+  #nproduce SetSpace(PseudoSphere(R))
+  nproduce SetSpace(Torus(R))
+  nproduce ;(0)PlotSpace(dict(CCW = True))
+  nproduce InitTurtle([1.0,0.00,1.0,0.1])
+  nproduce ;(6)_(LINEWIDTH)F(slen)-(120)
+  #nproduce ;(6)_(LINEWIDTH)F(slen)-(120)F(slen)-(120)F(slen)
+ 
 
-
-derivation length: int(nb_seg)
+derivation length: 5
 production:
 
-A(n):
-
-  nproduce F(length_geodesic/nb_seg)
-  nproduce A(n+1)
+F(x):
+  nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
 
 interpretation:
 
 A(n):
-  u,v,p,q = turtle.uvpq 
-  K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
-  print("Courbures: Gauss = ", "{:.3f}".format(K), \
-  ", Mean = ", "{:.3f}".format(H), \
-  ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
   produce _(FRAMEWIDTH)Frame(FRAMESIZE)
 
 

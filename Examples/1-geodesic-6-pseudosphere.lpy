@@ -74,9 +74,10 @@ nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F
 length_geodesic = 3.5 
 
 #Select Axiom here
-AXIOMTEST = 2
+AXIOMTEST = 4
 
 Axiom: 
+  global length_geodesic
   # Sets the Riemanian space in which the turtle will move
   # u = control of z (the bigger u the highest z (warning it is not directly z)
   # v = azimuth
@@ -95,9 +96,19 @@ Axiom:
     nproduce [;(5)InitTurtle([0.1,0.0,0.95,0.05])A(0)]
     nproduce [;(6)InitTurtle([0.1,0.0,0.94,0.06])A(0)]
     nproduce [;(7)InitTurtle([0.1,0.0,0.935,0.065])A(0)]
-  else:
+  elif AXIOMTEST == 3:
     nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
-  
+  elif AXIOMTEST == 4: # Divergence of geodesics
+    length_geodesic = 1.5
+    dl = 0.2
+    beta = 30. # initial deflection of the geodesics from the vertical
+    alpha = dl/R # angle corresponding to the move of the point by dl on the border of the pseudosphere (in rads)
+    alpha = 180*alpha/np.pi # conversion in degrees
+    u,v,p,q = 0.1,0.0,1,0.
+    nproduce [;(6)InitTurtle([u,v,p,q])+(beta)[;(6)_(0.01)Frame(0.3)]A(0)]
+    # geodesic parallel close to the first one
+    nproduce [;(6)InitTurtle([u,v+dl,p,q])+(beta + alpha)[;(6)_(0.01)Frame(0.3)]A(0)]
+    
 derivation length: int(nb_seg)
 production:
 
@@ -132,7 +143,7 @@ A(n):
     print("Courbures: Gauss = ", "{:.3f}".format(K), \
     ", Mean = ", "{:.3f}".format(H), \
     ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
-  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+  #produce _(FRAMEWIDTH)Frame(FRAMESIZE)
 
 
 endlsystem
