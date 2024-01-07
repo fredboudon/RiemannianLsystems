@@ -20,7 +20,10 @@ import riemann_lsystem.surfaces
 surfaces = reload(riemann_lsystem.surfaces)
 import riemann_lsystem.riemannianturtle
 riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+import riemann_lsystem.lineintersection as li
+reload(li)
 
+from riemann_lsystem.lineintersection import *
 from riemann_lsystem.surfaces import *
 from riemann_lsystem.riemannianturtle import *
 
@@ -77,16 +80,28 @@ STEPSIZE = 0.1     # size of a step (in a.u.) used to draw pieces of geodesic
 LEAVES = False
 ROTATELEAF = False
 
+space = Sphere(R) #EllipsoidOfRevolution(ra,rb)
+
+# Set of trajectories already existing since the beginning of the simulation
+trajectories = LineSet()
+trajectories.setSpace(space)
+LINE_ID = 0
+
 AXIOMTEST = 2
 
 TEST1 = False  # True for long internodes
+
+def get_new_line_id():
+  global LINE_ID
+  LINE_ID += 1
+  return LINE_ID
 
 def length(n):
   return 4*STEPSIZE - 4*n * STEPSIZE/10.
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move. The args = (True) 
-  nproduce SetSpace(Sphere(R))
+  nproduce SetSpace(space)
   nproduce ;(0)PlotSpace()
   if AXIOMTEST == 1:
     # test the passage through the pseudosphere
@@ -95,12 +110,12 @@ Axiom:
     nproduce ;(3)InitTurtle([0.0,0.0,0.0,1.0])
   else:
     nproduce ;(3)InitTurtle([0.1,0.01,1.0,0.00])
-  nproduce ;(6)_(LINEWIDTH)A(0)
+  nproduce ;(6)_(LINEWIDTH)?T(ParameterSet())A(0)
  
 derivation length: 7
 production:
 
-A(n):
+?T(tstate) < A(n):
   # branching and leaf angles
   ba, la = (-angle, 30) if n % 2 == 0 else (angle,-30)
   
@@ -108,11 +123,33 @@ A(n):
     ilen = 0.20
   else:
     ilen = 0.10
-  nproduce F(ilen) [+(ba)
-  if LEAVES:
-    nproduce [L(la,0)]
-  nproduce A(n+1)]
-  nproduce A(n+1)
+  ilen = 10
+  uvpq_s = forward(tstate,ilen, MAXSTEPLEN)
+
+  # Construct the corresponding line made of uv coords
+  # 1. The turtle has current coordinates uvpq
+  curpos = [(tstate.uvpq[0],tstate.uvpq[1])]
+  # 2. including current postion in front of the uv coords of the uvpq_s path returned by formard
+  uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
+  
+  # 3. Test the possible intersection of this potential line with 
+  # already existing MTs stored in the global object trajectories
+  intersection = trajectories.test_intersection(uvs)
+  # print(intersection,uvs)
+
+  if intersection:
+    nproduce ?T(ParameterSet())A(n+1)
+  else:
+    line_id = trajectories.add_line_from_point(tstate.uvpq,uvs) 
+    uvpq = tstate.uvpq
+    uvpq_t = [uvpq] + uvpq_s # Adding the current turtle position 
+                             # in front of uvpq_s to compute the path length
+    nproduce P(uvpq_t) 
+    nproduce [+(ba)
+    if LEAVES:
+      nproduce [L(la,0)]
+    nproduce ?T(ParameterSet())A(n+1)]
+    nproduce ?T(ParameterSet())A(n+1)
 
 L(la,n):
   if n > 5:
