@@ -148,6 +148,7 @@ Axiom:
         # S(path_length, path_origin, path_sequence, line_id)
         # If path_sequence is not specified, then S it will be computed by a F
         # If path_sequence is specified, it will be displayed by a P
+        new_line_id = get_new_line_id()
         nproduce S(DL,{},get_new_line_id())?T(ParameterSet())
       nproduce A(0, 0)
       nproduce ]

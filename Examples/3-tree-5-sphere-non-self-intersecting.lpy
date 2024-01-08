@@ -111,8 +111,9 @@ Axiom:
   else:
     nproduce ;(3)InitTurtle([0.1,0.01,1.0,0.00])
   nproduce ;(6)_(LINEWIDTH)?T(ParameterSet())A(0)
- 
-derivation length: 7
+
+# Try up to 16
+derivation length: 10 
 production:
 
 ?T(tstate) < A(n):
@@ -123,7 +124,6 @@ production:
     ilen = 0.20
   else:
     ilen = 0.10
-  ilen = 10
   uvpq_s = forward(tstate,ilen, MAXSTEPLEN)
 
   # Construct the corresponding line made of uv coords
