@@ -80,15 +80,11 @@ STEPSIZE = 0.1     # size of a step (in a.u.) used to draw pieces of geodesic
 LEAVES = False
 ROTATELEAF = False
 
-space = Sphere(R) #EllipsoidOfRevolution(ra,rb)
-
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
-trajectories.setSpace(space)
 LINE_ID = 0
 
 AXIOMTEST = 2
-
 TEST1 = False  # True for long internodes
 
 def get_new_line_id():
@@ -101,8 +97,11 @@ def length(n):
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move. The args = (True) 
+  space = Sphere(R) #EllipsoidOfRevolution(ra,rb)
   nproduce SetSpace(space)
   nproduce ;(0)PlotSpace()
+  trajectories.setSpace(space)
+  
   if AXIOMTEST == 1:
     # test the passage through the pseudosphere
     nproduce ;(2)InitTurtle([-1.5,0.0,1.,0.])
@@ -116,7 +115,7 @@ Axiom:
 derivation length: 10 
 production:
 
-?T(tstate) < A(n):
+?T(tstate) A(n):
   # branching and leaf angles
   ba, la = (-angle, 30) if n % 2 == 0 else (angle,-30)
   
@@ -141,10 +140,7 @@ production:
     nproduce ?T(ParameterSet())A(n+1)
   else:
     line_id = trajectories.add_line_from_point(tstate.uvpq,uvs) 
-    uvpq = tstate.uvpq
-    uvpq_t = [uvpq] + uvpq_s # Adding the current turtle position 
-                             # in front of uvpq_s to compute the path length
-    nproduce P(uvpq_t) 
+    nproduce P(uvpq_s) 
     nproduce [+(ba)
     if LEAVES:
       nproduce [L(la,0)]
