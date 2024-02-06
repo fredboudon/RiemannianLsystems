@@ -71,11 +71,11 @@ LINETO_MAXITER = 30
 
 origin_pt = [0.0, 0.0]    # in (u,v) coordinates
 
-dt = 0.1         # sec
+dt = 0.1           # sec
 
 # Managing the discretization of MT segments
-DL = 10 * cm      # size of segment that are synthesized or depolymerized (no physical meaning, just quantization)
-N = 20             #  Number of initial segments of size DL
+DL = 10 * cm       # size of segment that are synthesized or depolymerized (no physical meaning, just quantization)
+N = 10             #  Number of initial segments of size DL
 
 
 PolRate = 0.5      # cm/sec
@@ -87,7 +87,7 @@ CThreshold = 0.01
 CRInit = 0.05
 MaxIncidenceAngle = 45 # degrees. max deflection angle (if higher, no deflection)
 
-K = 3           # try 1,2,3, 10,100,1000 : number of microtubules
+K = 5              # try 1,2,3, 10,100,1000 : number of microtubules
 
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
@@ -271,8 +271,8 @@ production:
       nproduce S(pdic)?T(ParameterSet())
       produce A(t+dt,pol_lenbuff-DL)
     else:
-      print('############### INTERSECTION DETECTED ! ##################')
-      print(intersection)
+      #print('############### INTERSECTION DETECTED ! ##################')
+      #print(intersection)
       # determine the position (u1,v1) and (p1,q1) of the segment at the intersection:
       # intersection[0] is the index of the point before intersection in the list uvpq_s
       if intersection[0] >= 0:
@@ -289,7 +289,7 @@ production:
       # uv2 first:
       intersected_line_id = intersection[2]        
       linepoints = trajectories.line_points(intersected_line_id) # linepoint is a list of sublines which contain a list of points
-      print("\tintersected linepoints",linepoints)
+      #print("\tintersected linepoints",linepoints)
       intersected_subline_id = intersection[1][0]
       intersected_point_id_in_subline = intersection[1][1]
       intersected_uvs = linepoints[intersected_subline_id][intersected_point_id_in_subline]
@@ -325,7 +325,7 @@ production:
       alpha = np.rad2deg(alpha)
       if alpha > 90:
         alpha = 180-alpha
-      print("\t--> (small) incident angle  = ", alpha)
+      #print("\t--> (small) incident angle  = ", alpha)
       
       vec_0 = tstate.space.pushforward(ui,vi,pq2estimated) 
       vec = tstate.space.pushforward(ui,vi,pq1)              # tgt vec of the intercepted line
@@ -340,7 +340,7 @@ production:
       sgn2 = np.sign(np.dot(prodvec, tstate.space.normal(ui,vi)))
       
       sgn = sgn1 * sgn2
-      print("\t sgn final: ", sgn, "sgn scalar prod: ", sgn1, "sgn cross prod: ", sgn2)
+      #print("\t sgn final: ", sgn, "sgn scalar prod: ", sgn1, "sgn cross prod: ", sgn2)
       # comparison of the orientation of this vector with the normal direction on the surface at that point
       # print(prodvec)
       #epsilon = 1
