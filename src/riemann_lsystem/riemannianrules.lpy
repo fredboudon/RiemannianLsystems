@@ -122,7 +122,7 @@ def forward_in_space(space, uvpq, length, dl = 1, indirect_interpretation = Fals
   # 1. Find the nb of segments into which the curve should be divided
   # This nb, which should be < MAXSTEPLEN, will be used to divide the length into steplen=length/stepnb
   # by the riemannian_turtle_move_forward() function.
-  #stepnb1 = int(ceil(length / dl))
+  #stepnb = int(ceil(length / dl))
   stepnb = int(length // dl)+1   # integer division directly returning an int
   #print("stepnb, stepnb1", stepnb, stepnb1)
 
@@ -304,6 +304,20 @@ def turn(turtle, angle):
   turtle.cumrotation += angle
   # print("Total turtle rotation during the path = ", turtle.cumrotation)
 
+def interpol_uvpq_at_u_i(uvpq1, uvpq2, u, i):
+   """ create interpolate coordinates for given value u of coordinate i """
+   assert uvpq1[i] <= u <= uvpq2[i] or uvpq1[i] >= u >= uvpq2[i]
+   t = (u-uvpq1[i])/(uvpq2[i]-uvpq1[i])
+   return [u if j==i else uvpq1[j]+(uvpq2[j]-uvpq1[j])*t for j in range(len(uvpq1))]
+
+def interpol_uvpq_at_u(uvpq1, uvpq2, u):
+   """ create interpolate coordinates for given value of u """
+   return interpol_uvpq_at_u_i(uvpq1, uvpq2, u, 0)
+
+def interpol_uvpq_at_v(uvpq1, uvpq2, v):
+   """ create interpolate coordinates for given value of v """
+   return interpol_uvpq_at_u_i(uvpq1, uvpq2, v, 1)
+
 production:
 decomposition:
 
@@ -339,7 +353,7 @@ Staticf(length, dl):
 ?UVPQ --> ?UVPQ({})
 ?UV --> ?UV({})
 ?PQ --> ?PQ({})
-
+?T --> ?T(ParameterSet())
 
 interpretation:
 maximum depth:2
