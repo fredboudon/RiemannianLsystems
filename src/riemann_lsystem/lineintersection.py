@@ -99,7 +99,7 @@ class LineSet:
     - bvh = bounding volume hierarchy (the hierachical aspect is not used here) = dict of bounding boxes = {line_id: bbox}
     bbox here is a tuple of two points with min and max coordinates
     '''
-    def __init__(self, numericalratio = 1, uperiodicrange = None, vperiodicrange = None):
+    def __init__(self, numericalratio = 1, uperiodicrange = None, vperiodicrange = None, space = None):
         """
         This object registers set of lines and is able to determine if an intersection exists with a new line.
         """
@@ -112,6 +112,8 @@ class LineSet:
         # The periodicity information
         self.uperiodicrange = uperiodicrange
         self.vperiodicrange = vperiodicrange
+        if space:
+            self.setSpace(space)
     
     def setSpace(self, space):
         if space.UPERIODIC:

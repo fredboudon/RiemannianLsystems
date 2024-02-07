@@ -819,11 +819,25 @@ class RiemannianSpace2D:
         """
         P1 = self.S(uvpqs[0][0], uvpqs[0][1])
         dist = 0.
-        for uu, vv, _, _ in uvpqs:
+        for uu, vv, _, _ in uvpqs[1:]:
             P2 = self.S(uu, vv)
             dist += np.linalg.norm(P2-P1)
             P1 = P2
         return dist
+
+    def cumulative_path_length(self, uvpqs):
+        """
+        Compute the geometric distance between set of points given by uvpqs (uvpq sequence)
+        """
+        P1 = self.S(uvpqs[0][0], uvpqs[0][1])
+        dist = 0.
+        cumdist = [dist]
+        for uu, vv, _, _ in uvpqs[1:]:
+            P2 = self.S(uu, vv)
+            dist += np.linalg.norm(P2-P1)
+            cumdist.append(dist)
+            P1 = P2
+        return cumdist
 
     def geodesic_distance(self, uv, uvt, nb_points = 20, max_iter= 20):
         """

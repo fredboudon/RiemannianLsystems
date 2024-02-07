@@ -14,6 +14,14 @@ class NurbsSwung:
         self.stride = stride
 
         self.build_interpolator()
+    
+    def setAngleList(self, angleList):
+        self.angleList = angleList
+        self.build_interpolator()
+
+    def setProfileList(self, profileList):
+        self.profileList = profileList
+        self.build_interpolator()
 
     def build_interpolator(self):
         from openalea.plantgl.scenegraph.cspline import CSpline, cspline
@@ -95,4 +103,9 @@ class NurbsSwung:
         result = self.profileInterpolator.getIsoVSectionAt(v)
         theta = v
         result.ctrlPointList = [(p.x*cos(theta), p.x*sin(theta), p.y, p.w) for p in result.ctrlPointList]
+        return result
+
+    def getIsoUSectionAt(self,u):
+        result = self.profileInterpolator.getIsoUSectionAt(u)
+        result.ctrlPointList = [(p.x*cos(theta), p.x*sin(theta), p.y, p.w) for p,theta in zip(result.ctrlPointList,self.angleList)]
         return result
