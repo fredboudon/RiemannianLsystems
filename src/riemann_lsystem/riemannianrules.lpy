@@ -59,14 +59,16 @@ module Staticf
 MAXSTEPLEN = 0.01
 LINETO_MAXITER = 30
 
-def plotspace(space,  colorvalfunc = None, cmap = 'jet', Du = 0.1, Dv = 0.1, CCW = True):
+def plotspace(space,  colorvalfunc = None, cmap = 'jet', minvalue = None, maxvalue = None, displaycmap = False, Du = 0.1, Dv = 0.1, CCW = True):
     umin,umax,vmin,vmax = space.uv_domain()
     points, quadindices, uvlist = QuadifySurfEquation(space.S,umin,umax,vmin,vmax,Du,Dv)
     if not colorvalfunc is None:
         from openalea.plantgl.scenegraph.colormap import PglColorMap
         values = [colorvalfunc(u,v) for u,v in uvlist]
-        cm = PglColorMap(min(values), max(values), cmap)
+        cm = PglColorMap(minvalue if not (minvalue is None) else min(values), maxvalue if not (maxvalue is None) else  max(values), cmap)
         colors = [cm(v) for v in values]
+        if displaycmap:
+           nproduce @g(cm.pglrepr())
     else:
         colors = None
     # Option ccw: (counter-clockwise)

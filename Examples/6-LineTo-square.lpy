@@ -76,7 +76,7 @@ Square2():
 
 
 SquareF(l):
-  nproduce @Gc -(90)F(l/2)+(90)F(l)+(90)F(l)+(90)F(l)+(90)F(l/2)
+  nproduce -(90)f(l/2)+(90)@Gc F(l)+(90)F(l)+(90)F(l)+(90)F(l)
 
 Square3():
   l = sqrt(2)*squarelength/2
@@ -100,7 +100,7 @@ Square3():
   
   nproduce RiemannMoveTo(uvcoords[0]) @Gc
   for uvpq in uvcoords[1:]:
-    nproduce RiemannLineTo(uvpq,nbseg) @O(2*LINEWIDTH)
+    nproduce RiemannLineTo(uvpq,nbseg)
   nproduce RiemannLineTo(uvcoords[0],nbseg)
 
 
