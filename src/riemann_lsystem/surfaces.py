@@ -673,6 +673,10 @@ class RiemannianSpace2D:
         - uvt are the u,v coordinates of the target point
         - m is the number of discretization points nb_points (including endpoints (u,v) and (ut,vt))
         - max_iter is the maximum number of iteration of the newton method
+
+        The convergence is described by the following error code returned by the algorithm:
+        ERROR =  0. Convergence was reached
+        ERROR = -1. The algorithm did not converge (DeltaX > epsilon = epsilon_conv * 100)
         '''
         # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
         #print("ENTERING geodesic_to_target_point", uv, uvt, flush=True)
@@ -688,7 +692,7 @@ class RiemannianSpace2D:
 
         # 2. Newton method: Loop on improving initial path to reach a geodesic using the jacobian
         end_test = False
-        ERROR = -1  # Initializes the ERROR type (-1 is not meaningful and should always be replaced by another value)
+        ERROR = -1  # Initializes the ERROR type (-1 = did not converge)
         i = 0
         last_average_delta_X_norm = np.inf
         average_delta_X_norm_array = []
