@@ -37,6 +37,7 @@ lib64/
 *.swp
 *.*~
 _*.*
+\#*\#
 
 # Mr Developer
 .mr.developer.cfg
