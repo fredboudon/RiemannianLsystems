@@ -17,6 +17,7 @@
 from math import ceil
 
 from importlib import reload
+import warnings
 
 import riemann_lsystem.surfaces
 surfaces = reload(riemann_lsystem.surfaces)
@@ -601,7 +602,8 @@ P(uvpq_s, topdiam):
 RiemannLineTo(target_coords, nb_points):
 
   uvpq_s, ERROR = riemannianLineTo(turtle, target_coords, nb_points)
-
+  if ERROR != 0:
+    warnings.warn('Convergence error: Code %i' % ERROR)
   for p in apply_forward(turtle, uvpq_s):
         turtle.lineTo(p)
   orientHead(turtle)
