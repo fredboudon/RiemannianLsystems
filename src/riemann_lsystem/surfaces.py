@@ -675,8 +675,16 @@ class RiemannianSpace2D:
         - max_iter is the maximum number of iteration of the newton method
 
         The convergence is described by the following error code returned by the algorithm:
+        ERROR >=0 means satisfactory solution could be computed:
         ERROR =  0. Convergence was reached
-        ERROR = -1. The algorithm did not converge (DeltaX > epsilon = epsilon_conv * 100)
+        ERROR =  1. Did not converge before end of iterations, but the error is kept bounded
+        ERROR =  2. Not used
+        ERROR =  3. The solution is not better than the initial solution
+
+        ERROR < 0 means a problem occurred with the computation and the solution is not to be trusted:
+        ERROR = -1. End of iteration reached and the algorithm did not converge (DeltaX > epsilon = epsilon_conv * 100)
+        ERROR = -2. The algorithm diverges before the end of the iterations
+
         '''
         # convert to a single dim 4*m array [u0,v0,p0,q0,u1,v1,p1,q1, ...]
         #print("ENTERING geodesic_to_target_point", uv, uvt, flush=True)
