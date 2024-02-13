@@ -5,7 +5,6 @@ __pycache__/
 
 # pkglts files
 .pkglts/info.log*
-
 # Packages
 *.egg
 *.egg-info
@@ -107,3 +106,6 @@ Third_proto/
 Examples/test.py
 RiemannTurtleLib/essai.py
 /Example_old/
+images/vkidneyfern
+images/vkidneyfernmovie
+images/vkidneyfernmovie2

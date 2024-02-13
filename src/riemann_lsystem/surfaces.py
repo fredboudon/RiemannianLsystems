@@ -76,6 +76,32 @@ def gen_second_deriv(func, *args):
         return derivative(func, x, dx = 1e-6, n = 2, args=args)
     return second_derive
 
+# Interpolation of coordinates
+################################################
+
+def interpol_uvpq_at_u_i(uvpq1, uvpq2, u, i):
+   """ create interpolate coordinates for given value u of coordinate i """
+   assert uvpq1[i] <= u <= uvpq2[i] or uvpq1[i] >= u >= uvpq2[i]
+   t = (u-uvpq1[i])/(uvpq2[i]-uvpq1[i])
+   return [u if j==i else uvpq1[j]+(uvpq2[j]-uvpq1[j])*t for j in range(len(uvpq1))]
+
+def interpol_uvpq_at_u(uvpq1, uvpq2, u):
+   """ create interpolate coordinates for given value of u """
+   return interpol_uvpq_at_u_i(uvpq1, uvpq2, u, 0)
+
+def interpol_uvpq_at_v(uvpq1, uvpq2, v):
+   """ create interpolate coordinates for given value of v """
+   return interpol_uvpq_at_u_i(uvpq1, uvpq2, v, 1)
+
+################################################
+
+#def pascal_triangle_line(n):
+#  from math import factorial
+#  return [factorial(n)//(factorial(j)*factorial(n-j))  for j in range(n+1)]
+     
+
+################################################
+
 # TODO: Split this class in a purely abstract class and a class IntrinsicRiemannianSpace2D that creates a branch different from the Riemaniann 2D surface one
 class RiemannianSpace2D:
     '''
@@ -855,16 +881,167 @@ class RiemannianSpace2D:
         """
         Compute the geodesic distance between two points given as u,v and ut,vt
         """
-        nb_points  = 20  # To be better estimated
-        max_iter = 20    # To be better estimated
+        # nb_points  = 20  # To be better estimated
+        # max_iter = 20    # To be better estimated
 
-        uvpq, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
+        uvpqs, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
-        dist = self.path_length(uvpq)
+        dist = self.path_length(uvpqs)
 
         #print("Dist(A,B) = ", dist)
         return dist, errarray, errorval
+    
+    def lerp(self, uv, uvt, weight = 0.5, nb_points = 20, max_iter= 20):
+        """
+        Compute the coordinate that linearly interpolate the two point according to the geodesic distance between two points given as u,v and ut,vt
+        """
+        uvpqs, errarray, errorval = self.geodesic_to_target_point(uv, uvt, nb_points, max_iter)
 
+        return self._lerp(uvpqs, weight)
+       
+    def _lerp(self, uvpqs, weight = 0.5):
+        if weight >= 1 : return uvt
+        elif weight <= 0 : return uv
+        import bisect
+       
+        dists = self.cumulative_path_length(uvpqs)
+
+        totdist = dists[-1]
+
+        dist_to_achieve = totdist * weight
+
+        idx = bisect.bisect_left(dists, dist_to_achieve)
+
+        if dists[idx] == dist_to_achieve:
+           return uvpqs[idx]
+        else:
+           alpha = (dist_to_achieve-dists[idx])/(dists[idx+1]-dists[idx])
+           return [u0_i+(u1_i-u0_i)*alpha for u0_i,u1_i in zip(uvpqs[idx],uvpqs[idx+1])]
+    
+    def polyline_subdivision(self, uvs, nb_points_per_segment = 5, max_iter= 20, min_uv_distance = 0.1):
+        assert len(uvs) >= 2
+        results = np.empty(shape=(0,4))
+        for i,(uv1,uv2) in enumerate(zip(uvs,uvs[1:])):
+          assert(len(uv1)==4)
+          assert(len(uv2)==4)
+          if not np.allclose(np.array(uv1[:2]),uv2[:2]):
+            if np.linalg.norm(np.array(uv1[:2])-uv2[:2]) > min_uv_distance:
+              uvpqs, errarray, errorval = self.geodesic_to_target_point(uv1[:2], uv2[:2], nb_points_per_segment, max_iter)
+            else:
+              uvpqs = self.parameterspace_line_to_target_point(uv1[:2],uv2[:2], nb_points_per_segment)
+              assert len(uvpqs) > 1
+              results = np.concatenate((results,uvpqs[:-1] if i != len(uvs)-2 else uvpqs),axis=0)
+          else:
+             results = np.concatenate((results,[uv1] if i != len(uvs)-2 else [uv1,uv2]),axis=0)
+        return results
+    
+    def bspline2_subdivision(self, uvs, subdivdegree = 3, nb_points_per_segment = 5, max_iter= 20):
+        """ Alternative version of a BSpline subdivision algorithm of degree 2 (Chaikin algorithm). See  lane_riesenfeld_subdivision """
+        assert len(uvs) >= 3
+        def subdiv(uvs, nb_points):
+          result = []
+          for i in range(len(uvs)-1):
+              uvpqs, errarray, errorval = self.geodesic_to_target_point(uvs[i][:2], uvs[i+1][:2], nb_points, max_iter)
+              assert len(uvpqs) > 1
+              if i == 0:
+                result.append(uvpqs[0])
+              result.append(self._lerp(uvpqs,1/4))
+              result.append(self._lerp(uvpqs,3/4))
+              if i == len(uvs)-2:
+                result.append(uvpqs[-1])
+          return result
+        for i in range(subdivdegree):
+           uvs = subdiv(uvs, nb_points_per_segment * pow(2, subdivdegree-i))
+        return self.polyline_subdivision(uvs, nb_points_per_segment)
+
+    def bspline3_subdivision(self, uvs, subdivdegree = 3, nb_points_per_segment = 5, max_iter= 20):
+        """ Alternative version of a BSpline subdivision algorithm of degree 3 (Dyn, Levin and Micchelli algo). See  lane_riesenfeld_subdivision """
+        assert len(uvs) >= 4
+        def subdiv(uvs, nb_points):
+          result = []
+          prev_uvpqs, errarray, errorval = self.geodesic_to_target_point(uvs[0][:2], uvs[1][:2], nb_points, max_iter)
+          result.append(prev_uvpqs[0])
+          result.append(self._lerp(prev_uvpqs,1/2))
+          for i in range(1, len(uvs)-1):
+              uvpqs, errarray, errorval = self.geodesic_to_target_point(uvs[i][:2], uvs[i+1][:2], nb_points, max_iter)
+              uv0 = self._lerp(prev_uvpqs, 3/4)
+              uv1 = self._lerp(uvpqs, 1/4)
+              result.append(self.lerp(uv0[:2], uv1[:2], 1/2, nb_points, max_iter))
+              result.append(self._lerp(uvpqs,1/2))
+              prev_uvpqs = uvpqs
+          result.append(uvpqs[-1])
+          return result
+        for i in range(subdivdegree):
+           uvs = subdiv(uvs, nb_points_per_segment * pow(2, subdivdegree-i))
+        return self.polyline_subdivision(uvs, nb_points_per_segment)
+        
+    def bspline_subdivision(self, uvs, degree = 3, nbsubdiv = 3, nb_points_per_segment = 5, max_iter= 20):
+      match degree:
+        case 1:
+            uvpqs = self.polyline_subdivision(uvs, nbsubdiv, nb_points_per_segment)
+        case _:
+            uvpqs = self.lane_riesenfeld_subdivision(uvs, degree, nbsubdiv, nb_points_per_segment)
+      return uvpqs
+
+    def lane_riesenfeld_subdivision(self, uvs, degree = 3, nbsubdiv = 3, nb_points_per_segment = 5, max_iter= 20, min_uv_distance = 0.1):
+        """ Lane Riesenfeld algorithm for BSpline subdivision .  
+            uvs : uv coordinates of the control points
+            degree : degree of the BSpline to target
+            nbsubdiv : the number of subdivision to apply
+            nb_points_per_segment : the number of points to evaluate between two points at the lower subdiv step. The number of subdiv point at the first step is multiplied by 2**(nbsubdiv-iter)
+            max_iter : number of iteration to optimize the geodesics
+            min_uv_distance: distance at which the geodesic is computed as a simple uv interpolation to avoid numerical issue.
+        """
+        assert len(uvs) >= 3
+
+        def duplicate_move(uvs, nb_points):
+          result = []
+          for i in range(len(uvs)-1):
+              uv0, uv1 = uvs[i][:2], uvs[i+1][:2]
+              if not np.allclose(np.array(uv0),uv1):
+                if np.linalg.norm(np.array(uv0)-uv1) > min_uv_distance:
+                  uvpqs, errarray, errorval = self.geodesic_to_target_point(uv0, uv1, nb_points, max_iter)
+                else:
+                  uvpqs = self.parameterspace_line_to_target_point(uv0,uv1, nb_points)
+                assert len(uvpqs) > 1
+                if i == 0:
+                  result.append(uvpqs[0])
+                result.append(self._lerp(uvpqs,1/2))
+                result.append(uvpqs[-1])
+              else:
+                if i == 0:
+                  result.append(uvs[0])
+                result.append(uvs[i+1])
+          return result
+        
+        def move(uvs, nb_points):
+          result = []
+          for i in range(len(uvs)-1):
+              uv0, uv1 = uvs[i][:2], uvs[i+1][:2]
+              if not np.allclose(np.array(uv0),uv1):
+                if i == 0:
+                  result.append(uvs[i])
+                if np.linalg.norm(np.array(uv0)-uv1) > min_uv_distance:
+                  uvpqs, errarray, errorval = self.geodesic_to_target_point(uv0, uv1, nb_points, max_iter)
+                else:
+                  uvpqs = self.parameterspace_line_to_target_point(uv0, uv1, nb_points)
+                assert len(uvpqs) > 1
+                result.append(self._lerp(uvpqs,1/2))
+              else: 
+                  result.append(uvs[i])                 
+              if i == len(uvs)-2:
+                result.append(uvs[i+1])
+          return result
+        
+        for i in range(nbsubdiv):
+           uvs = duplicate_move(uvs, nb_points_per_segment * pow(2, nbsubdiv-i))
+           for k in range(degree-1):
+              uvs = move(uvs, nb_points_per_segment * pow(2, nbsubdiv-i))
+        if nb_points_per_segment > 2:
+          return self.polyline_subdivision(uvs, nb_points_per_segment, min_uv_distance)
+        else:
+          return uvs
+           
 
 # Base class for the definition of parametric surfaces
 class ParametricSurface(RiemannianSpace2D):

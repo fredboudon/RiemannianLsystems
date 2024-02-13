@@ -306,19 +306,10 @@ def turn(turtle, angle):
   turtle.cumrotation += angle
   # print("Total turtle rotation during the path = ", turtle.cumrotation)
 
-def interpol_uvpq_at_u_i(uvpq1, uvpq2, u, i):
-   """ create interpolate coordinates for given value u of coordinate i """
-   assert uvpq1[i] <= u <= uvpq2[i] or uvpq1[i] >= u >= uvpq2[i]
-   t = (u-uvpq1[i])/(uvpq2[i]-uvpq1[i])
-   return [u if j==i else uvpq1[j]+(uvpq2[j]-uvpq1[j])*t for j in range(len(uvpq1))]
-
-def interpol_uvpq_at_u(uvpq1, uvpq2, u):
-   """ create interpolate coordinates for given value of u """
-   return interpol_uvpq_at_u_i(uvpq1, uvpq2, u, 0)
-
-def interpol_uvpq_at_v(uvpq1, uvpq2, v):
-   """ create interpolate coordinates for given value of v """
-   return interpol_uvpq_at_u_i(uvpq1, uvpq2, v, 1)
+def path(turtle, uvpq_s):
+    for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+    orientHead(turtle)   
 
 production:
 decomposition:
@@ -574,13 +565,7 @@ Staticf(length, dl, cache):
     produce
 
 P(uvpq_s):
-    # cache is a dic. May be empty or not
-    # if not, a forward will be called by cached_forward and
-    # will fill in the cache dict with a 'uvpq' entry
-    for p in apply_forward(turtle, uvpq_s):
-        #print('StaticF p:',p)
-        turtle.lineTo(p)
-    orientHead(turtle)
+    path(turtle, uvpq_s)
     produce
 
 P(uvpq_s, topdiam):
@@ -844,6 +829,21 @@ ClosedPolygon(polyline_uv, *args):
     # print("pos0", pos0)
     nproduce {MoveTo(pos0).MoveTo(pos1).MoveTo(pos2).MoveTo(pos3).}
 
+BSplineSubdivision(ctrl_uvs, degree, nbsubdiv, nb_points_per_segment):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv, nb_points_per_segment))
+  produce
+
+BSplineSubdivision(ctrl_uvs, degree, nbsubdiv):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv))
+  produce
+
+BSplineSubdivision(ctrl_uvs, degree):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree))
+  produce
+
+BSplineSubdivision(ctrl_uvs):
+  path(turtle, turtle.space.bspline_subdivision(ctrl_uvs))
+  produce
 
 ?T(params):
     params['state'] = turtle.getParameters() # turtle's internal parameters

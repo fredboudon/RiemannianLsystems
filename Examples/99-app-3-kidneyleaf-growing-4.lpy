@@ -242,7 +242,7 @@ __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
 	import openalea.plantgl.all as pgl
-	Color_2 = pgl.Material("Color_2" , ambient = (63,212,0) , diffuse = 1.20283 , shininess = 0 , transparency = 0.15 , )
+	Color_2 = pgl.Material("Color_2" , ambient = (23,76,0) , diffuse = 1.66 , shininess = 0 , transparency = 0.06 , )
 	Color_2.name = "Color_2"
 	context.turtle.setMaterial(2,Color_2)
 	Color_4 = pgl.Material("Color_4" , ambient = (153,217,61) , diffuse = 0.33 , shininess = 0 , )
