@@ -82,15 +82,9 @@ ROTATELEAF = False
 
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()
-LINE_ID = 0
 
 AXIOMTEST = 2
 TEST1 = False  # True for long internodes
-
-def get_new_line_id():
-  global LINE_ID
-  LINE_ID += 1
-  return LINE_ID
 
 def length(n):
   return 4*STEPSIZE - 4*n * STEPSIZE/10.
