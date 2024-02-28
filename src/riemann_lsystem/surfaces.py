@@ -236,9 +236,9 @@ class RiemannianSpace2D:
             u = u % Tu
             return [(u,v),(u-Tu,v)]
         elif not self.UPERIODIC and self.VPERIODIC: # V PERIODIC only
-            tv = self.vmax - self.vmin
+            Tv = self.vmax - self.vmin
             v = v % Tv
-            return [(u,v),(u,v-tv)]
+            return [(u,v),(u,v-Tv)]
         else: # NONE is periodic
             return [(u, v)]
 

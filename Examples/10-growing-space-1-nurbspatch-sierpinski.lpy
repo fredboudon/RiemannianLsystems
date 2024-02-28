@@ -59,7 +59,7 @@ FRAMEWIDTH = 1 * cm
 #######################
 # SIMULATION PARAMETERS
 #######################
-extern(FRACTAL_DEPTH = 3)
+extern(FRACTAL_DEPTH = 5)
 extern(T = 40)  # Controls the depth of the eggs (0 is flat)
 extern(dt = 0.04)
 
@@ -78,6 +78,7 @@ m, n = 11,11
 TEST = 1           # To test different parametric surfaces
 PRINT_TEST = 2     # To print different types of results related to curvature
 
+INDIRECT_INTERPRETATION = True
 
 #nurbscurve = NurbsCurve([...])
 # getter
@@ -215,7 +216,7 @@ def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y):
   NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
   return True
 
-TEST = 2
+TEST = 3
 
 module NSpace
 
@@ -242,7 +243,7 @@ Axiom:
     grid_growthrates_z = grid_growthrates_z*scale
     
   mat = matctrlpts_mn(m,n)
-  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3)
+  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3, ccw = False)
   #NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
   # Sets the Riemannian space in which the turtle will move
   dic = {}
@@ -252,8 +253,8 @@ Axiom:
   nproduce SetSpace(Patch(nspace))
   #nproduce ;(0)PlotSpace(dic)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  u0= 0.6
-  v0= 0.1
+  u0= 0.6 # 0.5 and 0.6
+  v0= 0.05
   nproduce InitTurtle([u0,v0,0,1])
   #nproduce InitTurtle([u0,v0,0,1])
   #nproduce [;(3)@O(0.1)]
@@ -262,17 +263,29 @@ Axiom:
     for i in range(m):
       for j in range(n):
         move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
-        if grid_growthrates_x != None and grid_growthrates_y != None:
-          move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
+        #if grid_growthrates_x != None and grid_growthrates_y != None:
+        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
   
   nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
-  nproduce ;(5)_(LINEWIDTH*1.5) F(8.0)
+  a = 8.0
+  if INDIRECT_INTERPRETATION:
+    nproduce StartIndirectInterpretation
+    a = 0.6  # 0.8, 0.9
+    nproduce ;(5)_(LINEWIDTH*1.5) StaticF(a,{})
+  else:
+    nproduce ;(5)_(LINEWIDTH*1.5) F(a)
+  if INDIRECT_INTERPRETATION:
+    nproduce StopIndirectInterpretation
+
 
 derivation length: FRACTAL_DEPTH
 production:
 
 F(x):
   produce F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)-(90)F(x/3.0)-(90)f(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)
+
+StaticF(x,dict):
+  produce StaticF(x/3.0,{})+(90)StaticF(x/3.0,{})-(90)StaticF(x/3.0,{})-(90)StaticF(x/3.0,{})-(90)f(x/3.0)+(90)StaticF(x/3.0,{})+(90)StaticF(x/3.0,{})+(90)StaticF(x/3.0,{})-(90)StaticF(x/3.0,{})
 
 
 

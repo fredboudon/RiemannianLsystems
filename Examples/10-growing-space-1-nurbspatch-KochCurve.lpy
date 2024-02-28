@@ -255,12 +255,12 @@ Axiom:
   # 1. creates a matrix of control points (each entry of the matrix contains the 3 coordinates 
   # of the corresponding control point
   mat = matctrlpts_mn(m,n)
-  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3)
+  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3, ccw = False)
   # NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
   # print(NURBSspace)
   # 2. Sets the current Space for the turtle
   nproduce SetSpace(Patch(nspace))
-  #Do not use PlotSpace(dic), as the u-vstrides are not displayed. Instead uses @g above 
+  #Do not use PlotSpace(dic), as the u-vstrides are not displayed. Instead uses @g below 
   #dic = {'CCW': True}
   #nproduce ;(0)PlotSpace(dic)
   nproduce @g(nspace)
@@ -278,9 +278,10 @@ Axiom:
   if INDIRECT_INTERPRETATION:
     nproduce StartIndirectInterpretation
     INITIAL_SEG_LEN = INITIAL_SEG_LEN_INDIRECT
+    nproduce ;(5)_(LINEWIDTH) ?T StaticF(INITIAL_SEG_LEN, {}) ?T 
   else:
     INITIAL_SEG_LEN = INITIAL_SEG_LEN_DIRECT
-  nproduce ;(6)_(LINEWIDTH) ?T(ParameterSet()) StaticF(INITIAL_SEG_LEN, {}) ?T(ParameterSet())
+    nproduce ;(5)_(LINEWIDTH) ?T F(INITIAL_SEG_LEN) ?T 
   if INDIRECT_INTERPRETATION:
     nproduce StopIndirectInterpretation
   nproduce A 
@@ -303,7 +304,7 @@ maximum depth: 2
 
 # Necessary to put the second argument for the StaticF as otherwise, if the last arg is not a dictionary
 # an argument will be added to the module to cach the forward data (a dictionary), and this will 
-# make it impossble match the module StaticF afterwards as the signatures would be different ...
+# make it impossible match the module StaticF afterwards as the signatures would be different ...
 ?T(t1) < StaticF(x, dict) > ?T(t2):
   # print('getIterationNb() = ', getIterationNb())
   if 'uvpq' in t1: # To bypass the lack of uvpq at the beginning 
@@ -324,22 +325,41 @@ maximum depth: 2
     assert(D>=0)
     
     if D > SEGLEN_RESOLUTION:
-      if INDIRECT_INTERPRETATION:
-        nproduce StaticF(x/3,{})?T(ParameterSet())+(60)   
-        nproduce ?T(ParameterSet())StaticF(x/3,{})?T(ParameterSet())-(120)
-        nproduce ?T(ParameterSet())StaticF(X/3,{})?T(ParameterSet())+(60)
-        nproduce ?T(ParameterSet())StaticF(x/3,{})
-      else: # DIRECT INTERPRETATION
-        nproduce StaticF(D/3,{})?T(ParameterSet())+(60)   
-        nproduce ?T(ParameterSet())StaticF(D/3,{})?T(ParameterSet())-(120)
-        nproduce ?T(ParameterSet())StaticF(D/3,{})?T(ParameterSet())+(60)
-        nproduce ?T(ParameterSet())StaticF(D/3,{})
+        nproduce StaticF(x/3,{})?T +(60)   
+        nproduce ?T StaticF(x/3,{})?T -(120)
+        nproduce ?T StaticF(x/3,{})?T +(60)
+        nproduce ?T StaticF(x/3,{})
     else:
       nproduce StaticF(x, dict)
   else :
     produce StaticF(x, dict)
       
 
+?T(t1) < F(x) > ?T(t2):
+  # print('getIterationNb() = ', getIterationNb())
+  if 'uvpq' in t1: # To bypass the lack of uvpq at the beginning 
+    u1,v1,p1,q1 = t1.uvpq 
+    u2,v2,p2,q2 = t2.uvpq
+    
+    D = -1
+    # Estimate the surface distance by the euclidean distance
+    # --> compute distance between the two endpoints P1 and P2 in R3
+    P1 = t1.space.S(u1,v1)
+    P2 = t2.space.S(u2,v2)
+    
+    D = linalg.norm(P2-P1)
+    
+    assert(D>=0)
+    
+    if D > SEGLEN_RESOLUTION:
+        nproduce F(D/3)?T+(60)   
+        nproduce ?T F(D/3)?T -(120)
+        nproduce ?T F(D/3)?T +(60)
+        nproduce ?T F(D/3)
+    else:
+      nproduce F(x)
+  else :
+    produce F(x)
 
 endlsystem
 
