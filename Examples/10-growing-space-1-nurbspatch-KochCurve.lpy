@@ -188,11 +188,11 @@ def move_ctrlpt_vertical(NURBSspace, dt, ctrlpt, gr_rate):
   NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
   return True
   
-def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y):
+def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y, xy_speedup_factor = 1):
   v = NURBSspace.ctrlPointMatrix[ctrlpt]
   #print("Before:", v)
-  v[0] = v[0] + gr_rate_x * dt
-  v[1] = v[1] + gr_rate_y * dt
+  v[0] = v[0] + gr_rate_x * dt *xy_speedup_factor  
+  v[1] = v[1] + gr_rate_y * dt *xy_speedup_factor 
   #print("After:",v)
   NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
   return True
@@ -201,10 +201,12 @@ def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y):
 # Koch curve growth parameters
 ##################################
 
-INITIAL_SEG_LEN_INDIRECT = 0.9  # for indirect interpretation
+INITIAL_SEG_LEN_INDIRECT = 1    # for indirect interpretation
 INITIAL_SEG_LEN_DIRECT = 7      # for direct interpretation
 ACTUAL_LENGTH_ON_SURFACE = True # to estimate the distance between endpoints by summing distances on the surface
 SEGLEN_RESOLUTION = 0.5         # length units (size of the patch in x,y is 10)
+
+xy_speedup_factor = 1.0         # increase to speed up the horizontal mushroom growth
 
 ##################################
 # Simulation parameters
@@ -218,7 +220,7 @@ dt = 0.04
 ##################################
 
 TEST = 3
-INDIRECT_INTERPRETATION  = False
+INDIRECT_INTERPRETATION  = True
 
 def EndEach(lstring):
     #print(lstring)
@@ -230,6 +232,8 @@ module NSpace
 
 Axiom:
   if TEST == 1: # Vertical development (gaussian)
+    u0= 0.1
+    v0= 0.1
     bump_pos = 5
     bump_width = 0.8
     bump_height = 7
@@ -239,14 +243,21 @@ Axiom:
     # rescaling the bump rates 
     grid_growthrates_z = grid_growthrates_z * bump_height
   elif TEST == 2: # Vertical development (eggbox)
-    height = 0.5
-    wavelength = 0.8
+    u0= 0.1
+    v0= 0.1
+    height = 1.5
+    wavelength = 0.9
     grid_growthrates_x = []
     grid_growthrates_y = []
     grid_growthrates_z = matgrowthrate_z_mn(m,n,eggbox,a = height, b = wavelength)
     grid_growthrates_z = grid_growthrates_z * height
   elif TEST == 3: # Mushroom development
-    scale = 14
+    u0= 0.05
+    v0= 0.05
+    xy_speedup_factor = 2.0
+    INITIAL_SEG_LEN_INDIRECT = 1
+    SEGLEN_RESOLUTION = 0.3
+    scale = 18
     grid_growthrates_x = grid_growthrates_y = []
     grid_growthrates_x, grid_growthrates_y, grid_growthrates_z = matgrowthrate_xyz_mn(m,n,gaus2d,mx=5,my=5,sx=1.,sy=1.)
     grid_growthrates_z = grid_growthrates_z*scale
@@ -265,8 +276,6 @@ Axiom:
   #nproduce ;(0)PlotSpace(dic)
   nproduce @g(nspace)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  u0= 0.1
-  v0= 0.1
   nproduce InitTurtle([u0,v0,1,0])
   nproduce +(20)
   
@@ -278,7 +287,7 @@ Axiom:
   if INDIRECT_INTERPRETATION:
     nproduce StartIndirectInterpretation
     INITIAL_SEG_LEN = INITIAL_SEG_LEN_INDIRECT
-    nproduce ;(5)_(LINEWIDTH) ?T StaticF(INITIAL_SEG_LEN, {}) ?T 
+    nproduce ;(5)_(LINEWIDTH) ?T B(0)StaticF(INITIAL_SEG_LEN, {})C(0) ?T 
   else:
     INITIAL_SEG_LEN = INITIAL_SEG_LEN_DIRECT
     nproduce ;(5)_(LINEWIDTH) ?T F(INITIAL_SEG_LEN) ?T 
@@ -296,7 +305,7 @@ NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
     for j in range(n):
       move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
       if grid_growthrates_x != [] and grid_growthrates_y != []:
-        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
+        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j], xy_speedup_factor)
   produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
 
 decomposition:
@@ -305,34 +314,36 @@ maximum depth: 2
 # Necessary to put the second argument for the StaticF as otherwise, if the last arg is not a dictionary
 # an argument will be added to the module to cach the forward data (a dictionary), and this will 
 # make it impossible match the module StaticF afterwards as the signatures would be different ...
-?T(t1) < StaticF(x, dict) > ?T(t2):
+?T(t1) < B(n1)StaticF(x, dict)C(n2) > ?T(t2):
   # print('getIterationNb() = ', getIterationNb())
   if 'uvpq' in t1: # To bypass the lack of uvpq at the beginning 
     u1,v1,p1,q1 = t1.uvpq 
     u2,v2,p2,q2 = t2.uvpq
     
-    D = -1
-    if 'uvpq' in dict and ACTUAL_LENGTH_ON_SURFACE:
-      D = t1.space.path_length(dict['uvpq'])
-    else: 
+    #D = -1
+    #if 'uvpq' in dict and ACTUAL_LENGTH_ON_SURFACE:
+    #  D = t1.space.path_length(dict['uvpq'])
+    #else: 
       # Estimate the surface distance by the euclidean distance
       # --> compute distance between the two endpoints P1 and P2 in R3
-      P1 = t1.space.S(u1,v1)
-      P2 = t2.space.S(u2,v2)
       
-      D = linalg.norm(P2-P1)
+      
+    P1 = t1.space.S(u1,v1)
+    P2 = t2.space.S(u2,v2)
+      
+    D = linalg.norm(P2-P1)
     
     assert(D>=0)
     
     if D > SEGLEN_RESOLUTION:
-        nproduce StaticF(x/3,{})?T +(60)   
-        nproduce ?T StaticF(x/3,{})?T -(120)
-        nproduce ?T StaticF(x/3,{})?T +(60)
-        nproduce ?T StaticF(x/3,{})
+        nproduce    B(n1+1)StaticF(x/3,{})C(n2+1)?T +(60)   
+        nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)?T -(120)
+        nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)?T +(60)
+        nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)
     else:
-      nproduce StaticF(x, dict)
+      nproduce B(n1)StaticF(x, dict)C(n2)
   else :
-    produce StaticF(x, dict)
+    produce B(n1)StaticF(x, dict)C(n2)
       
 
 ?T(t1) < F(x) > ?T(t2):
@@ -361,6 +372,15 @@ maximum depth: 2
   else :
     produce F(x)
 
+interpretation:
+B(n):
+  if n > 2:
+    nproduce ;(2+n)
+
+C(n):
+  if n > 2:
+    nproduce ;(2+n)
+
 endlsystem
 
 
@@ -370,6 +390,15 @@ __lpy_code_version__ = 1.1
 
 def __initialiseContext__(context):
 	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (30,60,10) , diffuse = 3 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_8 = pgl.Material("Color_8" , ambient = (60,0,0) , diffuse = 3 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
+	Color_9 = pgl.Material("Color_9" , ambient = (60,60,15) , diffuse = 3 , )
+	Color_9.name = "Color_9"
+	context.turtle.setMaterial(9,Color_9)
 	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
