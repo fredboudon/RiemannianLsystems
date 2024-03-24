@@ -96,6 +96,7 @@ def plotds2(space, Du = 0.1, Dv = 0.1, DS2_SCALEFACTOR = 10):
       nproduce ]
 
 def apply_forward(turtle, uvpq_s):
+  if len(uvpq_s) == 0 : return
   # draw all the small subsegments (that were returned by the integration)
   for uu, vv, pp, qq in uvpq_s:
     flag = False
@@ -306,6 +307,13 @@ def turn(turtle, angle):
   turtle.cumrotation += angle
   # print("Total turtle rotation during the path = ", turtle.cumrotation)
 
+def setUVPQ(turtle, uvpq):
+    u,v,p,q = uvpq
+    pos = turtle.space.S(u, v)
+    turtle.move(pos)
+    turtle.uvpq = uvpq
+    orientHead(turtle)
+   
 def path(turtle, uvpq_s):
     for p in apply_forward(turtle, uvpq_s):
         turtle.lineTo(p)
@@ -829,12 +837,27 @@ ClosedPolygon(polyline_uv, *args):
     # print("pos0", pos0)
     nproduce {MoveTo(pos0).MoveTo(pos1).MoveTo(pos2).MoveTo(pos3).}
 
-BSplineSubdivision(ctrl_uvs, degree, nbsubdiv, nb_points_per_segment):
-  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv, nb_points_per_segment))
+BSplineSubdivision(ctrl_uvs, degree, closed, nbsubdiv, nb_points_per_geodesic):
+  turtle.push()
+  gc = turtle.getParameters().isGeneralizedCylinderOn()
+  if gc:
+    turtle.stopGC()
+  uvpqs = turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv=nbsubdiv, nb_points_per_geodesic=nb_points_per_geodesic, closed = closed)
+  print(uvpqs[0])
+  setUVPQ(turtle, uvpqs[0])
+  if gc:
+    turtle.startGC()
+  print(turtle.uvpq)
+  path(turtle, uvpqs[1:])
+  turtle.pop()
   produce
 
-BSplineSubdivision(ctrl_uvs, degree, nbsubdiv):
-  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv))
+BSplineSubdivision(ctrl_uvs, degree, closed, nbsubdiv):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv=nbsubdiv, closed = closed))
+  produce
+
+BSplineSubdivision(ctrl_uvs, degree, closed):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, closed = closed))
   produce
 
 BSplineSubdivision(ctrl_uvs, degree):
@@ -843,6 +866,52 @@ BSplineSubdivision(ctrl_uvs, degree):
 
 BSplineSubdivision(ctrl_uvs):
   path(turtle, turtle.space.bspline_subdivision(ctrl_uvs))
+  produce
+
+StartBSpline(degree):
+  # BSpline params do not have to be pushed and popped. Points are created during the traversal of the turtle.
+  turtle.bspline_params = dict(degree=degree)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline():
+  turtle.bspline_params = dict(degree=3)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline(degree, nbsubdiv):
+  turtle.bspline_params = dict(degree=degree, nbsubdiv=nbsubdiv)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline(degree, nbsubdiv, nb_points_per_geodesic):
+  turtle.bspline_params = dict(degree=degree, nbsubdiv=nbsubdiv, nb_points_per_geodesic=nb_points_per_segment)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline(degree, nbsubdiv, nb_points_per_geodesic, closed):
+  turtle.bspline_params = dict(degree=degree, nbsubdiv=nbsubdiv, nb_points_per_geodesic=nb_points_per_geodesic, closed = closed)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+BSplinePoint():
+  turtle.bspline_points.append(turtle.uvpq)
+  produce
+
+EndBSpline():
+  if len(turtle.bspline_points) > turtle.bspline_params['degree'] :
+    c_uvpq = turtle.uvpq
+    turtle.push()
+    setUVPQ(turtle, turtle.bspline_origin[0])
+    turtle.setWidth(turtle.bspline_origin[1])
+    turtle.setColor(turtle.bspline_origin[2])
+    path(turtle, turtle.space.bspline_subdivision(turtle.bspline_points, **turtle.bspline_params))
+    turtle.pop()
+  else:
+    warnings.warn('Not enough BSpline point to create a BSpline of degree %i' % turtle.bspline_params['degree'])
+  del turtle.bspline_params
+  del turtle.bspline_points
+  del turtle.bspline_origin
   produce
 
 ?T(params):
