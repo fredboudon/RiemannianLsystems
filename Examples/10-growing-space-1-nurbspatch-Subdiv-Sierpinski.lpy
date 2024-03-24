@@ -168,7 +168,7 @@ def matgrowthrate_z_mn(m,n,func, **args):
   return mat
 
 
-NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
+NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3, ccw = False)
 
 m, n = 11,11
 
@@ -215,7 +215,9 @@ dt = 0.04
 # Selection of a test
 ##################################
 
-TEST = 3
+TEST =  1   # 1: excentered gaussian, 2: eggbox, 3: mushroom
+CURVE = 1  # 0: von Koch, 1: Sierpinski carpet, 2: Peano
+NMAX = 10  # 3: to show the effect of non division due to growth, otherwise put it large
 
 def EndEach(lstring):
     #print(lstring)
@@ -227,23 +229,32 @@ module NSpace
 
 Axiom:
   if TEST == 1: # Vertical development (gaussian)
-    bump_pos = 5
-    bump_width = 0.8
-    bump_height = 7
+    bump_pos = 3.5
+    bump_width = 1.3
+    bump_height = 30
+    u0= 0.1
+    v0= 0.1
+    theta = 45
     grid_growthrates_x = []
     grid_growthrates_y = []
     grid_growthrates_z = matgrowthrate_z_mn(m,n,gaus2d,mx=bump_pos,my=bump_pos,sx=bump_width,sy=bump_width)
     # rescaling the bump rates 
     grid_growthrates_z = grid_growthrates_z * bump_height
   elif TEST == 2: # Vertical development (eggbox)
-    height = 0.5
-    wavelength = 0.8
+    height = 0.92     #0.5
+    wavelength = 0.91 #0.8
+    u0= 0.1
+    v0= 0.05
+    theta = 60
     grid_growthrates_x = []
     grid_growthrates_y = []
     grid_growthrates_z = matgrowthrate_z_mn(m,n,eggbox,a = height, b = wavelength)
     grid_growthrates_z = grid_growthrates_z * height
   elif TEST == 3: # Mushroom development
     scale = 14
+    u0= 0.1
+    v0= 0.1
+    theta = 45
     grid_growthrates_x = grid_growthrates_y = []
     grid_growthrates_x, grid_growthrates_y, grid_growthrates_z = matgrowthrate_xyz_mn(m,n,gaus2d,mx=5,my=5,sx=1,sy=1)
     grid_growthrates_z = grid_growthrates_z*scale
@@ -252,7 +263,7 @@ Axiom:
   # 1. creates a matrix of control points (each entry of the matrix contains the 3 coordinates 
   # of the corresponding control point
   mat = matctrlpts_mn(m,n)
-  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3)
+  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3,ccw = False)
   # NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
   # print(NURBSspace)
   # 2. Sets the current Space for the turtle
@@ -260,12 +271,11 @@ Axiom:
   #Do not use PlotSpace(dic), as the u-vstrides are not displayed. Instead uses @g above 
   #dic = {'CCW': True}
   #nproduce ;(0)PlotSpace(dic)
-  nproduce @g(nspace, True)
+  nproduce @g(nspace)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  u0= 0.1
-  v0= 0.1
+
   nproduce InitTurtle([u0,v0,1,0])
-  nproduce +(45)
+  nproduce +(theta)
   
   nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
   # Draw the small segments in th (u,v) domain: this ensures:
@@ -273,7 +283,7 @@ Axiom:
   # - balanced segments
   # However, the decision to divide is taken on the basis of the distance between points at the surface
   nproduce StartIndirectInterpretation
-  nproduce ;(6)_(LINEWIDTH) ?T(ParameterSet()) StaticF(INITIAL_SEG_LEN, {}) ?T(ParameterSet())
+  nproduce ;(5)_(LINEWIDTH) ?T  S(INITIAL_SEG_LEN,0) ?T 
   nproduce StopIndirectInterpretation
   nproduce A 
 
@@ -296,7 +306,7 @@ maximum depth: 2
 # Necessary to put the second argument for the StaticF as otherwise, if the last arg is not a dictionary
 # an argument will be added to the module to cach the forward data (a dictionary), and this will 
 # make it impossble match the module StaticF afterwards as the signatures would be different ...
-?T(t1) < StaticF(x, dict) > ?T(t2):
+?T(t1) < S(x,n) > ?T(t2):
   # print('getIterationNb() = ', getIterationNb())
   if 'uvpq' in t1: # To bypass the lack of uvpq at the beginning 
     u1,v1,p1,q1 = t1.uvpq 
@@ -307,34 +317,34 @@ maximum depth: 2
   
     D = linalg.norm(P2-P1)
   
-    if D > SEGLEN_RESOLUTION:
-      
-      nproduce StaticF(x/3.0,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(D/3.0,{})
-      '''
-      nproduce StaticF(x,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())Staticf(x,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})?T(ParameterSet())+(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})?T(ParameterSet())-(90)
-      nproduce ?T(ParameterSet())StaticF(x,{})
-      '''
+    if D > SEGLEN_RESOLUTION and n < NMAX:
+      if CURVE == 0:
+        nproduce S(x/3.0,n+1)?T +(60)   
+        nproduce ?T S(x/3.0,n+1)?T -(120)
+        nproduce ?T S(x/3.0,n+1)?T +(60)
+        nproduce ?T S(x/3.0,n+1)
+      else:
+        nproduce S(x/3.0,n+1)?T +(90)
+        nproduce ?T S(x/3.0,n+1)?T -(90)
+        nproduce ?T S(x/3.0,n+1)?T -(90)
+        nproduce ?T S(x/3.0,n+1)?T -(90)
+        if CURVE == 1:
+          nproduce ?T Staticf(x/3.0,{})?T +(90)
+        elif CURVE == 2:
+          nproduce ?T S(x/3.0,n+1)?T +(90)
+        nproduce ?T S(x/3.0,n+1)?T +(90)
+        nproduce ?T S(x/3.0,n+1)?T +(90)
+        nproduce ?T S(x/3.0,n+1)?T -(90)
+        nproduce ?T S(x/3.0,n+1)
     else:
-      nproduce StaticF(x, dict)
+      nproduce S(x,n)
   else :
-    produce StaticF(x, dict)
+    produce S(x,n)
       
+interpretation:
 
+S(x,n):
+  nproduce StaticF(x,{})
 
 endlsystem
 

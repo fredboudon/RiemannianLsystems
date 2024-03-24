@@ -219,7 +219,7 @@ def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y):
   NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
   return True
 
-TEST = 2
+TEST = 3
 Axiom:
   if TEST == 1: # Vertical development (gaussian)
     bump_pos = 5
@@ -267,8 +267,8 @@ S(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
   for i in range(m):
     for j in range(n):
       move_ctrlpt_vertical(nspace,delta_t, (i,j), grid_growthrates_z[i,j])
-      if grid_growthrates_x != None and grid_growthrates_y != None:
-        move_ctrlpt_horizontal(nspace,delta_t, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
+      #if grid_growthrates_x != None and grid_growthrates_y != None:
+      move_ctrlpt_horizontal(nspace,delta_t, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
   produce S(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
 
 

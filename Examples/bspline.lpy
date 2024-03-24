@@ -31,7 +31,7 @@ Axiom:
   nproduce [,(5)_(0.05) [,(3)@O(0.2)]
   for pt in points[1:]:
     print(pt)
-    nproduce RiemannLineTo(pt,5) [,(3)@O(0.2)]
+    nproduce RiemannLineTo(pt,10) [,(3)@O(0.2)]
   nproduce ]
   nproduce  ,(2)_(0.1)@Gc() S(1) 
 
@@ -40,7 +40,8 @@ Axiom:
 def StartEach():
   pass
 
-derivation length: 8
+# derivation length = degree of the b-spline (try 1,2,...,8)
+derivation length: 2  
 production:
 
 S(d) --> S(d+1)
@@ -67,7 +68,7 @@ def __initialiseContext__(context):
 		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
 	curve = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(-0.763601, 0.0753145, 1),(-0.273579, 0.224159, 1),(-0.285018, -0.301258, 1),(-0.0442948, -0.54963, 1),(0.231222, 0.204425, 1),(0.435962, -0.192388, 1),(0.747462, 0.182907, 1)]) , 
+	    ctrlPointList = pgl.Point3Array([(-0.763601, 0.0753145, 1),(-0.273579, 0.224159, 1),(-0.285018, -0.301258, 1),(0.039332, -0.633257, 1),(0.324689, 0.401889, 1),(0.672299, -0.18148, 1),(0.747462, 0.182907, 1)]) , 
 	    stride = 42 , 
 	    )
 	curve.name = "curve"

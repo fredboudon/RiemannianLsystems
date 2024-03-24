@@ -75,7 +75,7 @@ dt = 0.1           # sec
 
 # Managing the discretization of MT segments
 DL = 10 * cm       # size of segment that are synthesized or depolymerized (no physical meaning, just quantization)
-N = 10             #  Number of initial segments of size DL
+N = 20             #  Number of initial segments of size DL
 
 
 PolRate = 0.5      # cm/sec
@@ -87,7 +87,7 @@ CThreshold = 0.01
 CRInit = 0.05
 MaxIncidenceAngle = 45 # degrees. max deflection angle (if higher, no deflection)
 
-K = 5              # try 1,2,3, 10,100,1000 : number of microtubules
+K = 3              # try 1,2,3, 10,100,1000 : number of microtubules
 
 # Set of trajectories already existing since the beginning of the simulation
 trajectories = LineSet()

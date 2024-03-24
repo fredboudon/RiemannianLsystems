@@ -236,9 +236,9 @@ class RiemannianSpace2D:
             u = u % Tu
             return [(u,v),(u-Tu,v)]
         elif not self.UPERIODIC and self.VPERIODIC: # V PERIODIC only
-            tv = self.vmax - self.vmin
+            Tv = self.vmax - self.vmin
             v = v % Tv
-            return [(u,v),(u,v-tv)]
+            return [(u,v),(u,v-Tv)]
         else: # NONE is periodic
             return [(u, v)]
 
@@ -789,9 +789,9 @@ class RiemannianSpace2D:
 
                 # Estimation of mu as a function of the  error
                 if average_delta_X_norm > 0.5: #0.5
-                    mu = 0.02 #0.02
+                    mu = 0.01 #0.01
                 elif average_delta_X_norm > 0.3: #0.3
-                    mu = 0.04 #0.04
+                    mu = 0.05 #0.05
                 else:
                     mu = 0.06 #0.06
 
