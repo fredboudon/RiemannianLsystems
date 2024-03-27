@@ -1,0 +1,226 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+		
+     
+"""
+
+import numpy as np
+from math import ceil
+from random import random, seed
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+seed(0)
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+length_greatcircle = 2*np.pi*R
+
+ra = 1.
+rb = 0.5
+
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+
+origin_pt = [0.0, 0.0]    # in (u,v) coordinates
+target_pt =  [-1., 0.7]  # in (u,v) coordinates
+target_pts = []
+
+LINETO_MAXITER = 30
+
+# Here Lineto works for:
+# LINETO_MAXITER = 30
+# epsilon convergence = 1e-3
+# nb points = 20
+# MU = 1., MV = 1., MP = 10., MQ = 10.
+# mu values as follows:
+#   if average_delta_X_norm > 0.5: 
+#      mu = 0.02 
+#   elif average_delta_X_norm > 0.3: 
+#      mu = 0.04 
+#   else:
+#      mu = 0.06 
+
+TEST0 = 0   # Test 0 test one target point only
+TEST1 = 1   # Test 1 does not work for the moment on 0, 2Pi but only on 0,Pi
+TEST2 = 2   # Test 2 creates N random target points and draws a LineTo these poins 
+TEST3 = 3   # Test 3 Same as test 2, but create a point at each step (instead of all at the beginning. Use Animate)
+
+N = 40     # 30 is Ok. 40 doesnot work as a point seems to lead to infinite computation
+
+RIGHT_HEM = False  # to draw points on the right hemisphere. If false Left memisphere is selected
+
+# Selected test:
+TEST = TEST3
+
+Axiom:
+  global target_pts
+  # Sets the Riemannian space in which the turtle will move
+  #nproduce SetSpace(Sphere(R),None)
+  nproduce SetSpace(Sphere(ra))
+  nproduce ;(0)PlotSpace
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v 
+  # (and p,q their first derivatives)
+  turtle_init = origin_pt + [0., 1.] # (u0,v0,p0,q0) needed to initialize the turtle on the surface
+  nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
+  #nproduce +(49)
+  #nproduce +(77)
+  #nproduce -(42)
+  #nproduce -(67)
+  #For the second init point
+  #nproduce +(33)
+  #nproduce +(49.6) 
+
+  # plots the point at the origin
+  nproduce [;(5)F(2*np.pi*R)]
+  nproduce Frame(0.2)
+  # plots the target point as a sphere on the surface
+  if TEST == 0:
+    nproduce ;(3)DrawPoint(target_pt,0.05)
+    target_pts = [target_pt]
+    nproduce S
+  elif TEST == 1:
+    target_pts = [[-1., 0.9], [-0.5, 0.7], [1., 0.7], [2., 1.3], [2., 0.4],[1.8,-0.4], [2.5,-0.4], [2.8,-0.4]] 
+    #target_pts = [[1., 0.7]]
+    for tgpt in target_pts:
+      nproduce ;(3)DrawPoint(tgpt,0.05)
+    nproduce S
+  elif TEST == 2:
+    # creates 
+    u = []
+    v = []
+    for i in range(N):
+      if RIGHT_HEM : x = np.pi * random()             # For points on the right hemisphere
+      else: x = -np.pi * random()                    # For points on the left hemisphere
+      u.append(x)
+    n = 0
+    while True:
+      y = -np.pi/2 + random()*np.pi
+      if y > np.pi/2 - 0.2 or y < -np.pi/2 + 0.2: # Stay away from the poles ...
+        continue
+      else:
+        v.append(y)
+        n+=1
+      if n > N: 
+        break
+    target_pts = []
+    for i in range(N):
+      tgpt = (u[i],v[i])
+      target_pts.append(tgpt)
+      nproduce ;(3)DrawPoint(tgpt,0.05)
+    nproduce S
+  elif TEST == 3:
+    nproduce A(0)
+
+
+derivation length: N #nb_seg
+production:
+
+S:  
+  #nproduce [;(2)F(2.2)]
+  
+  # Show in green the initial solution
+  nproduce StartIndirectInterpretation
+  for tgpt in target_pts:
+    # indirect interpretation
+    nproduce ;(2)[RiemannLineTo(tgpt,20)] 
+  nproduce StopIndirectInterpretation
+  
+  # Show in red the found BVP solution
+  for tgpt in target_pts:
+    # BVP Maekawa's method
+    nproduce ;(3)[RiemannLineTo(tgpt,20)]   
+    # Variant BVP with least squares: first attempt:
+    #nproduce [RiemannLineToLS(tgpt,20)]
+
+A(n):
+  nproduce A(n+1)
+  
+interpretation:
+
+A(n): 
+  x = random()
+  y = random()
+  #u = - x*np.pi
+  u = x*np.pi*2
+  v = -np.pi/2 + y*np.pi
+  tgpt = [u,v]
+  print(tgpt)
+  if v > np.pi/2 - 0.01 or v < -np.pi/2 + 0.01: # Stay away from the poles ...
+    nproduce [;(5)DrawPoint(tgpt,0.05)]
+  nproduce [;(3)DrawPoint(tgpt,0.05)]
+  nproduce [RiemannLineTo(tgpt,20)] 
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)

@@ -1,0 +1,212 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+		
+	Simulates geodesics on a sphere with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
+
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
+
+"""
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+import numpy as np
+import matplotlib.pyplot as plt
+from random import random, randint, seed
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+import riemann_lsystem.lineintersection as li
+reload(li)
+
+from riemann_lsystem.lineintersection import *
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 0.5 * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.05 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETER
+#######################
+
+seed(1.13)  #1.21  
+
+extern(NBSTEPS = 400)
+extern(WALKS = 1)
+
+# Surface parameters
+extern(R = 1 * meter)    # Radius of the sphere in meter
+extern(slen=0.1 * meter)
+extern(dt=1)  # in seconds
+
+# Selection of the surface
+SPHERE = 1     # seed(1.21). most of the walks converge very rapidly to a deadlock
+PSEUDOSPHERE = 2
+
+SURFACE = SPHERE
+
+# Set of trajectories already existing since the beginning of the simulation
+trajectories = LineSet()
+
+da = 1 # (in degrees)
+MAX_TRIES = 10
+
+TEST = 2
+
+###### Arrays for result:
+# Array of geodesic lengths for each walk. This array is updated at each timestep.
+# It contains the geodesic distance of each walker to the origin at the current time step
+geodesicLen = np.zeros(WALKS)
+geodesicLenTrue = np.zeros(WALKS)
+
+def End():
+  global geodesicLen, geodesicLenTrue
+  #print(geodesicLen)
+  print('SIMULATION END **************')
+  #print(geodesicLenTrue)
+  
+def StartEach():
+  global trajectory
+  frameDisplay(True)
+  # Creates a place to store all the lines drawn by the turtle during one production step
+  #trajectory = LineSet()
+  activebuds = 0
+
+Axiom: 
+  global origin_pt
+  # Sets the Riemanian space in which the turtle will move
+  # can draw a dashed geodesic to show how f is acting
+  # for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+  if SURFACE == PSEUDOSPHERE:
+    origin_pt = [1.3,0.0]
+    nproduce SetSpace(PseudoSphere(R))
+    nproduce ;(0)PlotSpace(dict(CCW = False))
+    turtle_init = origin_pt 
+  else: # SPHERE by default
+    origin_pt = [0.0,0.0]
+    turtle_init = origin_pt + [1., 1.1]
+    nproduce SetSpace(Sphere(R))
+    nproduce ;(0)PlotSpace  
+  
+  nproduce InitTurtle(turtle_init)
+  nproduce ;(4)@O(0.02);(6)_(LINEWIDTH)
+  for w in range(WALKS):
+    nproduce [?T(ParameterSet())A(w,origin_pt)]
+
+derivation length: NBSTEPS
+production:
+
+?T(t)A(w,origin_pt):
+  if TEST == 1: # Simple (naice approach): a lot of deadlock positions
+    a = 360*random()
+    #r = randint(0,3)
+    #a = 90*r
+    uvpq_s = forward(t,slen, MAXSTEPLEN)
+    #print("forward : ", uvpq_s)
+    
+    # Construct the corresponding line made of uv coords
+    # 1. The turtle has current coordinates uvpq
+    curpos = [(t.uvpq[0],t.uvpq[1])]
+    # 2. Make the list of all uv positions on the path, including current postion in front
+    uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
+    intersection = trajectories.test_intersection(uvs)
+    
+    #print(intersection)
+    if not intersection:
+      nproduce P(uvpq_s)
+      trajectories.add_line_from_point(t.uvpq,uvs) 
+    
+    #nproduce +(a)StaticF(slen)
+    nproduce +(a)?T(t)A(w,origin_pt)
+    
+  elif TEST == 2: # here in case of intersection, an angle as close as the previous engle is drawn:
+    a = 360*random()
+    i = 0
+    while i <= MAX_TRIES:
+      uvpq_s = forward(t,slen, MAXSTEPLEN)
+      #print("forward : ", uvpq_s)
+      # Construct the corresponding line made of uv coords
+      # 1. The turtle has current coordinates uvpq
+      curpos = [(t.uvpq[0],t.uvpq[1])]
+      # 2. Make the list of all uv positions on the path, including current postion in front
+      uvs = curpos+[(s[0],s[1]) for s in uvpq_s]
+      intersection = trajectories.test_intersection(uvs)
+      if not intersection:
+        break
+      a += da
+      i += 1
+    
+    if not intersection:
+      nproduce P(uvpq_s)
+      trajectories.add_line_from_point(t.uvpq,uvs) 
+    nproduce +(a)?T(t)A(w,origin_pt)
+
+interpretation:
+
+A(w, origin_pt):
+  produce ;(2)@O(0.02)
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)

@@ -1,31 +1,44 @@
 """
 	L-systems in Riemannian geometry
-	
+
 		Author: Ch. Godin, Inria
 		Date: 2019-2020
-	Simulates geodesics on a sphere with a riemannian implementation of 
+	Simulates geodesics on a sphere with a riemannian implementation of
 	the main turtle primitives: F, f, + and -
-	
-	- To draw a geodesic of length L set: length_geodesic = L, nb_seg = 1, dashed = False
-	- To draw a dashed geodesic of length L with 40 drawn dashed segments: length_geodesic = L, nb_seg = 40, dashed = True
+
+	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
+
 """
 
 import numpy as np
 from math import ceil
 from random import random
 
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
 
 #######################
 # Units
 #######################
 # Scaling model in graphic scene
-meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0 
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
             # (F(1) for instance corresponds to a forward move of 1 meter)
 cm = 0.01 * meter
 
 # Surface parameters
-R = 1. * meter   # Radius of the sphere in meter
+R = 2. * meter   # Radius of the sphere in meter
 
 #######################
 # DISPLAY PARAMETERS
@@ -34,13 +47,13 @@ R = 1. * meter   # Radius of the sphere in meter
 # Flags to control the display
 PLOTSPACE = True
 
-# maximum len of subdivision step required to draw any line on the surface 
-# this controls the resolution of the geodesic plot with respect to the 
-# surface curvature 
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 0.5 * cm
+LINEWIDTH  = 1. * cm
 
 # To control the Frame size
 FRAMESIZE  = 0.3 * meter
@@ -50,37 +63,38 @@ FRAMEWIDTH = 1 * cm
 # SIMULATION PARAMETERS
 #######################
 
-length_geodesic = R*2*np.pi
-# can draw a dashed geodesic to show how f is acting
-# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
-nb_seg = 40 # nb of segment to draw the geodesic (defines the parameter of the F)
+nb_seg = 100 # nb of segment to draw the geodesic (defines the parameter of the F)
            # To draw one geodesic, set it to 1 and set dashed to False
 
-dashed = False
-if dashed:
-  nb = 2*nb_seg
-else:
-  nb = nb_seg
+R = 5.
+r =0.2
+circonf = R*2*np.pi
+length_geodesic = circonf
 
-Axiom: 
+
+Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(Sphere(R))
+  nproduce SetSpace(Paraboloid(R))
+  nproduce PlotSpace(dict(CCW=False))
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  a = np.pi/4. # to orient the turtle's head at the beginning
-  surf_pos = [0,0] 
-  surf_dir = [np.cos(a),np.sin(a)] # the norm of the direction won't be used here (it is immediately normalized by InitTurtle)
-  posdir = surf_pos+surf_dir
-  nproduce InitTurtle(posdir)
-  nproduce ;(1)A(0)
+  u0= 1 # 0
+  v0= 0 # np.pi/6  # np.pi/6 # 0
+  # show pi/2, 0 then different values between pi/2 and pi/3
+  a = pi/5 # to orient the turtle's head at the beginning
+  #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+  #produce ;(1)A(0)
 
+  nb = 2
+  for i in range(nb):  
+    a += 2*np.pi/nb
+    nproduce [InitTurtle([u0,v0,np.cos(np.pi/2+a),np.sin(np.pi/2+a)]) InterpolateColors(3,5, i/(nb-1))A(0)]
+    
+
+derivation length: int(nb_seg)
 production:
-derivation length: int(nb)
 
 A(n):
-  if (n%2 == 0 and dashed):
-    nproduce f(length_geodesic/nb) 
-  else:
-    nproduce F(length_geodesic/nb) 
+  nproduce StaticF(length_geodesic/nb_seg)
   nproduce A(n+1)
 
 interpretation:
@@ -89,13 +103,9 @@ A(n):
   produce _(FRAMEWIDTH)Frame(FRAMESIZE)
 
 
+
+
 endlsystem
-
-
-
-
-
-
 ###### INITIALISATION ######
 
 __lpy_code_version__ = 1.1
@@ -105,7 +115,7 @@ def __initialiseContext__(context):
 	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
-	context.animation_timestep = 0.0
+	context.animation_timestep = 0.001
 	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
 	context["__scalars__"] = scalars
 	for s in scalars:

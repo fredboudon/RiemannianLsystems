@@ -1,0 +1,152 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2022
+      
+      Filling polygons drawn in curved spaces
+      
+"""
+
+import numpy as np
+from math import ceil
+from random import random
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+PLOTDS2 = False
+
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+length_geodesic = R*2*np.pi
+# can draw a dashed geodesic to show how f is acting
+# for 1-segment geodesic --> set this value at 2 (1 seg drawn, 1 not drawn)
+nb_seg = 1 # nb of segment to draw the geodesic (defines the parameter of the F)
+           # To draw one geodesic, set it to 1 and set dashed to False
+
+ulen = 2*np.pi*R / 10
+vlen = 2*np.pi*R / 20
+
+TEST = 3
+
+# u in [0,2*pi]
+# v in [-pi/2,pi/2]
+Axiom:
+  # Sets the Riemannian space in which the turtle will move
+  nproduce SetSpace(Sphere(R))
+  nproduce ;(0)PlotSpace
+  u0,v0 = (0.,0.)
+  p0,q0 = (0.,1.)
+  nproduce _(LINEWIDTH)[InitTurtle([u0,v0,p0,q0])A(0)]
+
+derivation length: int(nb_seg)
+production:
+
+A(n):
+  # first and last points should be the same (closed polygon)
+  if TEST == 1:
+    # NOTE: the polyline can have a duplicated ending point or not. 
+    # in any case the polyline will be considered as closed.
+    polyline_uv = [[0.0,0.0],[0,vlen],[ulen,vlen],[ulen,0],[0.0,0.0]]
+  elif TEST == 2:
+    h = 10
+    polyline_uv = [[1.0,0.0],[1/h,1/h],[0.,1.],[-1/h,1/h],[-1.0,0.0],[-1/h,-1/h],[0.,-1.], [1/h,-1/h]]
+  elif TEST == 3:
+    N=32   # Star with N/2 arms
+    h = 3  # depth of the arms
+    polyline_uv = []
+    for n in range(N):
+      if n%2 == 0:
+        u = np.cos(n*2*np.pi/N)
+        v = np.sin(n*2*np.pi/N)
+      else:
+        b = 1./h
+        u = b*np.cos(n*2*np.pi/N)
+        v = b*np.sin(n*2*np.pi/N)
+      polyline_uv.append([u,v])        
+  resolution = R/100.
+  nproduce [;(3)ClosedPolygon(polyline_uv, resolution, False)]
+  nproduce A(n+1)
+
+interpretation:
+
+#maximum depth : 2
+
+A(n):
+  nproduce _(FRAMEWIDTH)Frame(FRAMESIZE)
+  nproduce CovariantBasis(0.3)
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	context.options.setSelection('Warning with sharp module',0)
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)

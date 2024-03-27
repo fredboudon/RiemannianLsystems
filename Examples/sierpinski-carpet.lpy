@@ -1,0 +1,12 @@
+Axiom: _(0.05);(2)+(180)f(5)-(180)F(10)
+
+derivation length: 5
+production:
+
+F(x):
+  produce F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)-(90)F(x/3.0)-(90)f(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)
+
+interpretation:
+
+
+endlsystem

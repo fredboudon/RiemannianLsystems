@@ -1,0 +1,163 @@
+from openalea.plantgl.all import *
+from math import * 
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+
+#to dilate/contract the leaf
+length = 1.5      # in some units (= cm for example)
+width  = 1      # 
+strides = 40
+len_strides = length/strides
+
+nb_seg = 10
+length_geodesic = length*1.3    # in some units (= cm for example)
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+def StartEach():
+  if getIterationNb == 0:
+    frameDisplay(True)
+
+def EndEach(lstring, lscene):
+  #print(getIterationNb(),lstring, lscene,isFrameDisplayed())
+  pass
+
+module Leaf
+
+Axiom: ;(8)Leaf(length, width) S(ParameterSet())
+derivation length: nb_seg+ 2
+production:
+
+S(x) :
+  if x.hasattr('shape'):
+    v0 = 0.75
+    u0 = 0
+    
+    nproduce V(x.shape)
+    nproduce SetSpace(ExtrusionSurface(x.shape))
+    #nproduce SetSpace(Sphere(length)) PlotSpace()
+    nproduce [InitTurtle([u0,v0,1,0]) -(6.5) 
+    nproduce ,(7) _(0.02) A(nb_seg)
+    nproduce ]
+  else:
+    frameDisplay(True)
+
+A(n):
+  if n > 0:
+    # StaticF(length,radius_at_extremity)
+    rad = 0.02*n/nb_seg
+    nproduce StaticF(length_geodesic/nb_seg, rad, {})
+    nproduce [+(30)B(4,rad)]
+    nproduce [-(33)B(5,rad)]
+    nproduce A(n-1)
+
+B(n,r):
+  if n > 0:
+    nproduce StaticF(length_geodesic/nb_seg, r*n/nb_seg, {})
+    nproduce B(n-1,r)
+
+interpretation:
+maximum depth: 5
+
+V(s):
+  nproduce _(0.01)
+  """
+  scale = 0.1
+  from numpy import arange
+  for u in arange(s.axis.firstKnot,s.axis.lastKnot+0.05,0.1):
+    for v in arange(s.crossSection.firstKnot,s.crossSection.lastKnot+0.05,0.1):
+      
+      if ORDER == 1:
+        du = s.getUTangentAt(u,v)*scale
+        dv = s.getVTangentAt(u,v)*scale
+      elif ORDER == 2:
+        du = s.getSecondDerivativeUUAt(u,v)*scale
+        dv = s.getSecondDerivativeVVAt(u,v)*scale
+        
+      nproduce [ @M(s.getPointAt(u,v)) ,(2)@O(0.02) 
+      if ORDER > 0:
+        nproduce [,(3) PinpointRel(du) Arrow(norm(du))] [PinpointRel(dv) ,(4) Arrow(norm(dv)) ] 
+      nproduce ]
+  """
+
+
+S(x):
+  if hasattr(turtle,'getScene'):
+    s = turtle.getScene()[0].geometry
+    x.shape = Extrusion(cspline.cspline(s.axis), section, s.scale, s.orientation, s.knotList, s.solid, s.ccw, s.initialNormal)
+  produce
+
+
+# Organ definitions
+Leaf(h,w) --> [StartGC Sweep(nerve,section,h,len_strides,w,width_law) EndGC]
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (82,92,64) , diffuse = 1.95652 , shininess = 0 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_8 = pgl.Material("Color_8" , ambient = (155,185,134) , diffuse = 0.410811 , shininess = 0 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
+	scalars = [('ORDER', 'Integer', 0, 0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	width_law = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.0818088, 1),(0.130729, 0.122043, 1),(0.28565, 0.171495, 1),(0.508165, 0.214097, 1),(0.714426, 0.203564, 1),(0.888084, 0.152662, 1),(1, 0.0407503, 1),(1, 0.00280155, 1)]) , 
+	    )
+	width_law.name = "width_law"
+	panel_0 = ({'name': 'Functions', 'active': True, 'visible': True},[('Function',width_law)])
+	import openalea.plantgl.all as pgl
+	nerve = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.521794, 0.00202051, 1),(-0.0258568, -0.0148566, 1),(0.177597, -0.0358794, 1),(0.847449, 0.0957809, 1)]) , 
+	    )
+	nerve.name = "nerve"
+	section = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(1.35896, 0.0118907, 1),(0.965673, -0.0525752, 1),(0.598767, -0.492253, 1),(-0.0232609, -2.07486, 1),(-1.45626, -2.60323, 1),(-1.96028, -0.0226782, 1)]) , 
+	    )
+	section.name = "section"
+	panel_1 = ({'name': 'Curve2D', 'active': True, 'visible': True},[('Curve2D',nerve),('Curve2D',section)])
+	parameterset = [panel_0,panel_1,]
+	context["__functions__"] = [('width_law',width_law),]
+	context["__curves__"] = [('nerve',nerve),('section',section),]
+	context["__parameterset__"] = parameterset
+	context["width_law"] = pgl.QuantisedFunction(width_law)
+	context["nerve"] = nerve
+	context["section"] = section
+__authors__ = 'C. Godin, F. Boudon\n'
+__institutes__ = 'INRIA - CIRAD Virtual Plants'
+__copyright__ = 'Open source GPL'
+__description__ = '1. Changer la courbe decrivant le profil de la nervure\n\n2. Changer la courbe decrivant le profil de la section transversale\n\n3. Pourquoi utilise-t-on des courbes et pas des fonctions ?\n\n4. Changer la fonction decrivant la largeur. Pourquoi est-ce une fonction (et pas une courbe) ?\n\n5. Changer la couleur de la feuille\n\n6. Augmenter/diminuer le nombre de segments verticaux\n\n7. Changer le facteur d\'echelle\n\n8. Incliner la feuille d\'un angle de 30 autour de L dans le repere HLU \n\n9. faire un "verticille" de 5 feuilles, legerement inclinees, avec des azimuts egalement repartis dans le cercle (i.e. en etoile)\n\n'

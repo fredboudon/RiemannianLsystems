@@ -1,0 +1,20 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	A spiral in flat space
+"""
+
+Axiom: _(0.05)F(1)+F(2)+F(3)+F(4)+F(5)+F(6)+F(7)+F(8)+F(9)+F(10) _(0.03)Frame
+#^(90)F(3)-(90)F(1)-(90)F(3)+(90)F(2) _(0.03)Frame
+
+derivation length: 1
+production:
+
+
+interpretation:
+
+
+endlsystem

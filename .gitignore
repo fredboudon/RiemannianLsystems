@@ -5,7 +5,6 @@ __pycache__/
 
 # pkglts files
 .pkglts/info.log*
-
 # Packages
 *.egg
 *.egg-info
@@ -37,6 +36,7 @@ lib64/
 *.swp
 *.*~
 _*.*
+\#*\#
 
 # Mr Developer
 .mr.developer.cfg
@@ -105,3 +105,7 @@ Third_proto/
 
 Examples/test.py
 RiemannTurtleLib/essai.py
+/Example_old/
+images/vkidneyfern
+images/vkidneyfernmovie
+images/vkidneyfernmovie2

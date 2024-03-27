@@ -12,31 +12,32 @@ from math import *
 from surfaces import Sphere as CGSphere
 
 
+radius = 10
 if SphericalShape:
-	radius = 10
-	sh = nurbsSphere(radius)
-	cgsphere = CGSphere(radius)
+	sh = nurbCircle(1)
 	d = 0.1
 	s = 1 #0.05
 else:
-	sh = patch4
-	d = 0.01
-	s = 0.1
+	sh = path1
+	d = 0.1
+	s = 1
+
+sh = NurbsCurve([(p.x*radius,p.y*radius,0,p.z) for p in sh.ctrlPointList],degree=sh.degree,knotList=sh.knotList)
+
 
 def to_nurbs_python(sh):
-	surf = NURBS.Surface()
-	surf.degree_u = sh.udegree
-	surf.degree_v = sh.vdegree
-	
-	npctrls = np.array(sh.ctrlPointMatrix)
+	surf = NURBS.Curve()
+	surf.degree = sh.degree
+	print(sh.ctrlPointList)
+	npctrls = np.array(sh.ctrlPointList)
 	shape = npctrls.shape
-	npctrls = np.reshape(npctrls,(shape[0]*shape[1],shape[2]))
+	print(shape)
+	npctrls = np.reshape(npctrls,(shape[0],shape[1]))
 	npctrls[:,0] *= npctrls[:,3]
 	npctrls[:,1] *= npctrls[:,3]
 	npctrls[:,2] *= npctrls[:,3]
-	surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0], shape[1])
-	surf.knotvector_u = list(sh.uknotList)
-	surf.knotvector_v = list(sh.vknotList)
+	surf.set_ctrlpts(npctrls[:,:].tolist(), shape[0])
+	surf.knotvector = list(sh.knotList)
 	
 	surf.evaluate()
 	
@@ -44,12 +45,26 @@ def to_nurbs_python(sh):
 
 surf = to_nurbs_python(sh)
 
-print(sh.getIsoVSectionAt(0.5).degree)
 
 order = 1+int(ORDER2)
 
 def l(l):
   return s
+
+
+def derivatives(u, order):
+    du = 0.01
+    from scipy.misc import derivative
+    def upt(ui):
+        print('ui:',str(ui))
+        ui = min(1,max(0,ui))
+        pt = np.array(sh.getPointAt(ui))
+        print(pt)
+        return pt
+    
+    return derivative(upt, u, du, n=order)
+
+
 
 extern(ExtEval = True)
 
@@ -57,50 +72,29 @@ Axiom:
   # nproduce @g(sh)
   nproduce _(d) 
   #nproduce ,(5)@g(sh)
-  nproduce ,(5)@g(sh.getIsoUSectionAt(0))
-  nproduce ,(5)@g(sh.getIsoUSectionAt(0.5))
-  nproduce ,(6)@g(sh.getIsoVSectionAt(0))
-  nproduce ,(6)@g(sh.getIsoVSectionAt(pi))
-  values = [(0.5,v) for v in arange(0.,1.1,0.1)] +[(u,0.5) for u in arange(0.,1.1,0.1)]
-  for u,v in values:
-      if not ExtEval:
-         p = sh.getPointAt(u,v)
-         if IsoLine:
-             du = direction(sh.getIsoUSectionAt(u).getTangentAt(v))
-             dv = direction(sh.getIsoVSectionAt(v).getTangentAt(u))
-         else:
-            du = sh.getDerivativeAt(u,v,1,0)
-            dv = sh.getDerivativeAt(u,v,0,1)
-      else:
-         uv = [u,v]
-         skl = surf.derivatives(u,v,order)
-         p = skl[0][0]
-         du = skl[order][0]
-         dv = skl[0][order]
-         #p = surf.evaluate_single(uv)
-         #operations.tangent(surf,uv)
+  nproduce ,(5)@g(sh)
+  
+  values = [u for u in arange(0.,1.1,0.1)]
+  
+  for u in values:
+      p = sh.getPointAt(u)
+      du1 = sh.getDerivativeAt(u,order)
+      
+      skl = surf.derivatives(u,order)
+      du2 = skl[order]
+      
+      du3 = derivatives(u,order)
+      
       
       nproduce [ @M(p) ,(2)@O(d*2) 
-      if DIR & 1:
-        nproduce [,(3) PinpointRel(du) Arrow(l(norm(du))) ] 
-      if DIR & 2:
-        nproduce [,(4) PinpointRel(dv) Arrow(l(norm(dv))) ]   
+      # red plantgl
+      nproduce [,(3) PinpointRel(du1) Arrow(l(norm(du1))) ] 
+      # purple python nurbs
+      nproduce [,(6) PinpointRel(du2) Arrow(l(norm(du2))) ] 
+      # green derivative
+      nproduce [,(8) PinpointRel(du3) Arrow(l(norm(du3))) ] 
       nproduce ]
       
-      if SphericalShape:
-         u *= 2*pi
-         v = (v -0.5)*pi
-         if order == 1:
-           du, dv = cgsphere.covariant_basis(u,v)
-         else:
-           du = cgsphere.secondsuu(u,v)
-           dv = cgsphere.secondsvv(u,v)
-         nproduce [ @M(cgsphere.S(u,v)) ,(5)@O(d*2) 
-         if DIR & 1:
-           nproduce [,(6) PinpointRel(du) Arrow(l(norm(du))) ] 
-         if DIR & 2:
-           nproduce [,(7) PinpointRel(dv) Arrow(l(norm(dv))) ]   
-         nproduce ]        
 
 derivation length: 1
 production:
@@ -122,7 +116,13 @@ def __initialiseContext__(context):
 	Color_7 = pgl.Material("Color_7" , ambient = (67,38,0) , diffuse = 2.68657 , )
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
-	scalars = [('ExtEval', 'Bool', True), ('SphericalShape', 'Bool', True), ('IsoLine', 'Bool', False), ('ORDER2', 'Bool', True), ('DIR', 'Integer', 3, 1, 3)]
+	Color_8 = pgl.Material("Color_8" , ambient = (0,44,0) , diffuse = 1.29545 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
+	Color_9 = pgl.Material("Color_9" , ambient = (76,152,25) , diffuse = 1.02632 , )
+	Color_9.name = "Color_9"
+	context.turtle.setMaterial(9,Color_9)
+	scalars = [('ExtEval', 'Bool', False), ('SphericalShape', 'Bool', True), ('IsoLine', 'Bool', False), ('ORDER2', 'Bool', False), ('DIR', 'Integer', 2, 1, 3)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]
@@ -139,11 +139,17 @@ ustride = 10 , vstride = 10 , 	    )
 	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.25, 1), (0, -0.5, 0, 1), (0, -0.5, 0.25, 1), (0, -0.5, 0.5, 1)], [(0, -0.25, -0.5, 1), (0, -0.25, -0.25, 1), (0, -0.25, 0, 1), (0, -0.25, 0.25, 1), (0, -0.25, 0.5, 1)], [(0, 0, -0.5, 1), (0, 0, -0.25, 1), (1.64182, 0, 0, 1), (0, 0, 0.25, 1), (0, 0, 0.5, 1)], [(0, 0.25, -0.5, 1), (0, 0.25, -0.25, 1), (0, 0.25, 0, 1), (0, 0.25, 0.25, 1), (0, 0.25, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.25, 1), (0, 0.5, 0, 1), (0, 0.5, 0.25, 1), (0, 0.5, 0.5, 1)]]) , 
 ustride = 10 , vstride = 10 , 	    )
 	patch4.name = "patch4"
-	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('NurbsPatch',patch1),('NurbsPatch',patch2),('NurbsPatch',patch4)])
+	import openalea.plantgl.all as pgl
+	path1 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.479592, -0.00612245, 1),(-0.406122, 0.206122, 1),(-0.191156, 0.310204, 1),(-0.0795918, 0.326531, 1),(0.276871, 0.242857, 1),(0.5, 0, 1),(0.408163, -0.261224, 1),(0.208163, -0.373469, 1),(-0.189796, -0.406122, 1),(-0.469388, -0.310204, 1),(-0.47551, -0.0285714, 1)]) , 
+	    )
+	path1.name = "path1"
+	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('NurbsPatch',patch1),('NurbsPatch',patch2),('NurbsPatch',patch4),('Curve2D',path1)])
 	parameterset = [panel_0,]
 	context["__functions__"] = []
-	context["__curves__"] = []
+	context["__curves__"] = [('path1',path1),]
 	context["__parameterset__"] = parameterset
 	context["patch1"] = patch1
 	context["patch2"] = patch2
 	context["patch4"] = patch4
+	context["path1"] = path1

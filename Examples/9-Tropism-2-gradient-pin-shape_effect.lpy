@@ -1,0 +1,310 @@
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Computation of curvatures on different surfaces
+"""
+
+import numpy as np
+import numpy.linalg as linalg
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# Pin form definition
+#######################
+def pin(x, args):
+  if x < 0: 
+    x = 0.
+  # normalization of the argument before calling
+  scale = 1.0     # value by default
+  radius = 1.0
+  if len(args) > 0:
+    scale = args[0]
+    if len(args) > 1:
+      radius = args[1]
+  u = x / scale
+  if u > 1.0:
+    u = 1.0
+  
+  # rescaling the norm of the argument before returning
+  return scale * pinfunc_5.getValue(u) * radius
+
+SCALE_FACTOR = 2     # multiplicative factor for the whole the pin form 
+RADIUS_FACTOR = 1  # multiplicative factor for the radius the pin form 
+
+#######################
+# length and the discretization of the trajectory
+#######################
+
+N = 50                  # number of segments to plot 
+steplen =  0.1 * meter # Length of a path segment (total path length = steplen * N
+
+# the discretization of a step length is controled by constant MAXSTELEN:
+# at each step, if a primitive F(steplen) is used, a segment of length 'steplen'
+# will be plotted. 
+# To plot the curve, a discretization of the curve in n points is made (including the end points)
+# with n-1 segments of equal size dl.
+# n and dl are detrmined as follows:
+# First a maximum size of a segment is defined by the constant MAXSTELE.
+# MAXSTELEN= 0.01 by default.
+# Then, compute:
+# 		n0 = int(length // MAXSTEPLEN)+1    (integer division by a float returns a float)
+# Then the curve is divided into n = n0-1 segments of equal length (and not n0 !) 
+# so that the the length dl of the segments is less or equal to MAXSTEPLEN 
+# (dl = length / (n0-1) ) and thus ensuring that dl <= MAXSTEPLEN.
+
+MAXSTEPLEN = 0.02 
+
+#######################
+# Controling the tropism field
+#######################
+
+sensitivity = 5 # 1.0 rate of geometric tropism: it is in units of angle per distance units
+                 # how much Turtle Head must turn for a distance delta_s at the surface
+                 # The actual angle is prop to the angle (between current Head and the principal direction) and to the distance ds
+             
+def PinScalarField(u,v):
+  # it is assumed that umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2
+  # this function return a scalar value between 0 and 1 (0 for v = -pi/2, 1 for v = +pi/2)
+  h = SCALE_FACTOR
+  v = h-v
+  return v/SCALE_FACTOR
+
+
+#########################
+# Selection of tests
+#########################
+
+GEODESIC = True           # Displays the pure Geodesic
+TUBE = False               # Displays the tube trajectory = geodesic + deviation due to gradient
+
+STOP_IN_SOURCE_REGION= True # If True, the computations of Geodesics stop as soon as they reach the source region.
+VSOURCE_REGION_DEF = 0.1      # Value of v under which we consider the source region is entered
+
+PRINT_TEST = 2     # To print different types of results related to curvature
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2): # code from on stackoverflow
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    
+    
+module PrintCurvatures(scalefactor,color_plus,color_minus,linewidth)
+
+Axiom:
+ # Default initial conditions
+  u0= 0.   # azimuthal position
+  v0= 1.9 # altitude (max = SCALE_FACTOR)
+  initial_angle = -118  # 0 is pointing upwards the pin form  
+  
+  field_source = [0,0]
+  fieldfunc = PinScalarField
+  
+  # Draws the space (pin-like form)
+  #nproduce SetSpace(Revolution(pin, (HEIGHT), zmin = 0, zmax = HEIGHT))
+  nproduce SetSpace(Revolution(pin, [SCALE_FACTOR, RADIUS_FACTOR], zmin = 0, zmax = SCALE_FACTOR))
+    
+  #dic = {'colorvalfunc': fieldfunc, 'cmap' : 'jet', 'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
+  dic = {'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
+  nproduce ;(0)PlotSpace(dic)
+  
+  # Plots Frame and field source location
+  nproduce [
+  # Indicates the origin of the scalar field diffusion
+  nproduce [InitTurtle([field_source[0],field_source[1],0,1])]
+  # to draw the principal directions on the surface
+  #nproduce ;(1)_(LINEWIDTH) S
+  nproduce ]
+  
+  print("Pin form characteristics: Height = ", SCALE_FACTOR,"Half-way diam = ", 2*pin(SCALE_FACTOR/2,[SCALE_FACTOR, RADIUS_FACTOR]) )
+  
+  # Initial position and orientation of the trajectory to compute 
+  nproduce InitTurtle([u0,v0,0,1])
+  nproduce ;(2)@O(0.03)
+  nproduce +(initial_angle)
+  #nproduce _(LINEWIDTH) Frame(0.2) 
+  
+  # Draw the curve(s)
+  nproduce _(0.01) nproduce @Gc
+  if TUBE:
+    if GEODESIC:
+      c = 6
+    else:
+      c = 1
+    nproduce [;(c)?T(ParameterSet())A(fieldfunc)]
+  if GEODESIC:
+    nproduce [?T(ParameterSet())G(N)]
+  nproduce @Ge
+  nproduce S
+  
+derivation length: N
+production:
+
+# n is the count down of iteration numbers
+?T(t)A(f):
+    # ?T(t) contains last parammeters of the turtle at the last interpretation, in particular uvpq
+    u0,v0,p0,q0 = t.uvpq
+    
+    if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
+      
+      def fswapped(v,u):
+        return f(u,v)
+      
+      # creates a function f1(v) = f1(u0,v)of a single argument from f(u,v)  
+      fu = gen_func(f,(v0))         # = function of u  (v0 fixed)
+      fv = gen_func(fswapped,(u0))  # = function of v  (u0 fixed)
+      
+      # computes the partial derivatives at u0,v0
+      dfdu = gen_prime_deriv(fu) # partial derivative of f dfdu at (u0,v0) (function of u only as v0 is fixed)
+      dfdv = gen_prime_deriv(fv) # partiam derivative of f dfdv at (u0,v0) (function of v only as u0 is fixed)
+      
+      # the gradient of f is thus [dfu,dfv](u0,v0)
+      gradf_uv = np.array([dfdu(u0), dfdv(v0)])
+      print("grad at uv", gradf_uv)
+      
+      pushforward = t.space.Shift(u0,v0)
+      gradf = pushforward.dot(gradf_uv)
+      print("grad_f", gradf)
+      
+      # current direction of the turtle head
+      head = t.state.heading
+      
+      # angle between head and gradient locally
+      alpha = angle_between(gradf, head) # returned angle between 0 and pi (positive)
+      
+      # find on which side to correct H to get closer to gradient. This depends on the local normal
+      ndir = t.space.normal(u0,v0)
+      prod = np.cross(head, gradf)
+      sign = np.dot(prod, ndir)
+      if sign < 0:
+        alpha = -alpha  
+      
+      # deflection angle should be alpha in the limit of delta_s = infinity or sensitivity = infinity
+      deflection_angle = sensitivity * alpha * steplen 
+      deflection_angle = np.degrees(deflection_angle)
+      
+      print("Deflection angle:", deflection_angle, "alpha", alpha)
+      
+      # Plots 
+      if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
+        produce +(deflection_angle) StaticF(steplen) ?T(ParameterSet()) A(f)
+
+?T(t)G(n):
+  u0,v0,p0,q0 = t.uvpq
+  if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
+    nproduce ;(4)StaticF(steplen)?T(ParameterSet())G(n-1)
+  
+interpretation:
+
+maximum depth: 3
+
+S:
+  print("turtle uvpq = ", turtle.uvpq)
+  
+
+endlsystem
+
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc_1 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.211184, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_1.name = "pinfunc_1"
+	pinfunc_2 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.15, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_2.name = "pinfunc_2"
+	pinfunc_3 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.505749, 0.0891841, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_3.name = "pinfunc_3"
+	pinfunc_4 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.515205, 0.0756484, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_4.name = "pinfunc_4"
+	pinfunc_5 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.510477, 0.0776566, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_5.name = "pinfunc_5"
+	pinfunc_6 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, -0.05, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	    )
+	pinfunc_6.name = "pinfunc_6"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',pinfunc_1),('Function',pinfunc_2),('Function',pinfunc_3),('Function',pinfunc_4),('Function',pinfunc_5),('Function',pinfunc_6)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc_1',pinfunc_1),('pinfunc_2',pinfunc_2),('pinfunc_3',pinfunc_3),('pinfunc_4',pinfunc_4),('pinfunc_5',pinfunc_5),('pinfunc_6',pinfunc_6),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc_1"] = pgl.QuantisedFunction(pinfunc_1)
+	context["pinfunc_2"] = pgl.QuantisedFunction(pinfunc_2)
+	context["pinfunc_3"] = pgl.QuantisedFunction(pinfunc_3)
+	context["pinfunc_4"] = pgl.QuantisedFunction(pinfunc_4)
+	context["pinfunc_5"] = pgl.QuantisedFunction(pinfunc_5)
+	context["pinfunc_6"] = pgl.QuantisedFunction(pinfunc_6)
+__references__ = '#'

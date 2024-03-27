@@ -2,39 +2,34 @@
 	L-systems in Riemannian geometry
 	
 		Author: Ch. Godin, Inria
-		Date: 2019-2020
+		Date: 2019-2022
 
 	Illustrate how to construct different curved surfaces 
 	Just toogle the comment of the line you want to test.
 """
 
-import numpy as np
 
-# To import libs from other directories 
-#(append dynamically other dirs to PYTHONPATH variable)
-import sys
-sys.path.append("../RiemannTurtleLib")
+from importlib import reload
 
-from importlib import reload 
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
 
-import surfaces
-surfaces = reload(surfaces)
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
 
-from surfaces import *
-
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 ###################################
 # Several functions for Revolution
 ###################################
 
-def sinusoid(x):
-  return 2+np.sin(x)
-def sinusoid_prime(x):
-  return np.cos(x)
-def sinusoid_second(x):
-  return -np.sin(x)
+def sinusoid(x, *args):
+  n = args[0]
+  return 2+np.sin(2*np.pi*x/n)
 
-def vase(x):
+def vase(x, *args):
   if x < 0: 
     x = 0.
   u = (x) / 10.
@@ -43,24 +38,11 @@ def vase(x):
 
 # sphere radius
 rr = 1.
-def sphere(x):
+def sphere(x, *args):
   return np.sqrt(rr**2 - x**2)
-def sphere_prime(x):
-  return - (rr**2 - x**2)**(-1/2.) * x
-def sphere_second(x):
-  term = rr**2 - x**2
-  return - term**(-1/2.) * (1 + ((x**2) /term ))
-
 
 profile = vase
 
-# Definition of how to compute derivatives radius functions
-# usung scipy (called in module surfaces)
-###########################################################
-def profile_prime(x):
-  return prime_derivative(profile, x)
-def profile_second(x):
-  return second_derivative(profile, x)
 
 #######################
 # DISPLAY PARAMETERS
@@ -68,10 +50,6 @@ def profile_second(x):
 
 # Flags to control the display
 PLOTSPACE = True
-
-# maximum len of subdivision step required to draw any line on the surface 
-# this controls the resolution of the geodesic plot with respect to the 
-# surface curvature 
 
 #######################
 # SIMULATION PARAMETERS
@@ -93,55 +71,32 @@ r = 0.3  # for Torus
 a = 1.0  # for EllipsoidOfRevolution
 b = 0.3  # EllipsoidOfRevolution
 radiusmax = 1.0 # Paraboloid
-#rfunc = func0
-#patch2D = patch1
+#
 
-
+TEST = 6
 module SetSpace(surface) #, InitTurtle(turtle_state)
 
 Axiom: 
   # Sets the Riemannian space in which the turtle will move
-  #nproduce SetSpace(Sphere(R))
-  #nproduce SetSpace(EllipsoidOfRevolution(a,b))
-  #nproduce SetSpace(Torus(R,r))
-  #nproduce SetSpace(Paraboloid(radiusmax))
-  #nproduce SetSpace(Revolution(sphere,sphere_prime,sphere_second,zmin = -1, zmax = 1))
-  #nproduce SetSpace(Revolution(profile,profile_prime,profile_second,zmin = 0, zmax = 10.))
-  nproduce SetSpace(Patch(patch1))
+  
+  if TEST == 0: 
+    nproduce SetSpace(Sphere(R),None)
+  elif TEST == 1: 
+    argdict = {'PLOTDS2': True, 'DS2_SCALEFACTOR':3}
+    nproduce SetSpace(EllipsoidOfRevolution(a,b),argdict)
+  elif TEST == 2: nproduce SetSpace(Torus(R,r),None)
+  elif TEST == 3: 
+    argdict = {'CCW':True} # To change the orientation of the normals (by default = True)
+    nproduce SetSpace(Paraboloid(radiusmax),argdict)
+  elif TEST == 4: 
+    for n in range(10): nproduce @M(n*6,0,0)[SetSpace(Revolution(sinusoid, args = (n+1)),None)]
+  elif TEST == 5: nproduce SetSpace(Revolution(sphere,zmin = -1, zmax = 1),None)
+  elif TEST == 6: nproduce SetSpace(Revolution(vase,zmin = 0, zmax = 10),None)
+  elif TEST == 7: nproduce ^(90)SetSpace(Patch(patch1), None)
+  nproduce PlotSpace
 
 derivation length: nb_sim_steps
 production:
-
-interpretation:
-
-
-#######################################################
-# Generic Interpretation rules for Riemannian geometry
-# (DO NOT EDIT)
-#######################################################
-
-# Two parameters are added to the turtle
-# - turtle.space is added by SetSpace refers to the Riemanian space 
-# in which the turtle is moving
-# - turtle.uvpq is added by init, refers to the initial position and velocity 
-# of the turtle.
-# Sets the Riemanian space used by the turtle and draw it if required
-SetSpace(surface):
-  # Set the space in the turtle
-  turtle.add_parameter('space', surface)
-  
-  # Then plot the space surface
-  if PLOTSPACE:
-    umin,umax,vmin,vmax = surface.uv_domain()
-    # to augment the precision of the rendering decrease the sampling intervals Du,Dv
-    # BUG: for the moment there id still a bug for some values of Du,Dv (eg. Du=0.01, Dv=0.05)
-    points, quadindices = QuadifySurfEquation(surface.S,umin,umax,vmin,vmax,Du=0.1,Dv=0.1)
-    # Option ccw: (counter-clockwise)
-    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
-    #S1 = surf.patch.getUTangentAt(u,v)
-    #S2 = surf.patch.getVTangentAt(u,v)
-    nproduce ;(0)[@g(QuadSet(points,quadindices,ccw = True))]
-
 
 endlsystem
 ###### INITIALISATION ######

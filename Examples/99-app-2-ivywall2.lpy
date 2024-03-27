@@ -1,0 +1,252 @@
+import sys
+from math import *
+from random import uniform, randint, seed, getstate, setstate
+import numpy as np
+
+seed(0)
+brstate = getstate()
+
+seed(1)
+
+
+sys.path.append("../RiemannTurtleLib")
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+scale = 1
+ip = trunkaxis.ctrlPointList[0]
+lp = trunkaxis.ctrlPointList[-1]
+axis = NurbsCurve(Point4Array([ ((y-ip.y)*4*scale,0,(x-ip.x)*4*scale,1) for x,y,z in trunkaxis.ctrlPointList]))
+nb = int(4/0.1)
+scaling = [(0.5*scale*trunkdiameter(i/nb),0.5*scale*trunkdiameter(i/nb)) for i in range(nb+1)] 
+trunkshape = Extrusion(axis,trunksection4,ccw=False,scaleList = scaling) 
+patch = ExtrusionSurface(trunkshape)
+
+
+scale = 1
+length_geodesic = 5.5 if RIEMANNIAN else 0.94
+nb_seg = 8
+initdiam = 0.01
+ddiam = 0.005
+nbleaf = 4
+
+def StartInterpretation(turtle):
+  turtle.clear_parameters()
+
+module Trunk, Ivy, Crown, Leaf, ?UVPQ 
+module MTurn
+
+Axiom: [Ivy ] [  Trunk Crown ]  
+
+derivation length: nb_seg+2
+production:
+
+Ivy:
+    global patch
+    nproduce ,(1) _(initdiam) 
+    # Sets the Riemannian space in which the turtle will move
+    nproduce SetSpace(patch) 
+    if not RIEMANNIAN:
+      nproduce StartIndirectInterpretation
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    v0 =  0.05 
+    u0 = 0.001
+    nproduce [ InitTurtle([u0,v0,1,0])
+        
+    nproduce [,(1) @O(0.1)]MTurn(10) @Gc
+    nproduce ?UVPQ A(nb_seg, length_geodesic, nb_seg)
+    produce ]
+
+?UVPQ(p) A(n,l,nmax):
+  u = p['u']
+  if u <= 0 or u >= 1:
+    produce
+  #ang = uniform(1,3) ## Why do I need to have such low angle ????
+  ang = 50 #uniform(80,100) ## Why do I need to have such low angle ????
+  if n > 0:
+    dl = l/(nbleaf*nmax)
+    for i in range(nbleaf):
+        nproduce StaticF(dl,initdiam) 
+        if LEAFY:
+          nproduce [,(2)Leaves]
+    ratio = lambda v : v
+    nproduce [  MTurn(ang * pow(-1,n)) ?UVPQ B(int(ratio(n-1)),ratio(l), int(ratio(nmax)))]
+    nproduce ?UVPQ A(n-1,l,nmax)
+
+?UVPQ(p) B(n,l, nmax):
+  global brstate
+  u = p['u']
+  if u <= 0 or u >= 1:
+    produce
+  ang = 1 ## Why do I need to have such low angle ????
+  if n > 0:
+    dl = l/(nbleaf*nmax)
+    for i in range(nbleaf):
+        nproduce StaticF(dl,initdiam) 
+        if LEAFY:
+          nproduce [,(2)Leaves]
+    st = getstate()
+    setstate(brstate)
+    if uniform(0,1) > 0.8:
+      ang = 30 
+      nproduce [  MTurn(ang * pow(-1,n)) ?UVPQ B(n-1,l, nmax)]
+    nproduce ?UVPQ B(n-1,l, nmax)
+    brstate = getstate()
+    setstate(st)
+
+StaticF(dl,idiam, cache) --> StaticF(dl,idiam+ddiam, cache)
+_(idiam) --> _(idiam+ddiam)
+
+decomposition:
+
+?UVPQ --> ?UVPQ({})
+
+MTurn(ang):
+  if not RIEMANNIAN:
+    nproduce StopIndirectInterpretation  
+  nproduce +(ang)
+  if not RIEMANNIAN:
+    nproduce StartIndirectInterpretation
+
+Leaves :
+  nbleaves = randint(1,3)
+  ang = 180/nbleaves
+  for i in range(nbleaves):
+    lang = -90+((i+0.5)*ang)+uniform(-ang/2,ang/2)
+    nproduce [Leaf(lang,uniform(60,90))]
+
+interpretation:
+maximum depth:2
+
+?UVPQ(p):
+  p['u'],p['v'],p['p'],p['q'] = turtle.uvpq
+ 
+Trunk:
+  nproduce ,(9 if WIRETRUNK else  8) 
+  nproduce @g(trunkshape) 
+  if WIRETRUNK:
+    nproduce ,(10)[
+    for u in list(np.arange(trunkshape.axis.firstKnot, trunkshape.axis.lastKnot+0.001,0.05)): #+[0,0.05]:
+      nproduce @g(trunkshape.getIsoUSectionAt(u))
+    for v in np.arange(trunkshape.crossSection.firstKnot, trunkshape.crossSection.lastKnot+0.001,0.1):
+      nproduce @g(trunkshape.getIsoVSectionAt(v))
+    nproduce ]
+  p = trunkshape.axis.ctrlPointList[-1]
+  produce MoveTo(p.x,p.y,p.z)#, initialNormal=turtle.up))
+  #produce @Gc Sweep(trunkaxis, trunksection, 4*scale, 0.1*scale, 0.5*scale, trunkdiameter) @Ge
+
+A(n,l):
+  if HINTS:
+    produce Frame()
+  produce ,(3) @O
+
+B(n,l):
+  if HINTS:
+    produce Frame()
+  produce ,(3) @O
+
+Crown :
+  d = 4
+  nproduce @R f(d*0.95),(7)  #@O(d)
+  nproduce [+(80) f(d*0.8)  @R @O(d*2/3) ]
+  nproduce [/(100)+(90) f(d*0.8)  @R @O(d*1/2) ]
+  nproduce [/(170)+(120) f(d*0.8)  @R @O(d*1/2) ]
+  nproduce [/(220)+(100) f(d*0.8)  @R @O(d*1/2) ]
+  nproduce [/(280)+(80) f(d*0.8)  @R @O(d*2/3) ]
+  nproduce [+(180) f(d*0.5)  @R @O(d*1/2) ]
+  nproduce [ f(d*0.2)  @R @O(d*3/4) ]
+
+Leaf(hang, vang):
+  u,v, _, _ = turtle.uvpq
+  nml = trunkshape.getNormalAt(u,v)
+  tgt = trunkshape.getVTangentAt(u,v)
+  size = 0.3
+  produce  EndSpace SetHead(nml,tgt) RollToVert +(hang) _(0.01)F(0.1) &(vang) @Gc Sweep(leafpath, leafsection, size, size/20, size, leafwidth) @Ge
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_0 = pgl.Material("Color_0" , ambient = (78,63,31) , diffuse = 0.653846 , shininess = 0 , )
+	Color_0.name = "Color_0"
+	context.turtle.setMaterial(0,Color_0)
+	Color_1 = pgl.Material("Color_1" , ambient = (103,75,60) , diffuse = 0.320388 , shininess = 0 , )
+	Color_1.name = "Color_1"
+	context.turtle.setMaterial(1,Color_1)
+	Color_2 = pgl.Material("Color_2" , ambient = (12,25,4) , diffuse = 7.2 , )
+	Color_2.name = "Color_2"
+	context.turtle.setMaterial(2,Color_2)
+	Color_7 = pgl.Material("Color_7" , ambient = (30,60,10) , diffuse = 3 , transparency = 0.8 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_8 = pgl.Material("Color_8" , ambient = (144,133,110) , diffuse = 0.166667 , shininess = 0 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
+	Color_9 = pgl.Material("Color_9" , ambient = (204,204,204) , diffuse = 0.117647 , shininess = 0 , transparency = 0.81 , )
+	Color_9.name = "Color_9"
+	context.turtle.setMaterial(9,Color_9)
+	Color_10 = pgl.Material("Color_10" , ambient = (0,0,0) , diffuse = 10.6667 , )
+	Color_10.name = "Color_10"
+	context.turtle.setMaterial(10,Color_10)
+	scalars = [('HINTS', 'Bool', False), ('LEAFY', 'Bool', True), ('RIEMANNIAN', 'Bool', True), ('WIRETRUNK', 'Bool', False)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	trunksection = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.856444, -0.106074, 1),(-0.574538, 0.155761, 1),(-0.442045, 0.423224, 1),(-1.04832, 0.699855, 1),(-0.637603, 1.38393, 1),(-0.375385, 0.714088, 1),(-0.0819284, 0.832734, 1),(0.256308, 1.32801, 1),(0.318009, 0.748412, 1),(0.89218, 1.06062, 1),(1.19316, 0.899545, 1),(0.255714, 0.252188, 1),(1.08368, 0.24901, 1),(1, 0, 1),(0.278098, -0.420377, 1),(0.836143, -0.991329, 1),(0.696869, -1.33572, 1),(0.217361, -0.827052, 1),(0.0771227, -1.46801, 1),(-0.207989, -1.61344, 1),(-0.195432, -0.698304, 1),(-0.557769, -1.07327, 1),(-1.44444, -1.42052, 1),(-0.246983, -0.256373, 1),(-1.19328, -0.532293, 1),(-0.856444, -0.106074, 1)]) , 
+	    stride = 123 , 
+	    )
+	trunksection.name = "trunksection"
+	trunkaxis = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.5, 0, 1),(-0.154652, 0.0576725, 1),(0.147442, -0.0600756, 1),(0.391592, -0.0519068, 1),(0.634569, 0.0432544, 1)]) , 
+	    )
+	trunkaxis.name = "trunkaxis"
+	import openalea.plantgl.all as pgl
+	trunkdiameter = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 2.96536, 1),(0.0636447, 0.574905, 1),(0.610215, 0.993952, 1),(1, 0.3125, 1)]) , 
+	    )
+	trunkdiameter.name = "trunkdiameter"
+	trunksection2 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-1.38514, 0.0213965, 1),(-1.38514, 0.428499, 1),(-0.991262, 0.964969, 1),(-0.144142, 0.942015, 1),(-1, 2, 0.333333),(1.27815, 1.35811, 0.33),(0.476357, 0.514085, 1),(1.32095, 0, 1),(0.45496, -0.726911, 1),(0.786035, -2, 0.33),(-0.358107, -1.15484, 1),(-0.700451, -0.726911, 1),(-1.14978, -1.35811, 0.33),(-1.38514, -0.534343, 1),(-1.38514, 0.0213965, 1)]) , 
+	    stride = 60 , 
+	    )
+	trunksection2.name = "trunksection2"
+	leafwidth = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0, 1),(0, 0.584544, 1),(0.140428, 0.351927, 1),(0.179197, 0.25285, 1),(0.390275, 0.625467, 1),(0.422583, 0.619005, 1),(0.422583, 0.181773, 1),(0.497026, 0.165847, 1),(0.662359, 0.148616, 1),(1, 0, 1)]) , 
+	    stride = 60 , 
+	    )
+	leafwidth.name = "leafwidth"
+	leafpath = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.5, 0, 1),(-0.166667, 0, 1),(0.166667, 0, 1),(0.432825, -0.274297, 1)]) , 
+	    )
+	leafpath.name = "leafpath"
+	leafsection = pgl.Polyline2D(	
+	    pgl.Point2Array([(-0.510646, 0.282114),(0.00366653, 0),(0.526615, 0.303406)]) , 
+	    )
+	leafsection.name = "leafsection"
+	trunksection3 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-1.38514, 0.0213965, 1),(-1.38514, 0.428499, 1),(-0.704183, 0.460406, 1),(-0.0745471, 0.820224, 1),(-1, 2, 0.333333),(1.27815, 1.35811, 0.33),(0.476357, 0.514085, 1),(1.32095, 0, 1),(0.45496, -0.726911, 1),(0.786035, -2, 0.33),(-0.358107, -1.15484, 1),(-0.700451, -0.726911, 1),(-1.14978, -1.35811, 0.33),(-1.38514, -0.534343, 1),(-1.38514, 0.0213965, 1)]) , 
+	    stride = 60 , 
+	    )
+	trunksection3.name = "trunksection3"
+	trunksection4 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-1.38514, 0.0213965, 1),(-1.38514, 0.428499, 1),(-0.704183, 0.460406, 1),(-0.0745471, 0.820224, 1),(-1, 2, 0.333333),(0.153528, 1.44657, 1),(0.640692, 2.02943, 1),(1.27815, 1.35811, 0.33),(0.476357, 0.514085, 1),(1.32095, 0, 1),(0.45496, -0.726911, 1),(0.786035, -2, 0.33),(-0.358107, -1.15484, 1),(-0.613457, -0.239747, 1),(-1.14978, -1.35811, 0.33),(-1.38514, -0.534343, 1),(-1.38514, 0.0213965, 1)]) , 
+	    stride = 79 , 
+	    )
+	trunksection4.name = "trunksection4"
+	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('Curve2D',trunksection),('Curve2D',trunkaxis),('Function',trunkdiameter),('Curve2D',trunksection2),('Function',leafwidth),('Curve2D',leafpath),('Curve2D',leafsection),('Curve2D',trunksection3),('Curve2D',trunksection4)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('trunkdiameter',trunkdiameter),('leafwidth',leafwidth),]
+	context["__curves__"] = [('trunksection',trunksection),('trunkaxis',trunkaxis),('trunksection2',trunksection2),('leafpath',leafpath),('leafsection',leafsection),('trunksection3',trunksection3),('trunksection4',trunksection4),]
+	context["__parameterset__"] = parameterset
+	context["trunksection"] = trunksection
+	context["trunkaxis"] = trunkaxis
+	context["trunkdiameter"] = pgl.QuantisedFunction(trunkdiameter)
+	context["trunksection2"] = trunksection2
+	context["leafwidth"] = pgl.QuantisedFunction(leafwidth)
+	context["leafpath"] = leafpath
+	context["leafsection"] = leafsection
+	context["trunksection3"] = trunksection3
+	context["trunksection4"] = trunksection4

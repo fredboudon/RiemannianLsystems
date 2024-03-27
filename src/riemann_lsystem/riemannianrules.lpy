@@ -1,0 +1,937 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2020
+
+	Interpretation rules to simulate geodesics on a curved surface with a riemannian implementation of
+	the main turtle primitives: F, f, + and -
+
+"""
+#######################################################
+# Generic Interpretation rules for Riemannian geometry
+# (DO NOT EDIT)
+#######################################################
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from math import ceil
+
+from importlib import reload
+import warnings
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+module SetSpace(surface, argdict)
+module EndSpace()
+module InitTurtle(turtle_state)
+module StartIndirectInterpretation
+module StopIndirectInterpretation
+module RiemannLineTo(uvcoords, stepnb)
+module RiemannMoveTo(uv)
+module RiemannPinpoint(pq)
+module Turn
+
+module ?T(parameters)
+module ?UVPQ(uvpq)
+module ?UV(uv)
+module ?PQ(pq)
+
+module ParallelTransportedArrow(angleRelHead,size)
+module ParallelTransportReset
+#module DrawVect(vect) #FIXME: we should be able to declare same module with different signatures
+module DrawVect(vect,size)
+module DrawTensor2Lines(vect,vect2,size,color1,color2)
+module DrawTensor2Ellipsis(vect,vect2,size,color1,color2)
+module DrawPoint
+module CovariantBasis(size)
+
+module PlotSpace()
+module PlotDS2()
+module StaticF
+module Staticf
+
+#Default values --> can be redefined below in the main file if needed
+MAXSTEPLEN = 0.01
+LINETO_MAXITER = 30
+
+def plotspace(space,  colorvalfunc = None, cmap = 'jet', minvalue = None, maxvalue = None, displaycmap = False, Du = 0.1, Dv = 0.1, CCW = True):
+    umin,umax,vmin,vmax = space.uv_domain()
+    points, quadindices, uvlist = QuadifySurfEquation(space.S,umin,umax,vmin,vmax,Du,Dv)
+    if not colorvalfunc is None:
+        from openalea.plantgl.scenegraph.colormap import PglColorMap
+        values = [colorvalfunc(u,v) for u,v in uvlist]
+        cm = PglColorMap(minvalue if not (minvalue is None) else min(values), maxvalue if not (maxvalue is None) else  max(values), cmap)
+        colors = [cm(v) for v in values]
+        if displaycmap:
+           nproduce @g(cm.pglrepr())
+    else:
+        colors = None
+    # Option ccw: (counter-clockwise)
+    # - set to False will change the orientation of normals defined by clockwise ordering of the points of a face
+    #S1 = surf.patch.getUTangentAt(u,v)
+    #S2 = surf.patch.getVTangentAt(u,v)
+    nproduce @g(QuadSet(points,quadindices,colorList=colors, ccw = CCW))
+
+def plotds2(space, Du = 0.1, Dv = 0.1, DS2_SCALEFACTOR = 10):
+      umin,umax,vmin,vmax = space.uv_domain()
+
+      ilist = np.arange(umin, umax, Du)
+      ilist = np.append(ilist, umax)  # add the last bound as it is not done by arange
+      # print("ilist after  = ", ilist)
+      jlist = np.arange(vmin, vmax, Dv)
+      jlist = np.append(jlist, vmax)  # case of a periodic list
+
+      nproduce [
+      for i in ilist:
+        for j in jlist:
+          ds = space.ds(i, j, Du/DS2_SCALEFACTOR, Dv/DS2_SCALEFACTOR)
+          # plot ds2 at point (0,i,j)
+          nproduce @M(space.S(i,j)) @O(ds)
+      nproduce ]
+
+def apply_forward(turtle, uvpq_s):
+  if len(uvpq_s) == 0 : return
+  # draw all the small subsegments (that were returned by the integration)
+  for uu, vv, pp, qq in uvpq_s:
+    flag = False
+    # draw a line from the last visited point to the next one in abs coordinates
+    if turtle.space.STOP_AT_BOUNDARY_U or turtle.space.STOP_AT_BOUNDARY_V:
+      uu, vv, flag = turtle.space.check_coords_domain(uu,vv)
+    #print('apply_forward in for:', uu, vv, pp, qq)
+    #print('apply_forward in for: flag= ', flag)
+    yield turtle.space.S(uu,vv)
+    if flag: # the drawing stop when a boundary is reached
+      break
+  # 4. update the turtle's state with the last point of the computed curve
+  # ask the parametric surface to check the computed coords and to possibly correct them
+  turtle.boundary_reached = flag # by default boundary is not reached at (u,v)
+  turtle.uvpq = turtle.space.check_coords([uu, vv, pp, qq])
+  #print('apply_forward:', turtle.uvpq )
+
+def forward(turtle, length, dl = 1):
+  return forward_in_space(turtle.space, turtle.uvpq, length, dl, turtle.indirect_interpretation)
+
+def forward_in_space(space, uvpq, length, dl = 1, indirect_interpretation = False):
+  dl = min(length, dl)
+  #0. Test if argument is null
+  if length < 1e-100:
+    # value considered as NULL:
+    return
+  # 1. Find the nb of segments into which the curve should be divided
+  # This nb, which should be < MAXSTEPLEN, will be used to divide the length into steplen=length/stepnb
+  # by the riemannian_turtle_move_forward() function.
+  #stepnb = int(ceil(length / dl))
+  stepnb = int(length // dl)+1   # integer division directly returning an int
+  #print("stepnb, stepnb1", stepnb, stepnb1)
+
+  # steplen = length / stepnb
+  #   e.g.
+  #     - if len = 1.8 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(1.8) = 2.0 ==> steplen = 1.8 / 2.0 = 0.9 (which is <= MAXSTEPLEN)
+  #     - if len = 0.6 and MAXSTEPLEN = 1.0
+  #   stepnb = ceil(0.6) = 1.0 ==> steplen = 0.6 / 1.0 = 0.6 (which is <= MAXSTEPLEN)
+
+  # 2. Integrates the curve along the given length in stepnb steps
+  if indirect_interpretation:
+    # move the turtle in the parameter space (u,v) as if in a euclidean space and then
+    # draw on the result on the surface
+    uvpq_s = parameterspace_turtle_move_forward(uvpq, space, length, stepnb)
+  else:
+    # move the turtle directly on the surface
+    uvpq_s = riemannian_turtle_move_forward(uvpq, space, length, stepnb)
+  
+  uvpq_s = [space.check_coords(uvpq) for uvpq in uvpq_s]
+  return uvpq_s
+
+#def forward(turtle, length, dl = 1):
+#  return forward_in_space(turtle.space, turtle.uvpq, length, dl, turtle.indirect_interpretation)
+
+
+def riemannianLineTo_in_space(space, uvpq, target_coords, nb_points, variant = '', max_iter=LINETO_MAXITER, indirect_interpretation = False):
+  #print("ENTERING function riemannianLineTo", flush=True)
+  DEBUG = False
+
+  # 1. Decode args
+  ut,vt = target_coords
+  u,v,p,q = uvpq
+
+  # To obtain all points in the domain that are equivalent by toricity
+  target_list = space.all_periodic_points(ut, vt)
+  if variant == 'LS' or variant == 'Shoot':
+      #in case of variants, there is still a bug on the use of periodic points
+      target_list =[(ut,vt)]
+  #print("riemannianLineTo func --> target list:", target_list, flush=True)
+  ERROR = 0
+  error_val = 0
+
+  # 2. Call the algorithm to compute the geodesic between (u,v) and (ut,vt)
+  # nb_points id the total required number of sampling point on the trajectory
+  # including the two end-points
+  # print("max_iter =", max_iter)
+  min_length = np.inf
+  uvpq_s_opt = None
+  for tgpt in target_list:
+      ut,vt = tgpt
+      if indirect_interpretation:
+        uvpq_s = parameterspace_line_to_point(space, (u,v), (ut,vt), nb_points)
+      else:
+        #print("Processing target point: ", ut,vt, flush=True)
+        if variant == 'LS': # To avoid calling geodesic_to_point when debugging
+            uvpq_s = geodesic_to_point_LS(space, (u, v), (ut, vt), nb_points)
+            error_val = 0
+        elif variant == 'Shoot':  # To avoid calling geodesic_to_point when debugging
+            uvpq_s = geodesic_to_point_shoot(space, (u, v), (ut, vt), nb_points)
+            error_val = 0
+        else:
+            uvpq_s, error_val = geodesic_to_point(space, (u,v), (ut,vt), nb_points, max_iter=max_iter)
+      length = space.path_length(uvpq_s)
+      if length < min_length:
+          min_length = length
+          uvpq_s_opt = uvpq_s
+          ERROR = error_val
+  return uvpq_s_opt, ERROR
+
+''' No longer used
+def riemannianLineToLS(turtle, target_coords, nb_points):
+
+      # 1. Decode args
+      ut, vt = target_coords
+      u, v, p, q = turtle.uvpq
+
+      # To obtain all points in the domain that are equivalent by toricity
+      target_list = turtle.space.all_periodic_points(ut, vt)
+
+      # 2. Call the algorithm to compute the geodesic between (u,v) and (ut,vt)
+      # nb_points id the total required number of sampling point on the trajectory
+      # including the two end-points
+
+      min_length = np.inf
+      uvpq_s_opt = None
+      for tgpt in target_list:
+          ut, vt = tgpt
+          if turtle.indirect_interpretation:
+              uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
+              length = turtle.space.path_length(uvpq_s)
+          else:
+              # print("Processing target point: ", ut,vt, flush=True)
+              if DEBUG:  # To avoid calling geodesic_to_point when debugging
+                  uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
+                  length = turtle.space.path_length(uvpq_s)
+              else:
+                  uvpq_s = geodesic_to_point_variant(turtle.space, (u, v), (ut, vt), nb_points)
+                  length = turtle.space.path_length(uvpq_s)
+          if length < min_length:
+              min_length = length
+              uvpq_s_opt = uvpq_s
+
+      return uvpq_s
+
+def riemannianLineToShoot(turtle, target_coords, nb_points):
+
+      # 1. Decode args
+      ut, vt = target_coords
+      u, v, p, q = turtle.uvpq
+
+      # 2. Call the algorithm to compute the geodesic between (u,v) and (ut,vt)
+      # nb_points id the total required number of sampling point on the trajectory
+      # including the two end-points
+
+      min_length = np.inf
+      uvpq_s_opt = None
+      for tgpt in target_list:
+          ut, vt = tgpt
+          if turtle.indirect_interpretation:
+              uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
+              length = turtle.space.path_length(uvpq_s)  # should be updated with correct computation
+          else:
+              # print("Processing target point: ", ut,vt, flush=True)
+              if DEBUG:  # To avoid calling geodesic_to_point when debugging
+                  uvpq_s = parameterspace_line_to_point(turtle.space, (u, v), (ut, vt), nb_points)
+                  length = turtle.space.path_length(uvpq_s)
+              else:
+                  uvpq_s = geodesic_shooting_to_point(turtle.space, (u, v), (ut, vt), nb_points)
+                  length = turtle.space.path_length(uvpq_s)
+          if length < min_length:
+              min_length = length
+              uvpq_s_opt = uvpq_s
+
+      return uvpq_s
+'''
+
+def riemannianLineTo(turtle, target_coords, nb_points, variant = '', max_iter=LINETO_MAXITER):
+  return riemannianLineTo_in_space(turtle.space, turtle.uvpq, target_coords, nb_points, variant, max_iter, turtle.indirect_interpretation)
+
+
+
+def cached_forward(cache, turtle, length, dl = 1):
+    if len(cache) == 0:
+        cache['uvpq'] = list( forward(turtle, length, dl))
+        # cache['uvpq'] = turtle.uvpq
+        # cache['boundary_reached'] = turtle.boundary_reached
+    for p in apply_forward(turtle, cache['uvpq']):
+        yield p
+
+    #turtle.uvpq = cache['uvpq']
+    #turtle.boundary_reached = cache['boundary_reached']
+
+
+def orientHead(turtle, uvpq = None):
+  if not uvpq is None:
+    u,v,p,q = uvpq
+  else:
+    u,v,p,q = turtle.uvpq
+  # COVARIANT BASIS
+  # Compute shitf tensor at u,v,
+  velocity = turtle.space.shift_vector(u, v, p, q)  
+  #S1,S2, velocity = turtle.space.covariant_basis_and_velocity(u,v,p,q)
+  #print('velocity =' , velocity)
+  head = velocity / np.linalg.norm(velocity)
+  up = np.array(turtle.space.normal(u,v))
+  # print ("head = ",head, " head norm = ", np.linalg.norm(head))
+  # print ("up = ",up, " up norm = ", np.linalg.norm(up))
+  turtle.setHead(head,up)
+
+def turn(turtle, angle):
+  if turtle.indirect_interpretation:
+    turtle.uvpq = parameterspace_turtle_turn(turtle.uvpq, turtle.space,angle)
+  else:
+    turtle.uvpq = riemannian_turtle_turn(turtle.uvpq,turtle.space,angle)
+  orientHead(turtle)
+  # TODO: Modify the following line as when the rotation takes place indirectly in the parameter space, the cumrotation is different
+  turtle.cumrotation += angle
+  # print("Total turtle rotation during the path = ", turtle.cumrotation)
+
+def setUVPQ(turtle, uvpq):
+    u,v,p,q = uvpq
+    pos = turtle.space.S(u, v)
+    turtle.move(pos)
+    turtle.uvpq = uvpq
+    orientHead(turtle)
+   
+def path(turtle, uvpq_s):
+    for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+    orientHead(turtle)   
+
+production:
+decomposition:
+
+# These decomposition rules introduce a variable cache that will be kept in the L-string
+# and make it possible to reuse computations done in this step (such as the uvpq trajectory
+# for future use.
+# These rules check the last argument and check whether it is a dictionary. If not
+# they add a dictionary argument to the module (and thus change their signature :-(
+
+# Note that StaticF must belong to the deep lstring and not to the lstring produced by the interpretation rules
+# as the added argument of
+
+# TODO: HOWEVER this modifies the signature of the StaticF arguments and prevent them to be used in
+#      the pattern matching rules (as the number of arguments will be used in the matching rule)
+StaticF(length):
+    produce StaticF(length, {})
+
+StaticF(length, topdiam):
+    if type(topdiam) != dict:
+        produce StaticF(length, topdiam, {})
+
+StaticF(length, topdiam, dl):
+    if type(dl) != dict:
+        produce StaticF(length, topdiam, dl, {})
+
+Staticf(length):
+    produce Staticf(length, {})
+
+Staticf(length, dl):
+    if type(dl) != dict:
+        produce Staticf(length, dl, {})
+
+?UVPQ --> ?UVPQ({})
+?UV --> ?UV({})
+?PQ --> ?PQ({})
+?T --> ?T(ParameterSet())
+
+interpretation:
+maximum depth:2
+
+?UVPQ(uvpq) :
+  if hasattr(turtle,'uvpq'):
+    if type(uvpq) == dict:
+        uvpq.update(dict(zip('uvpq',turtle.uvpq)))
+    elif type(uvpq) == list:
+        uvpq += turtle.uvpq
+    produce ?UVPQ(uvpq) 
+
+?UV(uv) :
+  if hasattr(turtle,'uvpq'):
+    if type(uv) == dict:
+        uv.update(dict(zip('uv',turtle.uvpq)))
+    elif type(uv) == list:
+        uv += turtle.uvpq[:2]
+    produce ?UV(uv)
+
+?PQ(pq) :
+  if hasattr(turtle,'uvpq'):
+    if type(pq) == dict:
+        pq.update(dict(zip('pq',turtle.uvpq[2:])))
+    elif type(pq) == list:
+        pq += turtle.uvpq[2:]
+    produce ?PQ(pq)
+
+# Two parameters are added to the turtle
+# - turtle.space is added by SetSpace refers to the Riemanian space
+# in which the turtle is moving
+# - turtle.uvpq is added by init, refers to the initial position and velocity
+# of the turtle.
+# Sets the Riemannian space used by the turtle and draw it if required
+# Plots the ds2 field if required
+# A second argument is an array of optional parameters:
+# args[0] --> DS2_SCALEFACTOR  (= 4 by default) to display the metrics ds2
+
+# TODO: currently no optimal argument can be passed to LPy modules. Making it possible will simplify this call with a dict
+
+SetSpace(surface, *args):
+  # Set the space in the turtle
+  turtle.add_parameter('space', surface)
+  turtle.add_parameter('cumrotation', 0) # for parallel transport
+  turtle.add_parameter('indirect_interpretation', False)  # to move the turtle indirectly in the parametre space and draw the result in the 3D space
+
+EndSpace():
+  if hasattr(turtle, 'space'):
+    turtle.remove_parameter('space')
+
+PlotSpace(*args):
+    # when called as PlotSpace({'colorvalfunc' = f, 'cmap' = 'jet', 'Du' = 0.1, 'Dv' = 0.1, 'CCW' = True})
+    if len(args) == 1 and type(args[0])==dict:
+        plotspace(turtle.space, **args[0])
+    else:
+        # when called as PlotSpace(f, 'jet', 0.1, 0.1, True)
+        plotspace(turtle.space, *args)
+
+PlotDS2(*args):
+    if len(args) == 1 and type(args[0])==dict:
+        plotds2(turtle.space, **args[0])
+    else:
+        plotds2(turtle.space, *args)
+
+StartIndirectInterpretation:
+  turtle.indirect_interpretation = True
+
+StopIndirectInterpretation:
+  turtle.indirect_interpretation = False
+
+
+# The turtle is augmented with a memory that stores the previous position and
+# and velocity of the turtle at the surface: u,v,p,q.
+# This computation can be done in either an absolute or a relative manner.
+# The relative manner consists of computing the Euler angles for instance
+# to move the HLU frame from the previous to the current position.
+# It should correspond for instance to the correction term
+# in the covariant derivative along the current geodesic and
+# to the covariant derivative of the normal.
+
+InitTurtle(gencoords):
+  #pos = gencoords[0:2] # position
+  #dir = gencoords[2:4] # direction
+  # normalizes the initial direction to get a velocity of norm 1
+  # in this way the geodesic equation will use parameter s that corresponds
+  # to the curvilinear abscissa
+  # nvelocity = turtle.space.normalize(pos,dir)
+
+  lg=len(gencoords)
+  if not (lg == 2 or lg == 4):
+    raise ValueError('An array of size 2 or 4 is expected as an argument')
+
+  if lg == 2: # only [u,v] is given --> add values for p,q = [1,0]
+    gencoords += [1,0]
+
+  turtle.add_parameter('uvpq',gencoords)
+  head, up = riemannian_turtle_init(gencoords, turtle.space)
+  u,v,p,q = gencoords
+  #print("head = ", head)
+
+  # Records if the turtle has reached the boundary of the (u,v) domain
+  turtle.add_parameter('boundary_reached', False)
+
+  turtle.move( turtle.space.S(u,v) )
+  turtle.setHead(head,up)
+
+# The following instructions redefined the compute the new riemmanian turtle state
+# after turtle classical instructions.
+# In addition to the turtle position, the turtle HLU frame is computed:
+# - The Head direction that is a unit vector that point s in the direction
+# of the movement (defined by p,q in the current state)
+# - The Up direction that is a unit vector that coincides with the surface normal
+
+#TODO: Factorize codes of F(), f() and LineTo() as a large part of the code is common to these functions
+F(length):
+  if not hasattr(turtle,'space'): 
+    turtle.F(length)
+  else:
+    for p in apply_forward(turtle, forward(turtle, length, MAXSTEPLEN)):
+        turtle.lineTo(p)
+    orientHead(turtle)
+  produce
+
+F(length, topdiam):
+  if not hasattr(turtle,'space'): 
+    turtle.F(length,topdiam)
+  else:
+    dl = MAXSTEPLEN
+    stepnb = int(ceil(length / dl))
+    currentdiam = turtle.getWidth()
+    ddiam = (topdiam - currentdiam)/stepnb
+
+    for p in apply_forward(turtle, forward(turtle, length, dl)):
+        currentdiam += ddiam
+        turtle.lineTo(p, currentdiam)
+    orientHead(turtle)
+  produce
+
+F(length, dl, topdiam):
+  if not hasattr(turtle,'space'): 
+    turtle.nF(length, dl, topdiam)
+  else:
+    stepnb = int(ceil(length / dl))
+    currentdiam =turtle.getWidth()
+    ddiam = (topdiam - currentdiam)/stepnb
+
+    for p in apply_forward(turtle, forward(turtle, length, dl)):
+        currentdiam += ddiam
+        turtle.lineTo(p, currentdiam)
+    orientHead(turtle)
+  produce
+
+f(length):
+  if not hasattr(turtle,'space'): 
+    turtle.f(length)
+  else:    
+    for p in apply_forward(turtle, forward(turtle, length, MAXSTEPLEN)):
+        turtle.move(p)
+    orientHead(turtle)
+  produce
+
+f(length, dl):
+  if not hasattr(turtle,'space'): 
+    turtle.f(length)
+  else: 
+    for p in apply_forward(turtle, forward(turtle, length, dl)):
+        turtle.move(p)
+    orientHead(turtle)
+  produce
+
+## Static Version
+
+StaticF(length, cache):
+    # cache is a dic. May be empty or not
+    # if not, a forward will be called by cached_forward and
+    # will fill in the cache dict with a 'uvpq' entry
+    for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
+        #print('StaticF p:',p)
+        turtle.lineTo(p)
+    orientHead(turtle)
+    produce
+
+StaticF(length, topdiam, cache):
+    dl = MAXSTEPLEN
+    stepnb = int(ceil(length / dl))
+    currentdiam = turtle.getWidth()
+    ddiam = (topdiam - currentdiam)/stepnb
+
+    for p in cached_forward(cache, turtle, length, dl):
+        currentdiam += ddiam
+        turtle.lineTo(p, currentdiam)
+    orientHead(turtle)
+    produce
+
+StaticF(length, dl, topdiam, cache):
+    stepnb = int(ceil(length / dl))
+    currentdiam =turtle.getWidth()
+    ddiam = (topdiam - currentdiam)/stepnb
+
+    for p in cached_forward(cache, turtle, length, dl):
+        currentdiam += ddiam
+        turtle.lineTo(p, currentdiam)
+    orientHead(turtle)
+    produce
+
+Staticf(length, cache):
+    for p in cached_forward(cache, turtle, length, MAXSTEPLEN):
+        turtle.move(p)
+    orientHead(turtle)
+    produce
+
+Staticf(length, dl, cache):
+    for p in cached_forward(cache, turtle, length, dl):
+        turtle.move(p)
+    orientHead(turtle)
+    produce
+
+P(uvpq_s):
+    path(turtle, uvpq_s)
+    produce
+
+P(uvpq_s, topdiam):
+    stepnb = len(uvpq_s)
+    currentdiam =turtle.getWidth()
+    ddiam = (topdiam - currentdiam)/stepnb
+
+    for p in apply_forward(turtle, uvpq_s):
+        currentdiam += ddiam
+        turtle.lineTo(p, currentdiam)
+    orientHead(turtle)
+    produce
+
+# To plot a geodesic from a point (u,v) to a point (ut,vt)
+# The call in L-Py should be: LineTo((ut,vt), 30) which would draw a geodesic from
+# the current position of the turtle to the target point S(ut,vt)
+# Note step 3 to 5. are common with F and f
+
+RiemannLineTo(target_coords, nb_points):
+
+  uvpq_s, ERROR = riemannianLineTo(turtle, target_coords, nb_points)
+  if ERROR != 0:
+    if ERROR > 0:
+        warnings.warn('RiemannLineTo: Convergence warning: Code %i' % ERROR)
+    else:
+        warnings.warn('RiemannLineTo: Convergence error: Code %i' % ERROR)
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  produce
+
+# Identical with max_iter parameter in addition
+RiemannLineTo(target_coords, nb_points,max_iter):
+
+  uvpq_s, ERROR = riemannianLineTo(turtle, target_coords, nb_points, max_iter = max_iter)
+
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  produce
+
+# Variant LineTo method by shooting
+RiemannLineToLS(target_coords, nb_points):
+
+  uvpq_s, ERROR = riemannianLineTo(turtle, target_coords, nb_points, variant = 'LS')
+
+  # plots all the 3D points of the geodesic,
+  # and finally orient the Head along the last segment
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  produce
+
+# Alternative LineTo method by shooting
+RiemannLineToShoot(target_coords, nb_points):
+
+  uvpq_s, ERROR = riemannianLineTo(turtle, target_coords, nb_points, variant = 'Shoot')
+
+  # plots all the 3D points of the geodesic,
+  # and finally orient the Head along the last segment
+  for p in apply_forward(turtle, uvpq_s):
+        turtle.lineTo(p)
+  orientHead(turtle)
+  produce
+
++(angle):
+  if not hasattr(turtle,'space'): 
+    turtle.left(angle)
+  else:  
+    turn(turtle, angle)
+  produce
+
+-(angle):
+  if not hasattr(turtle,'space'): 
+    turtle.right(angle)
+  else:  
+    turn(turtle, -angle)
+  produce
+
+RiemannMoveTo(uv):
+  """Move at point (u,v) keeping the velocity [p,q] from the oroginal point """
+  u, v = uv
+  _,_,p,q = turtle.uvpq
+  turtle.uvpq = [u,v,p,q]
+  pos = turtle.space.S(u, v)
+  turtle.move(pos)
+  produce
+
+RiemannPinpoint(pq):
+  """Turn the head of the turtle in the direction indicated by p,q (u,v) """
+  turtle.uvpq[2] = pq[0]
+  turtle.uvpq[3] = pq[1]
+  orientHead(turtle)
+  produce
+
+# Reinitializes the variable keeping tranck of the cumulated angles by which the turtle turns on a path
+ParallelTransportReset:
+  turtle.cumrotation = 0
+  nproduce
+
+# Draw a vector that is parallel transported along the path that finishes at the current turtle position
+# The vector if of norm = size and is assumed to make an angle angleRelHead at the origin of the turtle's path
+# the initial direction of the path
+ParallelTransportedArrow(angleRelHead,size):
+  nproduce [+(angleRelHead-turtle.cumrotation)Arrow(size)]
+
+CovariantBasis:
+  nproduce CovariantBasis(1)
+
+CovariantBasis(size):
+  surf = turtle.space
+  u,v,p,q = turtle.uvpq
+  S1, S2 = surf.covariant_basis(u, v)
+  l1 = np.linalg.norm(S1)
+  l2 = np.linalg.norm(S2)
+  print(l1,l2)
+  #nproduce [;(1)DrawVectnp(S1)][;(4)DrawVectnp(S2)]
+  #nproduce [_(0.01);(2)LineRel(size*S1)@O(0.01)][_(0.01);(3)LineRel(size*S2)@O(0.01)]
+  if not np.isclose(l1, 0.):
+    nproduce [;(2)PinpointRel(S1)Arrow(l1*size)]
+  if not np.isclose(l2, 0.):
+    nproduce [;(3)PinpointRel(S2)Arrow(l2*size)]
+
+# Draw a vector at the current position of the turtle
+DrawVect(vect):
+  # draw a line from the current position of the Turtle to the indicated position
+  #nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  l1 = np.linalg.norm(vect)
+  #nproduce [_(0.01)LineRel(coord)]
+  # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+  if not np.isclose(l1, 0.):
+    nproduce [PinpointRel(vect)Arrow(l1)]
+
+# Draw a vector at the current position of the turtle
+DrawVect(vect, size):
+  # draw a line from the current position of the Turtle to the indicated position
+  #nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  l1 = np.linalg.norm(vect)
+  #nproduce [_(0.01)LineRel(coord)]
+  # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+  if not np.isclose(l1,0.):
+    nproduce [PinpointRel(vect)Arrow(l1*size)]
+
+# Draw a vector at the current position of the turtle
+DrawVectpq(vectpq):
+    surf = turtle.space
+    u, v, p, q = turtle.uvpq
+    vect = surf.pushforward(u, v, vectpq)
+    # draw a line from the current position of the Turtle to the indicated position
+    # nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+    l1 = np.linalg.norm(vect)
+    # nproduce [_(0.01)LineRel(coord)]
+    # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+    if not np.isclose(l1, 0.):
+        nproduce[PinpointRel(vect)Arrow(l1)]
+
+# Draw a vector at the current position of the turtle
+DrawVectpq(vectpq, size):
+    surf = turtle.space
+    u, v, p, q = turtle.uvpq
+    vect = surf.pushforward(u,v,vectpq)
+    # draw a line from the current position of the Turtle to the indicated position
+    # nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+    l1 = np.linalg.norm(vect)
+    # nproduce [_(0.01)LineRel(coord)]
+    # PinpointRel(vect) orient the turtle frame so that H is pointing in the vect direction
+    if not np.isclose(l1, 0.):
+        nproduce[PinpointRel(vect)Arrow(l1 * size)]
+
+DrawTensor2Lines(pdirs, eigenvals, size, color_positive, color_negative):
+  ''' 
+  pdirs are the eigen vectors of the 2-tensor
+  eigenvals are the two corresponding eigen values
+  color positive (resp. negative) is used for positive (resp_negative) eigen values
+  '''
+  dirmax = pdirs[0] # max
+  dirmin = pdirs[1]
+  l0, l1 = eigenvals
+  color0 = color_positive if l0 > 0 else color_negative
+  color1 = color_positive if l1 > 0 else color_negative
+
+  # draw a line from the current position of the Turtle to the indicated position
+  # nproduce _(0.01)LineRel(coord.x,coord.y,coord.z);(1)@O(0.01)
+  #l1 = np.linalg.norm(dir1)
+  #l2 = np.linalg.norm(dir2)
+
+  # nproduce [_(0.01)LineRel(coord)]
+  # PinpointRel(vect) orients the turtle frame so that H is pointing in the vect direction
+  if not np.isclose(l0, 0.):
+    nproduce [ ;(color0)
+    nproduce PinpointRel(dirmax)
+    nproduce [turtle.F(l0 * size / 2)]
+    nproduce PinpointRel(-dirmax)
+    nproduce [turtle.F(l0 * size / 2)]
+    nproduce ]
+  if not np.isclose(l1, 0.):
+    nproduce [ ;(color1)
+    nproduce PinpointRel(dirmin)
+    nproduce [turtle.F(l1 * size / 2)]
+    nproduce PinpointRel(-dirmin)
+    nproduce [turtle.F(l1 * size / 2)]
+    nproduce ]
+
+DrawTensor2Ellipsis(pdirs, eigenvals, size, thickness, color_positive, color_negative):
+    ''' 
+    TO BE FINISHED ...
+    pidrs are the eigen vectors (in 3D) of the (0,2)-tensor
+    eigenvals are the two corresponding eigen values
+    color positive (resp. negative) is used for positive (resp_negative) eigen values
+    
+    The procedure draws an ellipsis corresponding to the tensor
+    
+    method 1:
+      turtle's up = pdir[0] x pdir[1]
+      set turtle's head = pdir[0] 
+      Draw a deformed circle (scale factor eigenvals[0], eigenvals[1]) @ turtle's position
+          
+    method 2:
+      turtle's up = pdir[0] x pdir[1]
+      set turtle's head = pdir[0] + rotation(90)
+    
+      turtle's start = turtle's position + eigenvals[0] * pdir[0]
+    
+      draw ellipsis by integrating curvature
+    '''
+
+    dirmax = pdirs[0]  # max
+    dirmin = pdirs[1]
+    l0, l1 = eigenvals
+    color0 = color_positive if l0 > 0 else color_negative
+    color1 = color_positive if l1 > 0 else color_negative
+
+
+DrawPoint(uv,size):
+  u,v = uv
+  pos = turtle.space.S(u, v)
+  nproduce [@M(pos) @O(size)]
+
+# Splits a polygon given as a uv-polyline into small squared polygons, place them on the surface in 3D and fill them.
+ClosedPolygon(polyline_uv, *args):
+  resolution = 1.
+  reverse = False
+
+  if len(args) > 0:
+    resolution = args[0]
+  if len(args) > 1:
+    reverse = args[1]
+
+  if reverse:
+    polyline_uv = list(reversed(polyline_uv))
+    print(polyline_uv)
+  if np.isclose(polyline_uv[0][0], polyline_uv[-1][0]) and np.isclose(polyline_uv[0][1], polyline_uv[-1][1]):
+    del polyline_uv[-1]
+
+  quads, minres, maxres = meshPolygon(polyline_uv, resolution)
+  # print(quads)
+  space = turtle.space
+  for q in quads:
+    # print("quad0=",q[0])
+    pos0 = space.S(*q[0])
+    pos1 = space.S(*q[1])
+    pos2 = space.S(*q[2])
+    pos3 = space.S(*q[3])
+    # print("pos0", pos0)
+    nproduce {MoveTo(pos0).MoveTo(pos1).MoveTo(pos2).MoveTo(pos3).}
+
+BSplineSubdivision(ctrl_uvs, degree, closed, nbsubdiv, nb_points_per_geodesic):
+  turtle.push()
+  gc = turtle.getParameters().isGeneralizedCylinderOn()
+  if gc:
+    turtle.stopGC()
+  uvpqs = turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv=nbsubdiv, nb_points_per_geodesic=nb_points_per_geodesic, closed = closed)
+  print(uvpqs[0])
+  setUVPQ(turtle, uvpqs[0])
+  if gc:
+    turtle.startGC()
+  print(turtle.uvpq)
+  path(turtle, uvpqs[1:])
+  turtle.pop()
+  produce
+
+BSplineSubdivision(ctrl_uvs, degree, closed, nbsubdiv):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, nbsubdiv=nbsubdiv, closed = closed))
+  produce
+
+BSplineSubdivision(ctrl_uvs, degree, closed):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree, closed = closed))
+  produce
+
+BSplineSubdivision(ctrl_uvs, degree):
+  path(turtle, turtle.space.lane_riesenfeld_subdivision(ctrl_uvs, degree))
+  produce
+
+BSplineSubdivision(ctrl_uvs):
+  path(turtle, turtle.space.bspline_subdivision(ctrl_uvs))
+  produce
+
+StartBSpline(degree):
+  # BSpline params do not have to be pushed and popped. Points are created during the traversal of the turtle.
+  turtle.bspline_params = dict(degree=degree)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline():
+  turtle.bspline_params = dict(degree=3)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline(degree, nbsubdiv):
+  turtle.bspline_params = dict(degree=degree, nbsubdiv=nbsubdiv)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline(degree, nbsubdiv, nb_points_per_geodesic):
+  turtle.bspline_params = dict(degree=degree, nbsubdiv=nbsubdiv, nb_points_per_geodesic=nb_points_per_segment)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+StartBSpline(degree, nbsubdiv, nb_points_per_geodesic, closed):
+  turtle.bspline_params = dict(degree=degree, nbsubdiv=nbsubdiv, nb_points_per_geodesic=nb_points_per_geodesic, closed = closed)
+  turtle.bspline_points = []
+  turtle.bspline_origin = [deepcopy(turtle.uvpq), turtle.getWidth(), turtle.getColor()]
+
+BSplinePoint():
+  turtle.bspline_points.append(turtle.uvpq)
+  produce
+
+EndBSpline():
+  if len(turtle.bspline_points) > turtle.bspline_params['degree'] :
+    c_uvpq = turtle.uvpq
+    turtle.push()
+    setUVPQ(turtle, turtle.bspline_origin[0])
+    turtle.setWidth(turtle.bspline_origin[1])
+    turtle.setColor(turtle.bspline_origin[2])
+    path(turtle, turtle.space.bspline_subdivision(turtle.bspline_points, **turtle.bspline_params))
+    turtle.pop()
+  else:
+    warnings.warn('Not enough BSpline point to create a BSpline of degree %i' % turtle.bspline_params['degree'])
+  del turtle.bspline_params
+  del turtle.bspline_points
+  del turtle.bspline_origin
+  produce
+
+?T(params):
+    params['state'] = turtle.getParameters() # turtle's internal parameters
+    for p, c in turtle._params.items():      # user defined parameters
+        # p = a parameter name
+        # c is a copy function for this parameter (deepcopy by default)
+        # adds the retreived parameter p to params
+        params[p] = c(getattr(turtle, p))
+    produce ?T(params)
+
+endlsystem
+
+
+
+
+
+
+
+

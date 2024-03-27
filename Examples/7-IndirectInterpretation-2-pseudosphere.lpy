@@ -1,0 +1,164 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2020
+		
+	1. Draw a geodesic and  test the computation of the curvature coefficient
+	2. Computes the values of the curvatures locally 
+	
+
+   FIXME: The normals of the pseudo sphere and of the turtle segments seem inconsistent between them. Check this
+"""
+
+import numpy as np
+from math import ceil
+from random import random
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+
+# Flags to control the display
+PLOTSPACE = True
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 1. * meter   # Radius of the pseudosphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+# Tighten the nec of the pin form structure to see that the geodesic 
+# at some threshold is doomed to stay in the lower part and cannot reach the other part
+nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
+            # To draw one geodesic, set it to 1 and set dashed to False
+
+length_geodesic = 3.5 
+
+#Select Axiom here
+#1: Simple vertical geodesic
+#2: Draw a grid on the pseudo sphere indirectly from drawing on the parameter space (press REWIND)
+AXIOMTEST = 2  
+TEST1 = True # Form I and II coefficients
+TEST2 = True # Curvature coefficients
+
+Axiom: 
+  # Sets the Riemanian space in which the turtle will move
+  # u = control of z (the bigger u the highest z (warning it is not directly z)
+  # v = azimuth
+  nproduce SetSpace(PseudoSphere(R, zmin = -10, zmax = 10))
+  nproduce ;(0)PlotSpace(dict(CCW = False))
+  nproduce _(LINEWIDTH)
+  
+  if AXIOMTEST == 1:
+    # test the passage through the pseudosphere rim
+    nproduce [;(2)InitTurtle([0.1,0.0,1,0.])A(0)]
+  elif AXIOMTEST == 2:
+    nproduce ;(2)InitTurtle([0.001,0.0,1,0.])A(0)
+    nproduce [;(3)StartIndirectInterpretation
+    N = 10
+    a = 2*np.pi / N
+    for i in range(N):
+      nproduce [
+      for j in range(N): 
+        nproduce F(a)-(90)F(a)-(90)F(a)-(90)F(a)-(90)
+        nproduce f(a)
+      nproduce ]
+      nproduce -(90)f(a)+(90)
+    nproduce StopIndirectInterpretation]
+    
+
+
+derivation length: int(nb_seg)
+production:
+
+A(n):
+  #global turtle
+  nproduce F(length_geodesic/nb_seg)
+  nproduce A(n+1)
+
+interpretation:
+
+A(n):
+  u,v,p,q = turtle.uvpq 
+  
+  if TEST1:
+    # Test: computed numerical coef o the fundamental forms I and II
+    E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
+    
+    # theoretical values of E,F,G,L,M,N:
+    EE = (R*np.tanh(u))**2
+    FF = 0
+    GG = (R/np.cosh(u))**2
+    
+    LL = -R*np.sinh(u)/(np.cosh(u)**2)
+    MM = 0
+    NN = -R*(1/np.cosh(u))*np.tanh(u)
+    
+    print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
+    print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
+    
+  if TEST2:
+    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
+    print("Courbures: Gauss = ", "{:.3f}".format(K), \
+          ", Mean = ", "{:.3f}".format(H), \
+          ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
+  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (32,255,255) , diffuse = 0.627451 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+__references__ = '#'
