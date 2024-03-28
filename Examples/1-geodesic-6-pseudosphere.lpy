@@ -7,6 +7,8 @@
 	Simulates geodesics on a pseudo sphere 
 
    FIXME: The normals of the pseudo sphere and of the turtle segments seem inconsistent between them. Check this
+   
+   Fig11.b-right --> TEST1 = False, TEST2 = True, AXIOMTEST = 4
 """
 
 import numpy as np

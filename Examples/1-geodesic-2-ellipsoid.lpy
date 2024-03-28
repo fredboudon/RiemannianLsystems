@@ -5,6 +5,9 @@
 		Date: 2019-2022
 
 	Geodesics of an ellipsoid of revolution 
+	
+	   Fig11.a --> TEST = 1
+	   Fig11.b-left --> TEST = 2
 """
 
 import numpy as np
@@ -68,7 +71,7 @@ nbseg = 10
 seglen = ra/3.
 length_geodesic =  10*ra*2*np.pi
 
-TEST = 2
+TEST = 1
 
 Axiom:
   global length_geodesic
