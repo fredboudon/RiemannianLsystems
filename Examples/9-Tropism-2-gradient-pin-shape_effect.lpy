@@ -5,6 +5,9 @@
 		Date: 2019-2022
 
 	Computation of curvatures on different surfaces
+	
+	Fig14 --> From left to right: PINFUNCID = 1 (then 2,3,4,5,6)
+	
 """
 
 import numpy as np
@@ -49,6 +52,10 @@ LINEWIDTH  = 1. * cm
 FRAMESIZE  = 0.3 * meter
 FRAMEWIDTH = 1 * cm
 
+PINFUNCID = 6
+PINFUNCNAMES = {1:"pinfunc_1",2:"pinfunc_2",3:"pinfunc_3",4:"pinfunc_4",5:"pinfunc_5",6:"pinfunc_6"}
+pin_fun_name = PINFUNCNAMES[PINFUNCID]
+
 #######################
 # Pin form definition
 #######################
@@ -66,8 +73,9 @@ def pin(x, args):
   if u > 1.0:
     u = 1.0
   
+  pinf = globals()[pin_fun_name]
   # rescaling the norm of the argument before returning
-  return scale * pinfunc_5.getValue(u) * radius
+  return scale * pinf.getValue(u) * radius
 
 SCALE_FACTOR = 2     # multiplicative factor for the whole the pin form 
 RADIUS_FACTOR = 1  # multiplicative factor for the radius the pin form 
