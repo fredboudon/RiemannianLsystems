@@ -1,0 +1,81 @@
+from openalea.plantgl.all import *
+from math import *
+from random import *
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+maxlength = 12
+dl = 1.5
+
+seed(0)
+nb = 25
+noiseheigth = 1.2
+
+def sphericalcoord(i,j,r1, r2):
+  return [cos(pi*(j/nb)-pi/2)*cos(2*pi*(i/nb)-pi)*r1, 
+         cos(pi*(j/nb)-pi/2)*sin(2*pi*(i/nb)-pi)*r1, 
+         sin(pi*(j/nb)-pi/2)*r2, 1]
+
+pts = [[sphericalcoord(i,j,5+noiseheigth*uniform(-1,1),8)  for j in range(nb+1)] for i in range(nb)]
+pts.append(pts[0])
+npatch = NurbsPatch(pts, ustride= 200, vstride=200, ccw=False)
+
+
+Axiom: 
+  if SPACE == 1:
+    nproduce SetSpace(EllipsoidOfRevolution(5,8)) 
+    nproduce ;(0) PlotSpace 
+    nproduce InitTurtle([0,-1,0,1]) 
+  elif SPACE == 2:
+    nproduce SetSpace(Patch(NurbsPatch([[[i,j,0,1] for j in range(-8,10,2)] for i in range(-8,10,2)]))) 
+    nproduce ;(0) PlotSpace 
+    nproduce InitTurtle([0.95,0.5,-1,0]) 
+  else:
+    nproduce ;(0)@g(npatch)     
+    nproduce SetSpace(Patch(npatch))
+    nproduce InitTurtle([0.5,0.2,0,1])
+  nproduce [ ,(2) _(0.1) StartBSpline(2)  BSplinePoint() [,(7) _(0.02) A(0) ] 
+  nproduce BSplinePoint()  @Gc EndBSpline() ]
+
+derivation length: int(maxlength/dl)
+production:
+
+A(length) :
+  if length < maxlength: 
+    length += dl
+    lateral_length = maxlength*lateralratios(length/maxlength)
+    nproduce F(dl)
+    nproduce [+(60) nproduce F(0.1+lateral_length) ,(3) @O(0.15) BSplinePoint()]
+    nproduce [ F(0.1) A(length)]
+    nproduce [-(60) F(0.1+lateral_length) ,(3) @O(0.15) BSplinePoint()]
+
+interpretation:
+A(l) --> ,(3) @O(0.15) BSplinePoint()
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (0,0,0) , diffuse = 14.5455 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	scalars = [('SPACE', 'Integer', 1, 0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	lateralratios = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.0386266, 1),(0.159132, 0.283398, 1),(0.254107, -0.0902115, 1),(0.355852, 0.654374, 1),(0.450075, -0.0084279, 1),(0.64212, 0.359578, 1),(0.73546, 0.0108055, 1),(0.884657, 0.218362, 1),(1, 0, 1)]) , 
+	    stride = 54 , 
+	    )
+	lateralratios.name = "lateralratios"
+	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('Function',lateralratios)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('lateralratios',lateralratios),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["lateralratios"] = pgl.QuantisedFunction(lateralratios)

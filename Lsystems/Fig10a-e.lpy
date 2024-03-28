@@ -1,0 +1,76 @@
+# Lane and Riesenfeld algo for generating BSpline with subdivision
+from math import *
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+points = [(-0.5,-0.5),(-0.5,0.5),(0.5,0.5),(0.5,-0.5)]
+
+def Subdivide(space, points, degree = DEGREE):
+    yield points, None
+    newpoints = space.insert_midpoint(points, nb_points_per_geodesic = 10, closed = True)
+    yield points, newpoints
+    points = newpoints
+    for i in range(degree - 1):
+      newpoints = space.move_on_edge(points, nb_points_per_geodesic = 10, closed = True)
+      yield points, newpoints
+      points = newpoints
+    yield points, None
+
+Axiom: 
+  sphere = Sphere(5)
+  nproduce SetSpace(sphere) Init
+  nproduce ;(0) PlotSpace 
+  nproduce InitTurtle([points[0][0],points[0][1],1,0]) 
+  nproduce  ,(2)_(0.1) S(Subdivide(sphere, points,DEGREE)) 
+
+derivation length: DEGREE+1
+production:
+
+S(gen) --> S(gen)
+
+interpretation:
+
+S(gen):
+  points, newpoints = next(gen)
+  
+  # Draw control points
+  nproduce [,(5)_(0.05) RiemannMoveTo(points[0][:2]) [,(3)@O(0.2)] @Gc
+  for point in points[1:]:
+    nproduce RiemannLineTo(point[:2],10) [,(3)@O(0.2)]
+  nproduce RiemannLineTo(points[0][:2],10) [,(3)@O(0.2)]
+  nproduce ]
+  
+  # Draw new control points
+  if newpoints:
+    for p in newpoints:
+      nproduce [RiemannMoveTo(p[:2]) ,(6) @O(0.15)]
+
+endlsystem
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_5 = pgl.Material("Color_5" , ambient = (0,0,0) , diffuse = 40 , )
+	Color_5.name = "Color_5"
+	context.turtle.setMaterial(5,Color_5)
+	scalars = [('DEGREE', 'Integer', 3, 1, 6)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	curve = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.763601, 0.0753145, 1),(-0.273579, 0.224159, 1),(-0.285018, -0.301258, 1),(-0.0442948, -0.54963, 1),(0.231222, 0.204425, 1),(0.435962, -0.192388, 1),(0.747462, 0.182907, 1)]) , 
+	    stride = 42 , 
+	    )
+	curve.name = "curve"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Curve2D',curve)])
+	parameterset = [panel_0,]
+	context["__functions__"] = []
+	context["__curves__"] = [('curve',curve),]
+	context["__parameterset__"] = parameterset
+	context["curve"] = curve
+__references__ = '#Przemyslaw Prusinkiewicz, Mitra Shirmohammadi, and Faramarz Samavati. L-systems in Geometric Modeling. Proceedings of the Twelfth Annual Worskshop on Descriptional Complexity of Formal Systems, pp. 3-12, 2010. '

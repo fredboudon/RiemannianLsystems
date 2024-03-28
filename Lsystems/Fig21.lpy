@@ -1,0 +1,248 @@
+import sys
+sys.path.append("../RiemannTurtleLib")
+import numpy as np
+from numpy.linalg import norm
+from openalea.plantgl.scenegraph.nurbsshape import nurbsHalfEllipsoid
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+import openalea.plantgl.all as pgl
+import riemann_lsystem.nurbsswung as ns
+reload(ns)
+
+from math import *
+
+angleListN = [20,30,60,90,150,180, 210,270,300,330,340]
+angleList0 = angleListN
+#aMin0, aMax0 = 30, 330
+#angleList0 = angleListN
+#[aMin0+(a-angleListN[0])*(aMax0-aMin0)/(angleListN[-1]-angleListN[0]) for a in angleListN]
+
+def anglesListAt(t):
+  return list(map(radians,angleListN)) #[a0*(1-t)+aN*t for a0,aN in zip(angleList0,angleListN)]))
+
+curvescale = 10
+for objname, obj in dict(globals()).items():
+  if objname.startswith('profile'):
+    obj.ctrlPointList.scale(curvescale)
+
+profileList=[profile0a,profile0b, profile0c, profile1,profile2,profile3,profile2,profile1, profile0c, profile0b,profile0a]
+#swung = ns.NurbsSwung(profileList=profileList,angleList=anglesListAt(0),stride=100, slices=100, ccw=False)
+
+ctrlpoints = [[[x*cos(theta), x*sin(theta),y,w] for x,y,w in profile.ctrlPointList] for theta,profile in zip(anglesListAt(0), profileList)]
+#ctrlpoints = np.transpose(ctrlpoints,(1,0,2))
+
+swung = NurbsPatch(ctrlpoints)
+uoriented = False
+
+#######################
+# Units0.5
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+
+def determine_points_on_line(u0, nb, uoriented=uoriented, shift = 0.5):
+  if uoriented :
+    section = swung.getIsoUSectionAt(u0)
+  else:
+    section = swung.getIsoVSectionAt(u0)
+  umap = section.getArcLengthToUMapping()
+  for i in range(nb):
+    yield umap((i+shift)/nb)
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+nb_steps = 5
+nb_seg = 5 # nb of segment to draw the geodesic (defines the parameter of the F)
+            # To draw one geodesic, set it to 1 and set dashed to False
+
+
+target_umax = list(determine_points_on_line(0.5, nb_steps+1, not uoriented, 1))
+
+umaxid = 0
+umax = target_umax[umaxid]
+uscaling = 1
+
+
+apexid = 0
+targetu_s = None
+
+#onborders = False 
+
+def EndEach():
+  print()
+  global umax
+  if umax >= 1:
+    Stop()
+
+
+module DrawVect
+
+Axiom:
+  global apexid, targetu_s
+  nproduce ,(2) _(0.05)
+  nproduce [@M(0,0,-15)SetGuide(tige,15)@Gc _(0.2)nF(15.1,1)]
+  # Sets the Riemannian space in which the turtle will move
+  patch = Patch(swung)
+  if uoriented :
+    patch.umax=uscaling*umax
+  else:
+    patch.vmax=uscaling*umax    
+  def intensity(u,v):
+    return norm(swung.getVTangentAt(u,v))
+  nproduce SetSpace(patch) PlotSpace(dict(cmap='Greens', Du = 0.02, Dv = 0.02, CCW=False))
+
+  nb = 8
+  u0 = 0.001
+  angles = anglesListAt(0)
+  inituvpq = [u0,patch.vmin,1,0]
+  if not uoriented:
+    inituvpq = [patch.umin,u0,0,1]
+  nproduce InitTurtle(inituvpq) 
+  apexid = 0
+  targetu_s = list(determine_points_on_line(umax, (apexid+1)))
+  for v, tv in zip(determine_points_on_line(u0, nb),determine_points_on_line(1, nb)):
+    uvpq = [u0,v,1,0]
+    if not uoriented:
+      uvpq = [v,u0,0,1]
+    nproduce [InitTurtle(uvpq)  ,(4) @Gc StartIndirectInterpretation 
+    if uoriented:
+      nproduce RiemannLineTo([umax, tv],nb_seg)
+    else:
+      nproduce RiemannLineTo([tv, umax],nb_seg)       
+    nproduce [+(8)A(apexid)][-(8)A(apexid+1)]
+    nproduce ]
+    apexid += 2
+
+
+
+derivation length: nb_steps
+
+production:
+
+SetSpace(p):
+  print(getIterationNb(),nb_steps)
+  assert getIterationNb() < nb_steps
+  global apexid, targetu_s, umax, umaxid
+  umaxid +=1
+  umax = target_umax[umaxid]
+  if uoriented:
+      p.umax = uscaling*umax
+  else:
+      p.vmax = uscaling*umax
+  nproduce SetSpace(p)
+  targetu_s = list(determine_points_on_line(umax, (apexid)))
+  apexid = 0
+
+A(i):
+    global apexid, targetu_s
+    if uoriented:
+      nproduce RiemannLineTo([umax, targetu_s[i]],nb_seg)
+    else:
+      nproduce RiemannLineTo([targetu_s[i], umax],nb_seg)       
+    nproduce [+(8)A(apexid)][-(8)A(apexid+1)]
+    apexid += 2
+
+interpretation:
+maximum depth: 2
+
+D --> DrawVect(turtle.space.shift_vector(*turtle.uvpq))
+
+A(i) --> ,(4) @O(0.1)
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_4 = pgl.Material("Color_4" , ambient = (147,147,36) , diffuse = 0.326531 , shininess = 0 , )
+	Color_4.name = "Color_4"
+	context.turtle.setMaterial(4,Color_4)
+	Color_7 = pgl.Material("Color_7" , ambient = (0,143,0) , diffuse = 0.27972 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	context.options.setSelection('Axiom decomposition',1)
+	import openalea.plantgl.all as pgl
+	profile0a = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.00515674, -0.00159672, 1),(0.109274, -0.00307425, 1),(0.261016, -0.103233, 1),(0.211734, -0.200753, 1),(0.153044, -0.22514, 1)]) , 
+	    )
+	profile0a.name = "profile0a"
+	profile0b = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.00515674, -0.00159672, 1),(0.147331, -0.00984076, 1),(0.351313, -0.145941, 1),(0.316674, -0.252003, 1),(0.265305, -0.294693, 1)]) , 
+	    )
+	profile0b.name = "profile0b"
+	profile0c = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.0138734, 0.00328367, 1),(0.119301, 0.0205734, 1),(0.228961, 0.0385837, 1),(0.395141, 0.0944812, 1),(0.497539, 0.189004, 1)]) , 
+	    )
+	profile0c.name = "profile0c"
+	profile1 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.00753988, 0.0105642, 1),(0.113651, 0.207151, 1),(0.363266, 0.314747, 1),(0.491594, 0.653027, 1),(0.390368, 0.761914, 1)]) , 
+	    )
+	profile1.name = "profile1"
+	profile2 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.00852304, 0.0158817, 1),(0.0593502, 0.233125, 1),(0.425859, 0.486163, 1),(0.526542, 0.723229, 1),(0.447528, 1.00157, 1)]) , 
+	    )
+	profile2.name = "profile2"
+	profile3 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.0105774, 0.0103787, 1),(0.0992746, 0.201701, 1),(0.570682, 0.390386, 1),(0.86935, 0.593566, 1),(0.689665, 0.781998, 1)]) , 
+	    )
+	profile3.name = "profile3"
+	profile5 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.0298342, 0.000363067, 1),(0.158973, 0.340192, 1),(0.353577, 0.341405, 1),(0.110835, 0.730012, 1),(-0.128915, 0.883709, 1)]) , 
+	    )
+	profile5.name = "profile5"
+	profile6 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.363052, 0.00124457, 1),(0.402315, 0.00604102, 1),(0.440092, 0.0140814, 1),(0.484669, 0.0262317, 1),(0.536677, 0.0464629, 1)]) , 
+	    )
+	profile6.name = "profile6"
+	profsphere = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.000652829, 0.500653, 1),(0.703638, 0.498383, 1),(0.702005, -0.493631, 1),(0.00250977, -0.498432, 1)]) , 
+	    )
+	profsphere.name = "profsphere"
+	import openalea.plantgl.all as pgl
+	radius = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.0257986, 1),(0.197303, 0.189907, 1),(0.367412, 0.348154, 1),(0.550687, 0.699775, 1),(0.792106, 0.877237, 1),(1, 0.725944, 1)]) , 
+	    stride = 36 , 
+	    )
+	radius.name = "radius"
+	profile3_2 = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0.0105774, 0.0103787, 1),(0.0992746, 0.201701, 1),(0.406437, 0.334832, 1),(0.668874, 0.552505, 1),(1.01574, 0.767506, 1)]) , 
+	    )
+	profile3_2.name = "profile3_2"
+	tige = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.5, 0, 1),(-0.218601, 0.0613774, 1),(0.176109, -0.0944268, 1),(0.5, 0, 1)]) , 
+	    )
+	tige.name = "tige"
+	panel_0 = ({'name': 'Panel 1', 'active': True, 'visible': True},[('Curve2D',profile0a),('Curve2D',profile0b),('Curve2D',profile0c),('Curve2D',profile1),('Curve2D',profile2),('Curve2D',profile3),('Curve2D',profile5),('Curve2D',profile6),('Curve2D',profsphere),('Function',radius),('Curve2D',profile3_2),('Curve2D',tige)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('radius',radius),]
+	context["__curves__"] = [('profile0a',profile0a),('profile0b',profile0b),('profile0c',profile0c),('profile1',profile1),('profile2',profile2),('profile3',profile3),('profile5',profile5),('profile6',profile6),('profsphere',profsphere),('profile3_2',profile3_2),('tige',tige),]
+	context["__parameterset__"] = parameterset
+	context["profile0a"] = profile0a
+	context["profile0b"] = profile0b
+	context["profile0c"] = profile0c
+	context["profile1"] = profile1
+	context["profile2"] = profile2
+	context["profile3"] = profile3
+	context["profile5"] = profile5
+	context["profile6"] = profile6
+	context["profsphere"] = profsphere
+	context["radius"] = pgl.QuantisedFunction(radius)
+	context["profile3_2"] = profile3_2
+	context["tige"] = tige

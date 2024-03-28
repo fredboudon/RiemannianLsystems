@@ -1,0 +1,108 @@
+from math import *
+from random import random, uniform, seed
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+import openalea.plantgl.all as pgl
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+line = [[0.21, 0.7], [0.1655393373163011, 0.5545757250414833], [0.15871588399550177, 0.3591775874829222], [0.2537055309849556, 0.2808741651935561], [0.301321707274114, 0.18324653602657764], [0.31773102987419033, -0.004312879545178555], [0.22427762774458018, -0.1377781695198505], [0.16501432197363206, -0.0742260547584605], [0.2501418412711626, 0.04294192373722154], [0.17746041333907978, 0.12366282719424884], [0.035478651107576184, -0.09496991396669614], [0.2113976870016172, -0.35189318601679964], [-0.0450300860333036, -0.5245213488924237], [-0.2636628271942486, -0.38253958666092014], [-0.1829419237372213, -0.30985815872883726], [-0.06577394524153925, -0.39498567802636786], [-0.002221830480149267, -0.33572237225541973], [-0.1356871204548212, -0.2422689701258096], [-0.3232465360265774, -0.25867829272588594], [-0.4208741651935559, -0.30629446901504437], [-0.499177587482922, -0.40128411600449815], [-0.6945757250414831, -0.3944606626836988], [-0.84, -0.34999999999999987], [-0.7893672552185895, -0.2549133066019062], [-0.6950941515634537, -0.15381778004522506], [-0.6084607015387373, -0.162159632490174], [-0.5358497655460318, -0.13715768220107707], [-0.43388079726269596, -0.051595558523002134], [-0.41387787446580954, 0.0618466538741964], [-0.4752763114675441, 0.059702573208505215], [-0.49129412182928417, -0.04142990122470863], [-0.5679837047732557, -0.045449031960944804], [-0.5296640028944399, 0.13483099128437007], [-0.31327553098429944, 0.1753269930807575], [-0.10017743513322695, 0.21532757068796304], [-0.06185773325441114, 0.39560759393327793], [-0.13854731619838265, 0.39158846319704177], [-0.15456512656012272, 0.29045598876382794], [-0.21596356356185725, 0.2883119080981368], [-0.19596064076497083, 0.4017541204953353], [-0.09399167248163497, 0.48731624417341024], [-0.021380736488929512, 0.5123181944625071], [0.06525271353578689, 0.5039763420175581], [0.15952581719092263, 0.6050718685742393], [0.21, 0.7]]
+
+ra = 5.
+rb = 8
+nb = 25
+heigth = 0.8
+
+def uvcenter(uvs, center, scale):
+    umean = sum([u for u,v in uvs])/len(uvs)
+    vmean = sum([v for u,v in uvs])/len(uvs)
+    return [[center[0]+(u-umean)*scale[0],center[1]+(v-vmean)*scale[1]] for u,v in uvs]
+
+def uvrotate(uvs, center, angle):
+    rand = radians(angle)
+    cosa = cos(rand)
+    sina = sin(rand)
+    result = []
+    for uv in uvs:
+      nc = [(u-c) for u,c in zip(uv,center)]
+      result.append([nc[0]*cosa -nc[1]*sina +center[0],
+                     nc[0]*sina +nc[1]*cosa +center[1]])
+            
+    return result
+
+seed(0)
+
+def rock(ra,rb,h):
+  """ Generate a bumpy ellipsoid """
+  def sphericalcoord(i,j,r1, r2, n):
+    return [cos(pi*(j/nb)-pi/2)*cos(2*pi*(i/nb)-pi)*(r1+n), 
+            cos(pi*(j/nb)-pi/2)*sin(2*pi*(i/nb)-pi)*(r1+n), 
+            sin(pi*(j/nb)-pi/2)*(r2), 1]
+  
+  pts = [[sphericalcoord(i,j,ra,rb,h*uniform(-1,1))  for j in range(nb+1)] for i in range(nb)]
+  pts.append(pts[0])
+  for i in range(1,nb+1):
+    pts[i][0] = pts[0][0]
+    pts[i][-1] = pts[0][-1]
+  return pts
+   
+npatch = NurbsPatch(rock(ra,rb,heigth), ustride= 200, vstride=200, ccw=False)
+
+Axiom: 
+  global line
+  if not ROCK:
+    nproduce SetSpace(EllipsoidOfRevolution(ra,rb)) 
+    nproduce ;(0) @g(pgl.Scaled(ra,ra,rb,pgl.Sphere(1, 30,30))) 
+    nproduce InitTurtle([0,-1,0,1]) 
+  else:
+    nproduce ;(0)@g(npatch)     
+    nproduce SetSpace(Patch(npatch))
+    nproduce InitTurtle([0.5,0.2,0,1])
+    line = uvcenter(line, [0.5,0.5], [1/4,1/3])
+    line = uvrotate(line, [0.5,0.5],45)
+  
+  if CTRLPTS:
+      nproduce InitTurtle([line[0][0],line[0][1],1,0]) ,(5)
+      nproduce [_(0.04) [,(3)@O(0.1)] StartBSpline(2)
+      for pt in line[1:]:
+        nproduce @Gc RiemannLineTo(pt,10) @Ge
+        nproduce [,(3)@O(0.1)] 
+      nproduce EndBSpline() ]
+  
+  if SUBDIVCURVE:
+      nproduce InitTurtle([line[0][0],line[0][1],1,0]) @Gc
+      nproduce [,(2)_(0.08) BSplineSubdivision(line, 2)
+      nproduce ]
+
+derivation length: 6
+production:
+
+BSplineSubdivision(points, d) --> BSplineSubdivision(points, d+1)
+
+endlsystem
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_5 = pgl.Material("Color_5" , ambient = (0,0,0) , diffuse = 40 , )
+	Color_5.name = "Color_5"
+	context.turtle.setMaterial(5,Color_5)
+	scalars = [('CTRLPTS', 'Bool', True), ('SUBDIVCURVE', 'Bool', True), ('ROCK', 'Bool', True)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	curve = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(-0.763601, 0.0753145, 1),(-0.273579, 0.224159, 1),(-0.285018, -0.301258, 1),(-0.0442948, -0.54963, 1),(0.231222, 0.204425, 1),(0.435962, -0.192388, 1),(0.747462, 0.182907, 1)]) , 
+	    stride = 42 , 
+	    )
+	curve.name = "curve"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Curve2D',curve)])
+	parameterset = [panel_0,]
+	context["__functions__"] = []
+	context["__curves__"] = [('curve',curve),]
+	context["__parameterset__"] = parameterset
+	context["curve"] = curve
+__references__ = 'Przemyslaw Prusinkiewicz, Mitra Shirmohammadi, and Faramarz Samavati. L-systems in Geometric Modeling. Proceedings of the Twelfth Annual Worskshop on Descriptional Complexity of Formal Systems, pp. 3-12, 2010. '

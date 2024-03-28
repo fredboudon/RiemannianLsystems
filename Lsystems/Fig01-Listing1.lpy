@@ -1,0 +1,5 @@
+Axiom: A(1)
+derivation length: 20
+production:
+A(n) --> F(n)+(60)A(n+1)
+endlsystem

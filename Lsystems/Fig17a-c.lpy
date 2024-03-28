@@ -1,0 +1,440 @@
+import numpy as np
+import numpy.linalg as linalg
+
+from random import random, seed
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+
+from math import sin
+nb = 100
+ctrlpts = [[[(j-nb/2)/2,(i-nb/2)/2,20*height(i/nb)*kernel(min(1,abs(0.5+sin(i*2*pi/nb)/4-j/nb))),1] for i in range(nb)] for j in range(nb)]
+sinRidge = NurbsPatch(ctrlpts, ustride= 200, vstride=200)
+
+seed(1)
+
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2): # code from stackoverflow
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+seglen = 1.
+length_geodesic =  10
+sensitivity = 0.2 
+delta_s = 1.
+
+#########################
+# Selectiong of tests
+#########################
+
+TEST = 3           # To test different parametric surfaces
+
+landscape_patch = Patch(sinRidge)
+def gauss_curvature_func(u,v):
+  K,H,kmin,kmax = landscape_patch.localCurvatures(u,v)
+  return K
+
+def height_fun(u,v):
+  #global landscape_patch
+  return landscape_patch.S(u,v)[2]
+  
+Axiom:
+  if TEST == 1:
+    # Sets the Riemannian space in which the turtle will move
+    dic = {'Du':0.01,'Dv':0.01, 'CCW': True}
+    nproduce SetSpace(landscape_patch)
+    
+    nproduce ;(0)PlotSpace(dic)
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    u0= 0.70 
+    v0= 0.17 
+    nproduce InitTurtle([u0,v0,0.5,0.65])
+    #nproduce InitTurtle([u0,v0,0,1])
+    # To draw the field of principal directions:
+    #nproduce [;(1)_(LINEWIDTH) S]
+    nproduce ;(1)_(0.1) Frame(1) ?T B(50, height_fun)
+    
+  elif TEST == 2:
+    # Sets the Riemannian space in which the turtle will move
+    nproduce SetSpace(EllipsoidOfRevolution(2,1))
+    nproduce ;(0)PlotSpace()
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    u0= 0.0
+    v0= 0.0 
+    nproduce InitTurtle([u0,v0,0,1.])
+    nproduce [;(1)_(0.001) S]
+    nproduce [_(0.003)Frame(0.5)]
+    for i in range(10):
+      nproduce ;(1)_(0.1) fStatic() ?T C(50)
+
+  elif TEST == 3:
+    # Sets the Riemannian space in which the turtle will move
+    #dic = {'Du':0.01,'Dv':0.01, 'CCW': True}
+    dic = dict(colorvalfunc = gauss_curvature_func, displaycmap = True, cmap = 'bwr', minvalue = -0.001, maxvalue = 0.005, Du = 0.01, Dv = 0.01, CCW = True)
+    nproduce SetSpace(landscape_patch)
+    nproduce ;(0)PlotSpace(dic)
+    delta_s = 1.2
+    # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+    u0= 0.25
+    v0 = 0.85
+    nproduce [       
+    nproduce InitTurtle([u0,v0,-0.2,-0.7])
+    nproduce ;(1)_(0.1) Frame(1) ?T D(400)
+    nproduce ]
+    u0= 0.75
+    v0 = 0.2
+    nproduce [       
+    nproduce InitTurtle([u0,v0,-0.2,-0.7])
+    nproduce ;(1)_(0.1) Frame(1) ?T D(400)
+    nproduce ]
+    for i in range(2,7):
+      u0= 0.25+ 2.0*(i-2)/16. 
+      v0= 1-1.8*(i-2)/16-0.25 
+      nproduce [
+      nproduce InitTurtle([u0,v0,0.5,-0.65])
+      #nproduce InitTurtle([u0,v0,0,1])
+      # To draw the field of principal directions:
+      #nproduce [;(1)_(LINEWIDTH) S]
+      nproduce ;(1)_(0.1) Frame(1) ?T D(400)
+      nproduce ]
+
+derivation length: 500
+production:
+
+?T(t) B(n, f):
+    u,v,p,q = t.uvpq
+    
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = t.space.principalDirections(u,v)
+    
+    if pdirmin_uv != [] and pdirmax_uv != []:
+      pushforward = t.space.Shift(u,v)
+      pdirmax = pushforward.dot(pdirmax_uv)
+      npdirmax = np.linalg.norm(pdirmax)
+      #pdirmax = np.array(pdirmax)/npdirmax
+      #pdirmax = pdirmax*curvmax
+      ndir = t.space.normal(u,v)
+      #pdirmin = np.cross(pdirmax, ndir) 
+      pdirmin = pushforward.dot(pdirmin_uv) 
+      npdirmin = np.linalg.norm(pdirmin)
+      pdirmin = np.array(pdirmin)/npdirmin
+      pdirmin = pdirmin*curvmin
+      #print("pdirmax = ", pdirmax)
+      pdirs = [pdirmax,pdirmin]
+      #nproduce CovariantBasis(0.3)
+      pcurvs = [curvmax,curvmin]
+      
+      print(pdirs, pcurvs)
+    
+    if n > 0:
+      
+      #### GRADIENT ####
+      def fswapped(v,u):
+        return f(u,v)
+      
+      # creates a function f1(v) = f1(u0,v)of a single argument from f(u,v)  
+      fu = gen_func(f,(v))         # = function of u  (v0 fixed)
+      fv = gen_func(fswapped,(u))  # = function of v  (u0 fixed)
+      
+      # computes the partial derivatives at u0,v0
+      dfdu = gen_prime_deriv(fu) # partial derivative of f dfdu at (u0,v0) (function of u only as v0 is fixed)
+      dfdv = gen_prime_deriv(fv) # partiam derivative of f dfdv at (u0,v0) (function of v only as u0 is fixed)
+      
+      # the gradient of f is thus [dfu,dfv](u0,v0)
+      gradf_uv = np.array([dfdu(u), dfdv(v)])
+      #print("grad at uv", gradf_uv)
+      
+      pushforward = t.space.Shift(u,v)
+      gradf = pushforward.dot(gradf_uv)
+      #print("grad_f", gradf)
+      
+      # current direction of the turtle head
+      head = t.state.heading
+      
+      # angle between head and gradient locally
+      alpha = angle_between(gradf, head) # returned angle between 0 and pi (positive)
+      
+      # find on which side to correct H to get closer to gradient. This depends on the local normal
+      ndir = t.space.normal(u,v)
+      prod = np.cross(head, gradf)
+      sign = np.dot(prod, ndir)
+      if sign < 0:
+        alpha = -alpha  
+      
+      perpgrad = np.cross(ndir, gradf)
+      # angle between head and gradient locally
+      beta = angle_between(perpgrad, head) # returned angle between 0 and pi (positive)
+      
+      # find on which side to correct H to get closer to gradient. This depends on the local normal
+      prod = np.cross(head, perpgrad)
+      sign = np.dot(prod, ndir)
+      if sign < 0:
+        beta = -beta  
+      
+      #### CURVATURES ####
+      if pdirmin_uv == [] or pdirmax_uv == []:
+        deflection_angle = 0
+      elif abs(abs(curvmax)-abs(curvmin))/(abs(curvmax)+abs(curvmin)) < 0.01:
+        # if principal directions are isotropic set deflection angle to 0
+        deflection_angle = 0
+        #print("!! isotropy detected !!") 
+      else: 
+        # re-query the turtle for the next interpretation
+        # turtle's head = 3D vector
+        head = t.state.heading
+        # the principal direction and the turtle head both are in the tangent plane at (u,v).
+        # compute the angle between them 
+        alpha = angle_between(pdirmin, head) # returned angle between 0 and pi
+              
+        #print(f"angle initial = {beta:.3f}")
+        if alpha >= np.pi/2:
+          alpha = np.pi - alpha # alpha is the supplementary angle now less than pi / 2
+          beta = np.degrees(alpha)
+          #print(f"angle sign changed = {np.degrees(alpha):.3f}")
+          # find on which side of H is the tropism vector.
+          # For this compute the vector product between H and T and compare it to the normal vect of the surface.
+          # if positive turn left to get to T +(deflection_angle)
+          # if negavtive turn right to get to T -(deflection_angle) 
+          prod = np.cross(head, pdirmin)
+          sign = np.dot(prod, ndir)
+          if sign < 0:
+            alpha = -alpha  
+      
+      # deflection angle should be alpha in the limit of delta_s = infinity or sensitivity = infinity
+      #deflection_angle = sensitivity * alpha * delta_s 
+      deflection_angle = sensitivity * alpha * delta_s 
+      deflection_angle = np.degrees(deflection_angle)
+      
+      print(f"deflection angle = {deflection_angle:.3f} ")
+      
+      #nproduce [;(4)StaticF(delta_s)]
+      nproduce +(deflection_angle) StaticF(delta_s) ?T B(n-1,f)
+
+
+?T(t) C(n):
+    u,v,p,q = t.uvpq
+    
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = t.space.principalDirections(u,v)
+    if pdirmin_uv != [] and pdirmax_uv != []:
+      pushforward = t.space.Shift(u,v)
+      pdirmax = pushforward.dot(pdirmax_uv)
+      npdirmax = np.linalg.norm(pdirmax)
+      #pdirmax = np.array(pdirmax)/npdirmax
+      #pdirmax = pdirmax*curvmax
+      ndir = t.space.normal(u,v)
+      #pdirmin = np.cross(pdirmax, ndir) 
+      pdirmin = pushforward.dot(pdirmin_uv) 
+      npdirmin = np.linalg.norm(pdirmin)
+      pdirmin = np.array(pdirmin)/npdirmin
+      pdirmin = pdirmin*curvmin
+      #print("pdirmax = ", pdirmax)
+      pdirs = [pdirmax,pdirmin]
+      #nproduce CovariantBasis(0.3)
+      pcurvs = [curvmax,curvmin]
+      
+      print(pdirs, pcurvs)
+    
+    if n > 0:
+      
+      #### CURVATURES ####
+      if pdirmin_uv == [] or pdirmax_uv == []:
+        deflection_angle = 0
+      elif abs(abs(curvmax)-abs(curvmin))/(abs(curvmax)+abs(curvmin)) < 0.01:
+        # if principal directions are isotropic set deflection angle to 0
+        deflection_angle = 0
+        #print("!! isotropy detected !!") 
+      else: 
+        # re-query the turtle for the next interpretation
+        # turtle's head = 3D vector
+        head = t.state.heading
+        # the principal direction and the turtle head both are in the tangent plane at (u,v).
+        # compute the angle between them 
+        alpha = angle_between(pdirmin, head) # returned angle between 0 and pi
+              
+        #print(f"angle initial = {beta:.3f}")
+        if alpha >= np.pi/2:
+          alpha = np.pi - alpha # alpha is the supplementary angle now less than pi / 2
+          beta = np.degrees(alpha)
+          #print(f"angle sign changed = {np.degrees(alpha):.3f}")
+          # find on which side of H is the tropism vector.
+          # For this compute the vector product between H and T and compare it to the normal vect of the surface.
+          # if positive turn left to get to T +(deflection_angle)
+          # if negavtive turn right to get to T -(deflection_angle) 
+          prod = np.cross(head, pdirmin)
+          sign = np.dot(prod, ndir)
+          if sign < 0:
+            alpha = -alpha  
+      
+      # deflection angle should be alpha in the limit of delta_s = infinity or sensitivity = infinity
+      #deflection_angle = sensitivity * alpha * delta_s 
+      deflection_angle = sensitivity * alpha * delta_s 
+      deflection_angle = np.degrees(deflection_angle)
+      
+      print(f"deflection angle = {deflection_angle:.3f} ")
+      
+      #nproduce [;(4)StaticF(delta_s)]
+      nproduce +(deflection_angle) StaticF(delta_s) ?T C(n-1,f)
+
+
+?T(t) D(n):
+    u,v,p,q = t.uvpq
+    if n > 0:
+      found = False
+      i = 0
+      while not found or i > 500: # if too many tries, accept with the risk of moving away
+        i += 1
+        a = 360*random()
+        uvpq_new = riemannian_turtle_turn(t.uvpq, t.space, a)
+        uvpq_s = riemannian_turtle_move_forward(uvpq_new, t.space, delta_s)
+        ut,vt = uvpq_s[-1][:2]
+        K,H,kmin,kmax = t.space.localCurvatures(ut,vt)
+        if K > 0.002:
+          found = True
+        
+      nproduce +(a)P(uvpq_s) ?T D(n-1)
+
+
+
+interpretation:
+
+maximum depth: 3
+
+S:
+  n = 20 # 40 max
+  if TEST == 1 or TEST == 3:
+    ulist = np.linspace(0,1,n)
+    vlist = np.linspace(0,1,n)
+    scalefactor = 6
+    linewidth = 0.1
+  elif TEST == 2:
+    ulist = np.linspace(0,2*np.pi,n)
+    vlist = np.linspace(-np.pi,np.pi,n)
+    scalefactor = 0.5
+    linewidth = 0.02
+
+  color_plus = 5
+  color_minus = 6
+  for u in ulist:
+    for v in vlist:
+      nproduce RiemannMoveTo([u,v]) @O(0.005) A(scalefactor,color_plus,color_minus,linewidth)
+      #nproduce Frame(0.1)
+
+A(scalefactor,color_plus,color_minus,linewidth):
+    u,v,p,q = turtle.uvpq  
+    print(f'u={u:.3f} v={v:.3f} p={p:.3f} q={q:.3f} ')
+    
+    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
+    if np.isnan(kmax):
+      produce 
+      
+    if PRINT_CURVATURES:
+      print("Local curvatures:")
+      print("\tGauss = ", "{:.3f}".format(K), \
+            ", Mean = ", "{:.3f}".format(H), \
+            ", (kmin,kmax)= ", "{:.3f}, {:.3f}".format(kmin,kmax))
+    
+    # principal directions returns the array of eigen-values, and the column matrix of eigen vectors
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
+    if PRINT_CURVATURES:
+      print("eigen values, eigen vectors:")
+      print(curvmin, curvmax)
+      print(pdirmin_uv, pdirmax_uv)
+    
+    #print("The norm of the eigen vectors should be 1: ", np.linalg.norm(evv[:,0]), np.linalg.norm(evv[:,1]) )
+    #produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+    
+    # pdirs_uv are 
+    if pdirmin_uv == []:
+      produce
+    if pdirmax_uv == []:
+      produce
+      
+    # Compute the pushforward of principal direction 1 expressed in the covariant basis
+    pushforward = turtle.space.Shift(u,v)
+    pdirmax = pushforward.dot(pdirmax_uv)
+    print("pdirmax = ", pdirmax)
+    # Compute the local normal vector, and the second principal direction (perpendicular)
+    ndir = turtle.space.normal(u,v)
+    pdirmin = np.cross(pdirmax, ndir)
+    print("pdirmin = ", pdirmin)
+    
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
+    pdirs = [pdirmax,pdirmin]
+    print(pdirs)
+    #nproduce CovariantBasis(0.3)
+    pcurvs = [curvmax,curvmin]
+    
+    #nproduce ;(5)_(0.005)DrawVect(dir1,0.3)
+    #nproduce ;(6)_(0.005)DrawVect(dir2,0.3)
+    nproduce _(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
+    normal = turtle.space.normal(u,v)
+    nproduce DrawVect(normal, 1.)
+
+endlsystem
+
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	Ridge = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.388889, 1), (0, -0.5, -0.277778, 1), (0, -0.5, -0.166667, 1), (0, -0.5, -0.0555556, 1), (0, -0.5, 0.0555556, 1), (0, -0.5, 0.166667, 1), (0, -0.5, 0.277778, 1), (0, -0.5, 0.388889, 1), (0, -0.5, 0.5, 1)], [(0, -0.388889, -0.5, 1), (0, -0.388889, -0.388889, 1), (0, -0.388889, -0.277778, 1), (0, -0.388889, -0.166667, 1), (0, -0.388889, -0.0555556, 1), (0, -0.388889, 0.0555556, 1), (0, -0.388889, 0.166667, 1), (0, -0.388889, 0.277778, 1), (0, -0.388889, 0.388889, 1), (0, -0.388889, 0.5, 1)], [(0, -0.277778, -0.5, 1), (0, -0.277778, -0.388889, 1), (0.271808, -0.277778, -0.277778, 1), (0, -0.277778, -0.166667, 1), (0, -0.277778, -0.0555556, 1), (0, -0.277778, 0.0555556, 1), (0, -0.277778, 0.166667, 1), (0, -0.277778, 0.277778, 1), (0, -0.277778, 0.388889, 1), (0, -0.277778, 0.5, 1)], [(0, -0.166667, -0.5, 1), (0, -0.166667, -0.388889, 1), (0.271808, -0.166667, -0.277778, 1), (0, -0.166667, -0.166667, 1), (0, -0.166667, -0.0555556, 1), (0, -0.166667, 0.0555556, 1), (0, -0.166667, 0.166667, 1), (0, -0.166667, 0.277778, 1), (0.0838311, -0.166667, 0.388889, 1), (0, -0.166667, 0.5, 1)], [(0, -0.0555556, -0.5, 1), (0, -0.0555556, -0.388889, 1), (0.271808, -0.0555556, -0.277778, 1), (-0.00462742, -0.0574333, -0.166782, 1), (0, -0.0555556, -0.0555556, 1), (0, -0.0555556, 0.0555556, 1), (0, -0.0555556, 0.166667, 1), (0.0981799, -0.0555556, 0.277778, 1), (0.0981799, -0.0555556, 0.388889, 1), (0, -0.0555556, 0.5, 1)], [(0, 0.0555556, -0.5, 1), (0, 0.0555556, -0.388889, 1), (0.271808, 0.0555556, -0.277778, 1), (0, 0.0555556, -0.166667, 1), (0, 0.0555556, -0.0555556, 1), (0, 0.0555556, 0.0555556, 1), (0, 0.0555556, 0.166667, 1), (0.310466, 0.0555556, 0.277778, 1), (0, 0.0555556, 0.388889, 1), (0, 0.0555556, 0.5, 1)], [(0, 0.166667, -0.5, 1), (0, 0.166667, -0.388889, 1), (0.223578, 0.166667, -0.277778, 1), (0.252751, 0.166667, -0.166667, 1), (0.252751, 0.166667, -0.0555556, 1), (0.222452, 0.166667, 0.0555556, 1), (0.245043, 0.166667, 0.166667, 1), (0.310466, 0.166667, 0.277778, 1), (0, 0.166667, 0.388889, 1), (0, 0.166667, 0.5, 1)], [(0, 0.277778, -0.5, 1), (0, 0.277778, -0.388889, 1), (0, 0.277778, -0.277778, 1), (0, 0.277778, -0.166667, 1), (0, 0.277778, -0.0555556, 1), (0.179704, 0.277778, 0.0555556, 1), (0, 0.277778, 0.166667, 1), (0, 0.277778, 0.277778, 1), (0, 0.277778, 0.388889, 1), (0, 0.277778, 0.5, 1)], [(0, 0.388889, -0.5, 1), (0, 0.388889, -0.388889, 1), (0, 0.388889, -0.277778, 1), (0, 0.388889, -0.166667, 1), (0, 0.388889, -0.0555556, 1), (0, 0.388889, 0.0555556, 1), (0, 0.388889, 0.166667, 1), (0, 0.388889, 0.277778, 1), (0, 0.388889, 0.388889, 1), (0, 0.388889, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.388889, 1), (0, 0.5, -0.277778, 1), (0, 0.5, -0.166667, 1), (0, 0.5, -0.0555556, 1), (0, 0.5, 0.0555556, 1), (0, 0.5, 0.166667, 1), (0, 0.5, 0.277778, 1), (0, 0.5, 0.388889, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 31 , vstride = 29 , 	    )
+	Ridge.name = "Ridge"
+	RidgeS = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, -0.5, 1), (0, -0.5, -0.428571, 1), (0, -0.5, -0.357143, 1), (0, -0.5, -0.285714, 1), (0, -0.5, -0.214286, 1), (0, -0.5, -0.142857, 1), (0, -0.5, -0.0714286, 1), (0, -0.5, 0, 1), (0, -0.5, 0.0714286, 1), (0, -0.5, 0.142857, 1), (0, -0.5, 0.214286, 1), (0, -0.5, 0.285714, 1), (0, -0.5, 0.357143, 1), (0, -0.5, 0.428571, 1), (0, -0.5, 0.5, 1)], [(0, -0.428571, -0.5, 1), (0, -0.428571, -0.428571, 1), (0, -0.428571, -0.357143, 1), (0, -0.428571, -0.285714, 1), (0, -0.428571, -0.214286, 1), (0, -0.428571, -0.142857, 1), (0, -0.428571, -0.0714286, 1), (0, -0.428571, 0, 1), (0, -0.428571, 0.0714286, 1), (0, -0.428571, 0.142857, 1), (0, -0.428571, 0.214286, 1), (0, -0.428571, 0.285714, 1), (0, -0.428571, 0.357143, 1), (0, -0.428571, 0.428571, 1), (0, -0.428571, 0.5, 1)], [(0, -0.357143, -0.5, 1), (0, -0.357143, -0.428571, 1), (0, -0.357143, -0.357143, 1), (0, -0.357143, -0.285714, 1), (0, -0.357143, -0.214286, 1), (0, -0.357143, -0.142857, 1), (0, -0.357143, -0.0714286, 1), (0, -0.357143, 0, 1), (0.40194, -0.357143, 0.0714286, 1), (0.40194, -0.357143, 0.142857, 1), (0.40194, -0.357143, 0.214286, 1), (0.40194, -0.357143, 0.285714, 1), (0, -0.357143, 0.357143, 1), (0, -0.357143, 0.428571, 1), (0, -0.357143, 0.5, 1)], [(0, -0.285714, -0.5, 1), (0, -0.285714, -0.428571, 1), (0, -0.285714, -0.357143, 1), (0, -0.285714, -0.285714, 1), (0, -0.285714, -0.214286, 1), (0, -0.285714, -0.142857, 1), (0, -0.285714, -0.0714286, 1), (0.40194, -0.285714, 0, 1), (0, -0.285714, 0.0714286, 1), (0, -0.285714, 0.142857, 1), (0, -0.285714, 0.214286, 1), (0, -0.285714, 0.285714, 1), (0.40194, -0.285714, 0.357143, 1), (0, -0.285714, 0.428571, 1), (0, -0.285714, 0.5, 1)], [(0, -0.214286, -0.5, 1), (0, -0.214286, -0.428571, 1), (0, -0.214286, -0.357143, 1), (0, -0.214286, -0.285714, 1), (0, -0.214286, -0.214286, 1), (0, -0.214286, -0.142857, 1), (0.40194, -0.214286, -0.0714286, 1), (0, -0.214286, 0, 1), (0, -0.214286, 0.0714286, 1), (0, -0.214286, 0.142857, 1), (0, -0.214286, 0.214286, 1), (0, -0.214286, 0.285714, 1), (0, -0.214286, 0.357143, 1), (0, -0.214286, 0.428571, 1), (0, -0.214286, 0.5, 1)], [(0, -0.142857, -0.5, 1), (0, -0.142857, -0.428571, 1), (0, -0.142857, -0.357143, 1), (0, -0.142857, -0.285714, 1), (0, -0.142857, -0.214286, 1), (0, -0.142857, -0.142857, 1), (0.40194, -0.142857, -0.0714286, 1), (0, -0.142857, 0, 1), (0, -0.142857, 0.0714286, 1), (0, -0.142857, 0.142857, 1), (0, -0.142857, 0.214286, 1), (0, -0.142857, 0.285714, 1), (0, -0.142857, 0.357143, 1), (0, -0.142857, 0.428571, 1), (0, -0.142857, 0.5, 1)], [(0, -0.0714286, -0.5, 1), (0, -0.0714286, -0.428571, 1), (0, -0.0714286, -0.357143, 1), (0, -0.0714286, -0.285714, 1), (0, -0.0714286, -0.214286, 1), (0, -0.0714286, -0.142857, 1), (0, -0.0714286, -0.0714286, 1), (0.40194, -0.0714286, 0, 1), (0, -0.0714286, 0.0714286, 1), (0, -0.0714286, 0.142857, 1), (0, -0.0714286, 0.214286, 1), (0, -0.0714286, 0.285714, 1), (0, -0.0714286, 0.357143, 1), (0, -0.0714286, 0.428571, 1), (0, -0.0714286, 0.5, 1)], [(0, 0, -0.5, 1), (0, 0, -0.428571, 1), (0, 0, -0.357143, 1), (0, 0, -0.285714, 1), (0, 0, -0.214286, 1), (0, 0, -0.142857, 1), (0, 0, -0.0714286, 1), (0, 0, 0, 1), (0.40194, 0, 0.0714286, 1), (0, 0, 0.142857, 1), (0, 0, 0.214286, 1), (0, 0, 0.285714, 1), (0, 0, 0.357143, 1), (0, 0, 0.428571, 1), (0, 0, 0.5, 1)], [(0, 0.0714286, -0.5, 1), (0, 0.0714286, -0.428571, 1), (0, 0.0714286, -0.357143, 1), (0, 0.0714286, -0.285714, 1), (0, 0.0714286, -0.214286, 1), (0, 0.0714286, -0.142857, 1), (0, 0.0714286, -0.0714286, 1), (0, 0.0714286, 0, 1), (0, 0.0714286, 0.0714286, 1), (0.40194, 0.0714286, 0.142857, 1), (0, 0.0714286, 0.214286, 1), (0, 0.0714286, 0.285714, 1), (0, 0.0714286, 0.357143, 1), (0, 0.0714286, 0.428571, 1), (0, 0.0714286, 0.5, 1)], [(0, 0.142857, -0.5, 1), (0, 0.142857, -0.428571, 1), (0, 0.142857, -0.357143, 1), (0, 0.142857, -0.285714, 1), (0, 0.142857, -0.214286, 1), (0, 0.142857, -0.142857, 1), (0, 0.142857, -0.0714286, 1), (0, 0.142857, 0, 1), (0, 0.142857, 0.0714286, 1), (0, 0.142857, 0.142857, 1), (0.40194, 0.142857, 0.214286, 1), (0, 0.142857, 0.285714, 1), (0, 0.142857, 0.357143, 1), (0, 0.142857, 0.428571, 1), (0, 0.142857, 0.5, 1)], [(0, 0.214286, -0.5, 1), (0, 0.214286, -0.428571, 1), (0, 0.214286, -0.357143, 1), (0.40194, 0.214286, -0.285714, 1), (0, 0.214286, -0.214286, 1), (0, 0.214286, -0.142857, 1), (0, 0.214286, -0.0714286, 1), (0, 0.214286, 0, 1), (0, 0.214286, 0.0714286, 1), (0, 0.214286, 0.142857, 1), (0.40194, 0.214286, 0.214286, 1), (0, 0.214286, 0.285714, 1), (0, 0.214286, 0.357143, 1), (0, 0.214286, 0.428571, 1), (0, 0.214286, 0.5, 1)], [(0, 0.285714, -0.5, 1), (0, 0.285714, -0.428571, 1), (0, 0.285714, -0.357143, 1), (0, 0.285714, -0.285714, 1), (0.40194, 0.285714, -0.214286, 1), (0, 0.285714, -0.142857, 1), (0, 0.285714, -0.0714286, 1), (0, 0.285714, 0, 1), (0, 0.285714, 0.0714286, 1), (0.40194, 0.285714, 0.142857, 1), (0, 0.285714, 0.214286, 1), (0, 0.285714, 0.285714, 1), (0, 0.285714, 0.357143, 1), (0, 0.285714, 0.428571, 1), (0, 0.285714, 0.5, 1)], [(0, 0.357143, -0.5, 1), (0, 0.357143, -0.428571, 1), (0, 0.357143, -0.357143, 1), (0, 0.357143, -0.285714, 1), (0, 0.357143, -0.214286, 1), (0.40194, 0.357143, -0.142857, 1), (0.40194, 0.357143, -0.0714286, 1), (0.40194, 0.357143, 0, 1), (0.40194, 0.357143, 0.0714286, 1), (0, 0.357143, 0.142857, 1), (0, 0.357143, 0.214286, 1), (0, 0.357143, 0.285714, 1), (0, 0.357143, 0.357143, 1), (0, 0.357143, 0.428571, 1), (0, 0.357143, 0.5, 1)], [(0, 0.428571, -0.5, 1), (0, 0.428571, -0.428571, 1), (0, 0.428571, -0.357143, 1), (0, 0.428571, -0.285714, 1), (0, 0.428571, -0.214286, 1), (0, 0.428571, -0.142857, 1), (0, 0.428571, -0.0714286, 1), (0, 0.428571, 0, 1), (0, 0.428571, 0.0714286, 1), (0, 0.428571, 0.142857, 1), (0, 0.428571, 0.214286, 1), (0, 0.428571, 0.285714, 1), (0, 0.428571, 0.357143, 1), (0, 0.428571, 0.428571, 1), (0, 0.428571, 0.5, 1)], [(0, 0.5, -0.5, 1), (0, 0.5, -0.428571, 1), (0, 0.5, -0.357143, 1), (0, 0.5, -0.285714, 1), (0, 0.5, -0.214286, 1), (0, 0.5, -0.142857, 1), (0, 0.5, -0.0714286, 1), (0, 0.5, 0, 1), (0, 0.5, 0.0714286, 1), (0, 0.5, 0.142857, 1), (0, 0.5, 0.214286, 1), (0, 0.5, 0.285714, 1), (0, 0.5, 0.357143, 1), (0, 0.5, 0.428571, 1), (0, 0.5, 0.5, 1)]]) , 
+ustride = 36 , vstride = 39 , 	    )
+	RidgeS.name = "RidgeS"
+	import openalea.plantgl.all as pgl
+	kernel = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.745472, 1),(0.070078, 0.71978, 1),(0.11944, 0.5832, 1),(0.173414, 0.0789699, 1),(0.396988, -0.0118607, 1),(1, 0.00155284, 1)]) , 
+	    stride = 36 , 
+	    )
+	kernel.name = "kernel"
+	height = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.0153321, 1),(0.363248, 0.724326, 1),(0.630824, 0.729187, 1),(1, 0.015471, 1)]) , 
+	    )
+	height.name = "height"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',Ridge),('NurbsPatch',RidgeS),('Function',kernel),('Function',height)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('kernel',kernel),('height',height),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["Ridge"] = Ridge
+	context["RidgeS"] = RidgeS
+	context["kernel"] = pgl.QuantisedFunction(kernel)
+	context["height"] = pgl.QuantisedFunction(height)
+__references__ = '#'

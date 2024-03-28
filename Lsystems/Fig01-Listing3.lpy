@@ -1,0 +1,5 @@
+Axiom : _(0.001)F(1) -(120) F(1) -(120) F(1)
+derivation length : 5
+production :
+F(x) : nproduce F(x/3.0) + F(x/3.0) -- F(x/3.0) + F(x/3.0)
+endlsystem

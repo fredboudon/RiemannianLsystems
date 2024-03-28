@@ -1,0 +1,8 @@
+from random import random
+dl = 1.
+Axiom : A (0)
+derivation length : 100
+production :
+A(n) :
+  a = 360* random()
+  nproduce +(a) F(dl) A(n+1)

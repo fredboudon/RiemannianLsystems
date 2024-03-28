@@ -1,0 +1,22 @@
+N = 10                                
+offset = 2                                   
+iangle = 60
+
+Axiom:  _(0.5)A(0)
+derivation length: N
+production: 
+A(n) :
+  if n<N:      # produces an internode, a lateral bud (in [...]) and an apical bud
+    nproduce I(n) [P(n)A(n+offset)] A(n+1)
+  else:        # produces a flower bud
+    nproduce B 
+
+interpretation:
+I(n) : nproduce ;(1)F(N-n)
+P(n) :         # Phyllotaxis angle
+  if n%2 == 0 : nproduce  +(iangle)
+  else: nproduce -(iangle)
+A(n): nproduce ;(2)@O(1.5)
+B : nproduce F(1);(3)@O(1.5)
+
+endlsystem
