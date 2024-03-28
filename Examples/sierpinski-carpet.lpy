@@ -1,3 +1,5 @@
+# Fig19.a --> just the sequence on consecutive derivations
+
 Axiom: _(0.05);(2)+(180)f(5)-(180)F(10)
 
 derivation length: 5
