@@ -1,33 +1,25 @@
-from math import ceil, pi
-from random import random, uniform,seed
-from riemann_lsystem.surfaces import *
-from riemann_lsystem.riemannianturtle import *
-
+from math import pi
+from random import  uniform,seed
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
-SPACE = 1 if SPHERE else 2
+seed(1)
 
-LINEWIDTH = 0.1
-squarelength = 8 if SPACE == 2 else 5
 R = 5
 nbseg = 30
-
-seed(1)
 nb = 25
 dim = R*pi
 heigth = 0.8
-#dim, heigth = 2*R*pi, 2.5
-
 pts = [[[(i/nb-0.5)*dim,(j/nb-0.5)*dim,heigth*uniform(-1,1),1] for i in range(nb)] for j in range(nb)]
 npatch = NurbsPatch(pts, ustride= 200, vstride=200)
 
+squarelength = 8 if not SPHERE else 5
 
 module Square1, Square2, Square3, Squarei
 
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce _(LINEWIDTH)
-  if SPACE == 1:
+  nproduce _(0.1)
+  if SPHERE :
     nproduce SetSpace(Sphere(R))
     nproduce ;(0)PlotSpace() ;(3)
     nproduce InitTurtle([0,0,0,1])f(1) 
@@ -38,7 +30,7 @@ Axiom:
   nproduce  Squarei(0)
 
 
-derivation length: 3
+derivation length: 2
 production:
 Squarei(i) --> Squarei(i+1)
 
@@ -50,25 +42,22 @@ Squarei(i):
   elif i == 1: produce Square2()
   else : produce Square3()
 
+SquareF(l):
+  nproduce -(90)f(l/2)+(90)@Gc F(l)+(90)F(l)+(90)F(l)+(90)F(l)
+
 Square1():
   nproduce  SquareF(squarelength)
 
 Square2():
+  if SPHERE: l = squarelength/R
+  else:      l = squarelength/(dim)
+  
   nproduce StartIndirectInterpretation
-  if SPACE == 1:
-    l = squarelength/R
-  else:
-    l = squarelength/(dim)
-    print(l)    
   nproduce SquareF(l)
-
-
-SquareF(l):
-  nproduce -(90)f(l/2)+(90)@Gc F(l)+(90)F(l)+(90)F(l)+(90)F(l)
 
 Square3():
   l = sqrt(2)*squarelength/2
-  if SPACE == 1:
+  if SPHERE:
     uvpq_s = riemannian_turtle_move_forward(turtle.uvpq, turtle.space, squarelength/2, 5)
     uvpq0 = uvpq_s[-1]
   else:
@@ -78,7 +67,6 @@ Square3():
   for ac,lc in coords:
     uvpq = riemannian_turtle_turn(uvpq0, turtle.space, ac)
     uvpq_s = riemannian_turtle_move_forward(uvpq, turtle.space, lc)
-    print(turtle.space.path_length(uvpq_s))
     uvcoords.append(uvpq_s[-1][:2])
   
   nproduce RiemannMoveTo(uvpq0[:2]) RiemannPinpoint(uvpq0[2:])
@@ -103,7 +91,7 @@ def __initialiseContext__(context):
 	Color_7 = pgl.Material("Color_7" , ambient = (0,0,0) , diffuse = 5 , )
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
-	scalars = [('SPHERE', 'Bool', False)]
+	scalars = [('SPHERE', 'Bool', True)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]
