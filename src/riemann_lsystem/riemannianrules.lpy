@@ -549,7 +549,7 @@ StaticF(length, topdiam, cache):
     orientHead(turtle)
     produce
 
-StaticF(length, dl, topdiam, cache):
+StaticF(length, topdiam, dl, cache):
     stepnb = int(ceil(length / dl))
     currentdiam =turtle.getWidth()
     ddiam = (topdiam - currentdiam)/stepnb

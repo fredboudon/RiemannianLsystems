@@ -1,8 +1,6 @@
-# Lane and Riesenfeld algo for generating BSpline with subdivision
-from math import *
-from riemann_lsystem.surfaces import *
-from riemann_lsystem.riemannianturtle import *
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
+from math import *
+# Lane and Riesenfeld algo for generating BSpline with subdivision
 
 points = [(-0.5,-0.5),(-0.5,0.5),(0.5,0.5),(0.5,-0.5)]
 
