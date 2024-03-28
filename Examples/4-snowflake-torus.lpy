@@ -5,7 +5,11 @@
 		Date: 2019-2020
 		
 	Simulates a fractal on a pseudo sphere 
-
+	
+	Fig12.b --> TEST = 1, R = 1, slen = 1
+	Fig12.c --> TEST = 1, R = 0.5, slen = 1
+	Fig12.d --> TEST = 2, R = 1, slen = 1 (then 2,3,4,5)
+	
 """
 
 import numpy as np
@@ -39,7 +43,7 @@ meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
 cm = 0.01 * meter
 
 # Surface parameters
-R = 1. * meter   # Radius of the sphere in meter
+R = 0.5 * meter   # Radius of the sphere in meter
 r = 0.2 * meter
 
 #######################
@@ -68,18 +72,23 @@ FRAMEWIDTH = 1 * cm
 nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
             # To draw one geodesic, set it to 1 and set dashed to False
 
-slen = 0.5 # 0.7
+slen = 1. # 0.7
 
+TEST = 1 
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   #nproduce SetSpace(PseudoSphere(R))
-  nproduce SetSpace(Torus(R))
+  if TEST == 1:
+    nproduce SetSpace(Sphere(R))
+  else:
+    nproduce SetSpace(Torus(R))
   nproduce ;(0)PlotSpace(dict(CCW = True))
   nproduce InitTurtle([1.0,0.00,1.0,0.1])
-  nproduce ;(6)_(LINEWIDTH)F(slen)-(120)
-  #nproduce ;(6)_(LINEWIDTH)F(slen)-(120)F(slen)-(120)F(slen)
- 
+  if TEST == 1:
+    nproduce ;(6)_(LINEWIDTH)F(slen)-(120)F(slen)-(120)F(slen)
+  else:
+    nproduce ;(6)_(LINEWIDTH)F(slen)-(120)
 
 derivation length: 5
 production:
