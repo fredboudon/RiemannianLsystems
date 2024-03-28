@@ -4,7 +4,9 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Computation of curvatures on different surfaces
+	Fig20.c --> TEST = 1, CURVE = 1  
+	Fig20.d --> TEST = 3, CURVE = 2  
+
 """
 
 import numpy as np
@@ -215,8 +217,8 @@ dt = 0.04
 # Selection of a test
 ##################################
 
-TEST =  1   # 1: excentered gaussian, 2: eggbox, 3: mushroom
-CURVE = 1  # 0: von Koch, 1: Sierpinski carpet, 2: Peano
+TEST =  3   # 1: excentered gaussian, 2: eggbox, 3: mushroom
+CURVE = 2  # 0: von Koch, 1: Sierpinski carpet, 2: Peano
 NMAX = 10  # 3: to show the effect of non division due to growth, otherwise put it large
 
 def EndEach(lstring):

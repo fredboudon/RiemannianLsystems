@@ -4,7 +4,8 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Computation of curvatures on different surfaces
+	Fig20.a --> TEST = 3, INDIRECT_INTERPRETATION  = True, FEEDBACK = False
+	Fig20.b --> TEST = 3, INDIRECT_INTERPRETATION  = True, FEEDBACK = True
 """
 
 import numpy as np
@@ -206,6 +207,8 @@ INITIAL_SEG_LEN_DIRECT = 7      # for direct interpretation
 ACTUAL_LENGTH_ON_SURFACE = True # to estimate the distance between endpoints by summing distances on the surface
 SEGLEN_RESOLUTION = 0.5         # length units (size of the patch in x,y is 10)
 
+FEEDBACK = True
+
 xy_speedup_factor = 1.0         # increase to speed up the horizontal mushroom growth
 
 ##################################
@@ -334,8 +337,11 @@ maximum depth: 2
     D = linalg.norm(P2-P1)
     
     assert(D>=0)
-    
-    if D > SEGLEN_RESOLUTION:
+    COND = True
+    if not FEEDBACK and n1 >= 3:
+      COND = False
+
+    if D > SEGLEN_RESOLUTION and COND:
         nproduce    B(n1+1)StaticF(x/3,{})C(n2+1)?T +(60)   
         nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)?T -(120)
         nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)?T +(60)
@@ -362,7 +368,10 @@ maximum depth: 2
     
     assert(D>=0)
     
-    if D > SEGLEN_RESOLUTION:
+    COND = True
+    if not FEEDBACK and n1 >= 3:
+      COND = False
+    if D > SEGLEN_RESOLUTION and COND: # add condition n1 < 3 to avoid divisions due to space growth dilation
         nproduce F(D/3)?T+(60)   
         nproduce ?T F(D/3)?T -(120)
         nproduce ?T F(D/3)?T +(60)
