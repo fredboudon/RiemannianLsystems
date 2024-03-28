@@ -4,7 +4,7 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Computation of curvatures on different surfaces
+	Fig18.a --> TEST = 1
 """
 
 import numpy as np

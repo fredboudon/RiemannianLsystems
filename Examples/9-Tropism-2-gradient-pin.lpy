@@ -4,7 +4,7 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Computation of curvatures on different surfaces
+	Fig 18 c-d: sensitivity = 0 then 0.1, 0.7, 1.5, 3.0, 5.0
 """
 
 import numpy as np
@@ -95,9 +95,11 @@ MAXSTEPLEN = 0.02
 # Controling the tropism field
 #######################
 
-sensitivity = 5 # 1.0 rate of geometric tropism: it is in units of angle per distance units
-                 # how much Turtle Head must turn for a distance delta_s at the surface
-                 # The actual angle is prop to the angle (between current Head and the principal direction) and to the distance ds
+#try 0.0, 0.1, 0.7, 1.5, 3.0, 5.0
+sensitivity = 0.1 # rate of geometric tropism: it is in units of angle per distance units
+                  # how much Turtle Head must turn for a distance delta_s at the surface
+                  # The actual angle is prop to the angle 
+                  # (between current Head and the principal direction) and to the distance ds
              
 def PinScalarField(u,v):
   # it is assumed that umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2
@@ -111,7 +113,7 @@ def PinScalarField(u,v):
 # Selection of tests
 #########################
 
-GEODESIC = False           # Displays the pure Geodesic
+GEODESIC = True           # Displays in addition the pure Geodesic (without deflection) as a reference trajectory
 TUBE = True               # Displays the tube trajectory = geodesic + deviation due to gradient
 
 STOP_IN_SOURCE_REGION= True # If True, the computations of Geodesics stop as soon as they reach the source region.
