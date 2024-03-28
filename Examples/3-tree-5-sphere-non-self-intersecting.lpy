@@ -4,7 +4,8 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-   Test the growth of a tree on a chinese hat
+   Fig17.d --> TEST1 = True, derivation length: 7
+   Fig17.e --> TEST1 = False, derivation length: 16
 
 """
 
@@ -106,7 +107,7 @@ Axiom:
   nproduce ;(6)_(LINEWIDTH)?T(ParameterSet())A(0)
 
 # Try up to 16
-derivation length: 10 
+derivation length: 16 
 production:
 
 ?T(tstate) A(n):
@@ -114,9 +115,9 @@ production:
   ba, la = (-angle, 30) if n % 2 == 0 else (angle,-30)
   
   if TEST1:
-    ilen = 0.20
+    ilen = 0.30
   else:
-    ilen = 0.10
+    ilen = 0.15
   uvpq_s = forward(tstate,ilen, MAXSTEPLEN)
 
   # Construct the corresponding line made of uv coords
