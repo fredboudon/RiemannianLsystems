@@ -9,6 +9,9 @@
 
 	- To draw a geodesic of length L set with 10 segments of equal size (L/10): length_geodesic = L, nb_seg = 10
 	- TODO: take a convention where principal curvatures are counted positive for the sphere ?
+	
+	Fig13.d-left --> REWIND
+	Fig13.d-left --> ANIMATE til the end (takes 1'45 on a Mac M1 Max)
 
 """
 

@@ -6,6 +6,9 @@
 
    Test the growth of a tree on a chinese hat
 
+   Fig13.b-left --> root_altitude = 3.5
+   Fig13.b-mid --> root_altitude = 1.0
+   Fig13.b-right --> root_altitude = -0.5
 """
 
 import numpy as np
@@ -84,7 +87,7 @@ def length(n):
   return 4*STEPSIZE - 4*n * STEPSIZE/10.
 
 extern(root_altitude_max = -3.5)
-extern(root_altitude_min = 3.5)
+extern(root_altitude_min = -0.5)
 extern(alt_nb = 30)     # the interval [root_altitude_min, root_altitude_max] is divided into alt_nb intervals of equal sizes          
 extern(alt_index = 9)  # 9,15, 21, alt_index defines the altitude of the simulated tree 
 

@@ -6,7 +6,11 @@
 
 	- Tree on a Chinese hat
 	TODO: plot the leaves a bit above the tangent plane to see them all (could use information on the local curvature!)
-
+	
+	Fig13.c-left --> TEST = 0
+	Fig13.c-mid  --> TEST = 1
+	Fig13.c-right--> TEST = 2
+	
 """
 
 import numpy as np
@@ -79,15 +83,21 @@ LINEWIDTH = 0.02
 LEAVES = False
 ROTATELEAF = False
 
+TEST = 0
 
 def length(n):
   return 4*STEPSIZE - 1*n * STEPSIZE/40.
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  nproduce SetSpace(Torus(R, R/3.7))
-  #nproduce ;(0)PlotSpace
-  nproduce ;(3)InitTurtle([0,np.pi,1,0])
+  if TEST > 0:
+    nproduce SetSpace(Torus(R, R/3.7))
+    #nproduce ;(0)PlotSpace
+    if TEST == 1:
+      nproduce ;(3)InitTurtle([0,0,1,0])
+    else:
+      nproduce ;(3)InitTurtle([0,np.pi,1,0])
+  
   nproduce ;(6)_(LINEWIDTH)A(0)
  
 derivation length: 9
@@ -102,7 +112,10 @@ A(n):
     ba = angle
     la = -30
   #print(length(n))
-  nproduce StaticF(0.25) [+(ba)
+  if TEST > 0:
+    nproduce StaticF(0.25) [+(ba)
+  else:
+    nproduce F(0.25) [+(ba)
   if LEAVES:
     nproduce [L(la,0)]
   nproduce A(n+1)]
