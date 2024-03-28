@@ -4,7 +4,9 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Computation of curvatures on different surfaces
+	Fig19.b --> TEST = 3, INDIRECT_INTERPRETATION = True, FRACTAL_DEPTH = 4 (long simulation, try FRACTAL_DEPTH = 3 first)
+	Fig19.c --> TEST = 3,  INDIRECT_INTERPRETATION = False, FRACTAL_DEPTH = 4 (long simulation, try FRACTAL_DEPTH = 3 first)
+	
 """
 
 import numpy as np
@@ -59,7 +61,7 @@ FRAMEWIDTH = 1 * cm
 #######################
 # SIMULATION PARAMETERS
 #######################
-extern(FRACTAL_DEPTH = 5)
+extern(FRACTAL_DEPTH = 3)
 extern(T = 40)  # Controls the depth of the eggs (0 is flat)
 extern(dt = 0.04)
 
@@ -78,7 +80,23 @@ m, n = 11,11
 TEST = 1           # To test different parametric surfaces
 PRINT_TEST = 2     # To print different types of results related to curvature
 
-INDIRECT_INTERPRETATION = True
+
+##################################
+# Simulation parameters
+##################################
+
+TotalTimeSteps = 100
+dt = 0.04  
+
+INDIRECT_INTERPRETATION = False
+
+INITIAL_SEG_LEN_INDIRECT = 0.65    # for indirect interpretation
+INITIAL_SEG_LEN_DIRECT = 6      # for direct interpretation
+SEGLEN_RESOLUTION = 0.5         # length units (size of the patch in x,y is 10)
+
+xy_speedup_factor = 1.0
+
+TEST = 3
 
 #nurbscurve = NurbsCurve([...])
 # getter
@@ -127,7 +145,6 @@ def gaus2d(x=0, y=0, mx=0, my=0, sx=1, sy=1):
 # Eggbox: a = height of bumps, b = wave length
 def eggbox(x=0, y=0, a=1, b=1):
   return a * (np.cos(2*np.pi * x/b) + np.sin(2* np.pi*y/b))
-
 
 def matctrlpts_mn(m,n):
   assert (m>0 and n >0)
@@ -187,9 +204,7 @@ def matgrowthrate_z_mn(m,n,func, **args):
       mat[i,j] = func(i,j, **args)
   return mat
 
-
 NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
-
 
 # growth rates
 gr11 = 0.5
@@ -206,17 +221,16 @@ def move_ctrlpt_vertical(NURBSspace, dt, ctrlpt, gr_rate):
   #print("After:",v)
   NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
   return True
-  
-def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y):
+
+def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y, xy_speedup_factor = 1):
   v = NURBSspace.ctrlPointMatrix[ctrlpt]
   #print("Before:", v)
-  v[0] = v[0] + gr_rate_x * dt
-  v[1] = v[1] + gr_rate_y * dt
+  v[0] = v[0] + gr_rate_x * dt *xy_speedup_factor  
+  v[1] = v[1] + gr_rate_y * dt *xy_speedup_factor 
   #print("After:",v)
   NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
   return True
 
-TEST = 3
 
 module NSpace
 
@@ -225,6 +239,7 @@ Axiom:
     bump_pos = 5
     bump_width = 0.8
     bump_height = 7
+    xy_speedup_factor = 2.0
     grid_growthrates_x = None
     grid_growthrates_y = None
     grid_growthrates_z = matgrowthrate_z_mn(m,n,gaus2d,mx=bump_pos,my=bump_pos,sx=bump_width,sy=bump_width)
@@ -232,12 +247,14 @@ Axiom:
   elif TEST == 2: # Vertical development (eggbox)
     height = 0.5
     wavelength = 0.8
+    xy_speedup_factor = 2.0
     grid_growthrates_x = None
     grid_growthrates_y = None
     grid_growthrates_z = matgrowthrate_z_mn(m,n,eggbox,a = height, b = wavelength)
     grid_growthrates_z = grid_growthrates_z * height
   elif TEST == 3: # Mushroom development
     scale = 14
+    xy_speedup_factor = 2.0
     #grid_growthrates_x = grid_growthrates_y = None
     grid_growthrates_x, grid_growthrates_y, grid_growthrates_z = matgrowthrate_xyz_mn(m,n,gaus2d,mx=5,my=5,sx=1.,sy=1.)
     grid_growthrates_z = grid_growthrates_z*scale
@@ -253,39 +270,70 @@ Axiom:
   nproduce SetSpace(Patch(nspace))
   #nproduce ;(0)PlotSpace(dic)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  u0= 0.6 # 0.5 and 0.6
-  v0= 0.05
-  nproduce InitTurtle([u0,v0,0,1])
+  u0= 0.3 # 0.5 and 0.6
+  v0= 0.4
+  nproduce InitTurtle([u0,v0,1,0])
   #nproduce InitTurtle([u0,v0,0,1])
   #nproduce [;(3)@O(0.1)]
-  
-  for t in range(T):  # deforme eggbox as a function of time
-    for i in range(m):
-      for j in range(n):
-        move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
-        #if grid_growthrates_x != None and grid_growthrates_y != None:
-        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
-  
+    
   nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
   a = 8.0
   if INDIRECT_INTERPRETATION:
     nproduce StartIndirectInterpretation
-    a = 0.6  # 0.8, 0.9
-    nproduce ;(5)_(LINEWIDTH*1.5) StaticF(a,{})
+    INITIAL_SEG_LEN = INITIAL_SEG_LEN_INDIRECT
+    nproduce ;(5)_(LINEWIDTH) B(0)StaticF(INITIAL_SEG_LEN, {})
   else:
-    nproduce ;(5)_(LINEWIDTH*1.5) F(a)
+    INITIAL_SEG_LEN = INITIAL_SEG_LEN_DIRECT
+    nproduce ;(5)_(LINEWIDTH) B(0) F(INITIAL_SEG_LEN) 
   if INDIRECT_INTERPRETATION:
     nproduce StopIndirectInterpretation
+  nproduce A 
 
-
-derivation length: FRACTAL_DEPTH
+derivation length: TotalTimeSteps
 production:
 
-F(x):
-  produce F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)-(90)F(x/3.0)-(90)f(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)+(90)F(x/3.0)-(90)F(x/3.0)
+NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
+  #move_ctrlpt(delta_t, (2,2), gr11)
+  for i in range(m):
+    for j in range(n):
+      move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
+      if grid_growthrates_x != [] and grid_growthrates_y != []:
+        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j], xy_speedup_factor)
+  produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
 
-StaticF(x,dict):
-  produce StaticF(x/3.0,{})+(90)StaticF(x/3.0,{})-(90)StaticF(x/3.0,{})-(90)StaticF(x/3.0,{})-(90)f(x/3.0)+(90)StaticF(x/3.0,{})+(90)StaticF(x/3.0,{})+(90)StaticF(x/3.0,{})-(90)StaticF(x/3.0,{})
+
+# Necessary to put the second argument for the StaticF as otherwise, if the last arg is not a dictionary
+# an argument will be added to the module to cach the forward data (a dictionary), and this will 
+# make it impossible match the module StaticF afterwards as the signatures would be different ...
+B(n1)StaticF(x, dict):
+    # print('getIterationNb() = ', getIterationNb())
+    if n1 <FRACTAL_DEPTH:
+        nproduce    B(n1+1)StaticF(x/3,{})?T +(90)   
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)Staticf(x/3,{})?T +(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T +(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T +(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T 
+    else:
+        nproduce B(n1)StaticF(x, dict)
+
+B(n1)F(x):
+    # print('getIterationNb() = ', getIterationNb())
+    if n1 < FRACTAL_DEPTH:
+        nproduce    B(n1+1)F(x/3)?T +(90)   
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)f(x/3)?T +(90)
+        nproduce ?T B(n1+1)F(x/3)?T +(90)
+        nproduce ?T B(n1+1)F(x/3)?T +(90)
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)F(x/3)?T 
+    else:
+        nproduce B(n1)F(x)
 
 
 
