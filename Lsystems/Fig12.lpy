@@ -1,0 +1,43 @@
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+def StartInterpretation(turtle):
+  turtle.clear_parameters()
+
+# Surface parameters
+R = 1  if not HALF_RADIUS else 0.5 # Radius of the sphere in meter
+
+Axiom: 
+  # Sets the Riemanian space in which the turtle will move
+  if SPACE == 1:
+    nproduce SetSpace(Sphere(R))
+  elif SPACE == 2:
+    nproduce SetSpace(Torus(R))
+  if SPACE != 0:
+    nproduce ;(0)PlotSpace(dict(CCW = True))
+    nproduce InitTurtle([1.0,0.00,1.0,0.1])
+    
+  nproduce;(6)_(0.005)
+  if SPACE != 2:
+    nproduce F(SEGLENGTH)-(120)F(SEGLENGTH)-(120)F(SEGLENGTH)
+  else:
+    nproduce F(SEGLENGTH)
+
+derivation length: 5
+production:
+F(x) --> F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)F(x/3.)
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('SPACE', 'Integer', 0, 0, 2), ('HALF_RADIUS', 'Bool', False), ('SEGLENGTH', 'Integer', 1, 1, 5)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+__references__ = '#'

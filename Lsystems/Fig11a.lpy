@@ -1,12 +1,7 @@
-
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 import numpy as np
 
-# Width to draw the geodesics
-LINEWIDTH  = 0.006
-
-ra = 1.
-rb = 0.5
+ra, rb = 1., 0.5
 
 nbseg = 10
 length_geodesic =  10*ra*2*np.pi
@@ -14,21 +9,16 @@ length_geodesic =  10*ra*2*np.pi
 angles = [60, 45, 44, 43.3, 43.2, 43, 30, 10]
 Axiom:
   # Sets the Riemannian space in which the turtle will move
-  nproduce SetSpace(EllipsoidOfRevolution(ra,rb))
-  nproduce ;(0)PlotSpace
+  nproduce SetSpace(EllipsoidOfRevolution(ra,rb)) ;(0)PlotSpace
   nproduce InitTurtle([0,0,1,0])
-  nproduce [;(5)_(LINEWIDTH)F(ra*2*np.pi)]
-  nproduce +(angles[ANGLE_ID]) # initial direction of the geodesic
-  nproduce V
-  nproduce ;(1)_(LINEWIDTH)A(0)
-
+  nproduce [;(5)_(0.006)F(ra*2*np.pi)]
+  nproduce +(angles[ANGLE_ID]) V # initial direction of the geodesic
+  nproduce ;(1)_(0.006)A(0)
 
 derivation length: nbseg
 production:
 
-A(n):
-  nproduce StaticF(length_geodesic/nbseg)
-  nproduce A(n+1)
+A(n) --> StaticF(length_geodesic/nbseg) A(n+1)
 
 interpretation:
 maximum depth: 2

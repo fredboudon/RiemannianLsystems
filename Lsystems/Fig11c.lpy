@@ -1,0 +1,28 @@
+from math import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+# Pseudo sphere radius
+radius = 1.
+length_geodesic = 3.5 
+
+Axiom: 
+  # Sets the Riemanian space in which the turtle will move
+  nproduce SetSpace(ChineseHat(radius, zmin = 0.1, zmax = radius-0.001))
+  nproduce ;(0)PlotSpace _(0.015)
+  nb = 6
+  a = pi/20 # to orient the turtle's head at the beginning
+  for i in range(nb):  
+      b = pi/2-0.1 - a * i
+      nproduce [;(1+i)InitTurtle([0,0.15,cos(b),sin(b)])F(length_geodesic)_(0.01)Frame(0.3)]
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+__references__ = '#'

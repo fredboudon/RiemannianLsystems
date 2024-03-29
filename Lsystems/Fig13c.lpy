@@ -1,0 +1,143 @@
+"""
+	L-systems in Riemannian geometry
+
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Simulates geodesics on a torus
+	
+"""
+
+import numpy as np
+from math import ceil
+from random import random
+
+# To import libs from other directories
+#(append dynamically other dirs to PYTHONPATH variable)
+from importlib import reload
+
+import riemann_lsystem.surfaces
+surfaces = reload(riemann_lsystem.surfaces)
+import riemann_lsystem.riemannianturtle
+riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
+
+from riemann_lsystem.surfaces import *
+from riemann_lsystem.riemannianturtle import *
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+PRINT_CURVATURES = True
+PLOTDS2 = False
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 10 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+
+nb_seg = 200 # nb of segment to draw the geodesic (defines the parameter of the F)
+           # To draw one geodesic, set it to 1 and set dashed to False
+
+R = 1.
+r =0.2
+circonf = R*2*np.pi
+length_geodesic = 10 * circonf
+
+def EndEach(lstring):
+  #print(lstring)
+  pass
+
+Axiom:
+  # Sets the Riemannian space in which the turtle will move
+  nproduce SetSpace(Torus(R,r))
+  nproduce ;(0)PlotSpace
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  u0= 0 # 0
+  v0= 0 # np.pi/6  # np.pi/6 # 0
+  # show pi/2, 0 then different values between pi/2 and pi/3
+  # try: 
+  #  a = 80 * np.pi/180. (closed curve that doesnot wrap the cylinder)
+  #  a = 82 * np.pi/180. (the curve starts to wrap around the cylinder !)
+  #  a = 83 * np.pi/180. (the curve wraps around the cylinder and gets closer!)
+  #  a = 83.1485 * np.pi/180. (closed curve that wraps around the cylinder)
+  #  a = 89 * np.pi/180. (bizarre with the use of generic Riemann Christoffel symbols
+  
+  a = 80 * np.pi/180. #11*np.pi/20 # to orient the turtle's head at the beginning
+  #nproduce InitTurtle([u0,v0,np.cos(a),np.sin(a)])
+  #produce ;(1)A(0)
+
+  nb =1
+  for i in range(nb):  
+    #a = i*2*np.pi/nb
+    nproduce _(LINEWIDTH)[InitTurtle([u0,v0,np.cos(a),np.sin(a)]) InterpolateColors(3,5, i/(nb))A(0)]
+    
+
+derivation length: int(nb_seg)
+production:
+
+A(n):
+  nproduce StaticF(length_geodesic/nb_seg,LINEWIDTH,{})
+  #nproduce F(length_geodesic/nb_seg)
+  nproduce A(n+1)
+
+interpretation:
+
+A(n):
+  produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+
+
+
+endlsystem
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 
+	    )
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': False},[('Function',pinfunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('pinfunc',pinfunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)

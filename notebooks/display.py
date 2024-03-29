@@ -76,7 +76,7 @@ def LsystemEditor(fname, *args, **kwds):
         
         
 
-def display_example(filename, caption, subcaption = None, size_world=50, animate=True, plane = False):
+def display_example(filename, caption, subcaption = None, size_world=50, animate=True, plane = False, codedisplay = True):
       print()
       filename =  '../Lsystems/'+filename
       if not filename.endswith('.lpy'):
@@ -87,15 +87,17 @@ def display_example(filename, caption, subcaption = None, size_world=50, animate
       code = open(filename,'r').read()
       code = code.split('###### INITIALISATION ######')[0]
       lw = LsystemEditor(filename, size_world=size_world, animate=animate, plane=plane)
-      widgets += [Markdown('#### Lsystem:'),Code(data=code, language='python'), Markdown('#### Output:'),lw]
+      if codedisplay:
+        widgets += [Markdown('#### Lsystem:'),Code(data=code, language='python')]
+      widgets += [Markdown('#### Output:'),lw]
       for widget in widgets:
         display(widget)
 
-def display_examples(examples, size_world=50, animate=True):
+def display_examples(examples, size_world=50, animate=True, codedisplay = True):
     for example in examples:
         if len(example) == 2:
            filename, caption = example
            subcaption = None
         elif len(example) == 3:
            filename, caption, subcaption = example
-        display_example(filename, caption, subcaption, size_world=size_world, animate=animate)
+        display_example(filename, caption, subcaption, size_world=size_world, animate=animate, codedisplay = codedisplay)
