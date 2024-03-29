@@ -6,7 +6,9 @@
 
 	Example of geodesics in a 2D intrinsic Riemaniann space (Beltrami-Poincare hyperbolic space)
 	
-	
+	Fig22.a-b --> TEST0
+	Fig22.c-d --> TEST1
+	Fig22.e   --> TEST3
 """
 
 import numpy as np
