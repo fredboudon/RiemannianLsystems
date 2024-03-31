@@ -75,9 +75,10 @@ def LsystemEditor(fname, *args, **kwds):
 
 def display_example(filename, caption = None, subcaption = None, size_world=50, animate=True, plane = False, codedisplay = True):
       print()
-      filename =  '../Lsystems/'+filename
-      if not filename.endswith('.lpy'):
-            filename += '.lpy'
+      basefilename = filename
+      if not basefilename.endswith('.lpy'):
+            basefilename += '.lpy'
+      filename =  '../Lsystems/'+basefilename
       code = open(filename,'r').read()
       code = code.split('###### INITIALISATION ######')[0]
       lcaption = None
@@ -103,7 +104,8 @@ def display_example(filename, caption = None, subcaption = None, size_world=50, 
         widgets += [Markdown('\n### '+lcaption)] 
         if lsubcaption:
             widgets += [Markdown(lsubcaption)]
-
+      
+      widgets += [Markdown('\n [Raw code](https://github.com/fredboudon/RiemannianLsystems/tree/paper24/Lsystems/'+basefilename+')\n')]
       lw = LsystemEditor(filename, size_world=size_world, animate=animate, plane=plane)
       if codedisplay:
         widgets += [Markdown('#### Lsystem:'),Code(data=code, language='python')]
