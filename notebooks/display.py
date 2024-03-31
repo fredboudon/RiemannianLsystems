@@ -24,9 +24,7 @@ def LsystemEditor(fname, *args, **kwds):
         editors = []
 
         def on_value_changed(param):
-            print('on_value_changed', param)
             def fn(change):
-                print('change', change)
                 if 'new' in change:
                     value = change['new']
                     name = change['name']
@@ -46,7 +44,6 @@ def LsystemEditor(fname, *args, **kwds):
 
                         if prev_len != new_len:
                             param[1].setKnotListToDefault()
-                        print('set_parameters')
                         lsw.set_parameters(lp.dumps())
 
             return fn
