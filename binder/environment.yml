@@ -3,6 +3,7 @@ channels:
   - fredboudon
   - conda-forge
 dependencies:
+  - python=3.10
   - openalea.lpy=3.14.*
   - jupyterlab>=3.0.16
   - jupyterlab_widgets
@@ -15,4 +16,5 @@ dependencies:
   - pip
   - pip:
     - pgljupyter>=2.0.*
+    - pynverse
     - -e ..

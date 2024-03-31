@@ -1,3 +1,6 @@
+# Figure 17d-f: Making use of information available in the embedding space.
+
+# Self-avoiding branching structures on a sphere.
 """
 	L-systems in Riemannian geometry
 
@@ -74,7 +77,6 @@ production:
   # 3. Test the possible intersection of this potential line with 
   # already existing MTs stored in the global object trajectories
   intersection = trajectories.test_intersection(uvs)
-  # print(intersection,uvs)
 
   if intersection:
     nproduce ?T(ParameterSet())A(n+1)
@@ -98,10 +100,7 @@ interpretation:
 maximum depth: 2
 
 A(n):
-  produce #;(2)@O(0.03)
-  #nproduce CovariantBasis(0.3)
-  #nproduce _(0.03)DrawVect(velocity,1.5)
-  #if FRAME: nproduce _(0.01)Frame(0.2)
+  produce 
 
 L(la,n):
   if n == 0:

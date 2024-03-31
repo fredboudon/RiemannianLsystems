@@ -1,3 +1,7 @@
+# Figure 12: Using the turtle to draw fractals on curved spaces.
+
+# (SPACE=0) prefractal sequence of the von Koch Curve in a flat space (SPACE=1) Prefractal sequence obtained by the same procedure as in a on a sphere of radius 1, and (SPACE=0,HALF_RADIUS=True) on sphere of radius 1/2. (SPACE=2,SEGLENGTH) von Koch curves with increasing step length on a torus.
+
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 def StartInterpretation(turtle):

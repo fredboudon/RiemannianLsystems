@@ -1,3 +1,8 @@
+# Figure 11c: Geodesics on surfaces of revolution.
+
+# Geodesics in a space with negative Gaussian curvature starting with varied initial orientations. 
+# Geodesics are deflected by the space curvature all the more that they pass closer to the center of the shape.
+
 from math import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy

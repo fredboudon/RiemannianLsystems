@@ -76,16 +76,37 @@ def LsystemEditor(fname, *args, **kwds):
         
         
 
-def display_example(filename, caption, subcaption = None, size_world=50, animate=True, plane = False, codedisplay = True):
+def display_example(filename, caption = None, subcaption = None, size_world=50, animate=True, plane = False, codedisplay = True):
       print()
       filename =  '../Lsystems/'+filename
       if not filename.endswith('.lpy'):
             filename += '.lpy'
-      widgets = [Markdown('\n### '+caption)] 
-      if subcaption:
-        widgets += [Markdown(subcaption)]
       code = open(filename,'r').read()
       code = code.split('###### INITIALISATION ######')[0]
+      lcaption = None
+      lsubcaptions = []
+      for i, codeline in enumerate(code.splitlines()):
+          if codeline.startswith('#'):
+              if i == 0:
+                  lcaption = codeline[1:]
+              else:
+                 lsubcaptions.append(codeline[1:])
+          elif len(codeline) > 0:
+              if i > 0:
+                code = '\n'.join(code.splitlines()[i:])
+              break
+      lsubcaption = '\n'.join(lsubcaptions)
+
+      widgets = []
+      if not caption is None:
+        widgets += [Markdown('\n### '+caption)] 
+        if subcaption:
+            widgets += [Markdown(subcaption)]
+      elif not lcaption is None:
+        widgets += [Markdown('\n### '+lcaption)] 
+        if lsubcaption:
+            widgets += [Markdown(lsubcaption)]
+
       lw = LsystemEditor(filename, size_world=size_world, animate=animate, plane=plane)
       if codedisplay:
         widgets += [Markdown('#### Lsystem:'),Code(data=code, language='python')]
@@ -95,9 +116,17 @@ def display_example(filename, caption, subcaption = None, size_world=50, animate
 
 def display_examples(examples, size_world=50, animate=True, codedisplay = True):
     for example in examples:
-        if len(example) == 2:
+        if type(example) == str:
+           filename = example
+           caption, subcaption = None, None
+        elif len(example) == 1:
+           filename = example[0]
+           caption, subcaption = None, None
+        elif len(example) == 2:
            filename, caption = example
            subcaption = None
         elif len(example) == 3:
            filename, caption, subcaption = example
+        else:
+            raise ValueError(example)
         display_example(filename, caption, subcaption, size_world=size_world, animate=animate, codedisplay = codedisplay)

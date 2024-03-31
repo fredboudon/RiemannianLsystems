@@ -1,3 +1,7 @@
+# Figure 16: Climbing ivy.
+
+# A tree trunk is modeled as a generalized cylinder on which the growth of an ivy is simulated. On the left, the wireframe representation of the trunk and the branching system of the ivy. On the right, semi-transparent polygonal representation of the trunk with the full leafy ivy structure.
+
 import sys
 from math import *
 from random import uniform, randint, seed, getstate, setstate

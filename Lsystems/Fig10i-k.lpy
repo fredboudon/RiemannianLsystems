@@ -1,5 +1,10 @@
+#Figure 10i-k: B-splines on a curved surface.
+
+# The BSpline curve is defined by control points positioned using the L-system 6 that generates a simple branching structure. 
+# The L-system is applied on (SPACE=1) a flat surface, (SPACE=2) an ellipsoid and (SPACE=3) a bumpy ellipsoid.
+
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
-from openalea.plantgl.all import *
+import openalea.plantgl.all as pgl
 from math import *
 from random import *
 
@@ -17,18 +22,18 @@ def sphericalcoord(i,j,r1, r2):
 
 pts = [[sphericalcoord(i,j,5+noiseheigth*uniform(-1,1),8)  for j in range(nb+1)] for i in range(nb)]
 pts.append(pts[0])
-npatch = NurbsPatch(pts, ustride= 200, vstride=200, ccw=False)
+npatch = pgl.NurbsPatch(pts, ustride= 200, vstride=200, ccw=False)
 
 
 Axiom: 
   if SPACE == 1:
+    nproduce SetSpace(Patch(pgl.NurbsPatch([[[i,j,0,1] for j in range(-8,10,2)] for i in range(-8,10,2)]))) 
+    nproduce ;(0) PlotSpace 
+    nproduce InitTurtle([0.95,0.5,-1,0]) 
+  elif SPACE == 2:
     nproduce SetSpace(EllipsoidOfRevolution(5,8)) 
     nproduce ;(0) PlotSpace 
     nproduce InitTurtle([0,-1,0,1]) 
-  elif SPACE == 2:
-    nproduce SetSpace(Patch(NurbsPatch([[[i,j,0,1] for j in range(-8,10,2)] for i in range(-8,10,2)]))) 
-    nproduce ;(0) PlotSpace 
-    nproduce InitTurtle([0.95,0.5,-1,0]) 
   else:
     nproduce ;(0)@g(npatch)     
     nproduce SetSpace(Patch(npatch))

@@ -1,3 +1,7 @@
+# Figure 13b: Growing tree structures on curved surfaces.
+
+# Tree on a pseudo-sphere surface (constant Gaussian negative curvature) at different altitudes showing the effect of a local change of the extrinsic geometry on tree structures.
+
 """
 	L-systems in Riemannian geometry
 
@@ -166,8 +170,4 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 __references__ = '#'

@@ -1,3 +1,7 @@
+# Figure 13d: Growing tree structures on curved surfaces.
+
+# Tree representing the veins of a leaf, created by joining pre-specified (red) points on the rim (left) to a main branching system using a RiemannianLineTo primitive (BVP). next to right: resulting branching system in the same view as left, followed on the right by a view slightly tilted, and to the right-end, the back of the leaf.
+
 """
 	L-systems in Riemannian geometry
 
@@ -134,10 +138,6 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
 	pinfunc = pgl.NurbsCurve2D(	
 	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 

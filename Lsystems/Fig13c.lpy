@@ -1,3 +1,7 @@
+# Figure 13c: Growing tree structures on curved surfaces.
+
+# Tree growth on a torus. Left: reference tree grown in a flat space. Middle: the tree trunk is aligned along the external great circle (region of positive Gaussian curvature). Remark in the central region at the tip that the small branches form a very densely organized fan. Compare with Right: the tree trunk is aligned along the inner great circle (region of negative Gaussian curvature). In the central region at the tip that the small branches form a less dense fan.
+
 """
 	L-systems in Riemannian geometry
 
@@ -126,10 +130,6 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
 	pinfunc = pgl.NurbsCurve2D(	
 	    ctrlPointList = pgl.Point3Array([(0, 0.05, 1),(0.0606061, 0.663636, 1),(0.329545, 0.213636, 1),(0.725758, 0.131818, 1),(1, 0.118182, 1)]) , 

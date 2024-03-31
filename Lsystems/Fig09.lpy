@@ -1,3 +1,7 @@
+# Figure 9: Drawing closed polygons on curved surfaces.
+
+# (step 0) failure to close a square by forcing consecutive sides to be at 90 degrees from one another on a curved surface. (step 1) Square drawn in the parameter space, and then pushed on the surface (step 2) Alternative geometric construction of the square preserving the right angle at the intersection of the diagonals and their length. (SPHERE flag) selection of the space between a sphere and a bumpy patch.',
+
 from math import pi
 from random import  uniform,seed
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy

@@ -1,3 +1,7 @@
+# Figure 15: Cabbage leaf model.
+
+# (Axiom) Approximated NURBS model of the cabbage leaf (RUN) views of the vascular network constructed with Riemannian L-systems, with veins corresponding to geodesics computed as IVPs.
+
 from openalea.plantgl.all import *
 from math import * 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy

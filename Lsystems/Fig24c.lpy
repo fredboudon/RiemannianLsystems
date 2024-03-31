@@ -1,3 +1,7 @@
+# Figure 24: Modeling tropism using abstract Riemannian spaces.
+
+# Abstract Riemannian space with point-like source of metric distorsion, simulating shadow-avoiding behaviour of trees.
+
 """
 	L-systems in Riemannian geometry
 	
@@ -10,18 +14,6 @@
 """
 
 from random import seed
-
-# To import libs from other directories
-#(append dynamically other dirs to PYTHONPATH variable)
-from importlib import reload
-
-import riemann_lsystem.surfaces
-surfaces = reload(riemann_lsystem.surfaces)
-import riemann_lsystem.riemannianturtle
-riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
-
-from riemann_lsystem.surfaces import *
-from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
@@ -146,7 +138,6 @@ rz = 2.
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
-  # Sets the Riemanian space in which the turtle will move
   params = (source, ry, rz)
   # choice of functions used to define the intrinsic metric (see above their definition
   metric_funcs = {'g11' : g11_ps, 'g12' : g12_ps, 'g22' : g22_ps, 'g11s' : g11s_ps, 'g12s' : g12s_ps, 'g22s' : g22s_ps}  
@@ -204,8 +195,4 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 __references__ = '#'

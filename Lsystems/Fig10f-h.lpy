@@ -1,3 +1,7 @@
+# Figure 10f-h: B-splines on a curved surface.
+
+# The successive control polygons (in green) after 1, 2 and 3 subdivision steps respectively.
+
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 from math import *
 # Lane and Riesenfeld algo for generating BSpline with subdivision

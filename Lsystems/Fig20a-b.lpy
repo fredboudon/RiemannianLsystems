@@ -1,0 +1,386 @@
+# Figure 20a-b: Feedback of surface growth on patterns living at the surface: example of subdivisions 
+
+# von Koch prefractal curve initially developed at level 3 (dark blue segments) gets deformed by the growth of a flat surface, without subdivision feedback (FEEDBACK = False) and with feed- back (segment are colored purple (detail level 4) and green (detail level 5) (FEEDBACK = True). Note additional, non homogeneous fractal details on (FEEDBACK = True) due to the subdivision of segments that reached a length threshold during growth. 
+
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Fig20.a --> TEST = 3, INDIRECT_INTERPRETATION  = True, FEEDBACK = False
+	Fig20.b --> TEST = 3, INDIRECT_INTERPRETATION  = True, FEEDBACK = True
+"""
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+import numpy as np
+import numpy.linalg as linalg
+
+PRINT_CURVATURES = True
+
+from math import trunc
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 2. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# NURBS PATCH GROWTH
+#######################
+
+
+# NURBS Patch = defined by a matrix NxM of control points 
+# Note: for the curve to be at least of degree 3, put at least4 control points, etc.
+# a control point is a 4 vector: 3 spatial coords + a weight (real) that can be 1 by default 
+
+# Matrix of weights for the control points: entries must be strictly positive 
+# weights uniform
+ctrlptw0 = np.ones(16)
+ctrlptw0 = ctrlptw0.reshape(4,4)
+
+# not uniform
+ctrlptw1 = np.array([[0.1,0.5,0.8,0.2],
+                    [0.1,0.2,0.5,0.5],
+                    [0.1,0.2,0.5,0.5],
+                    [0.1,0.1,0.2,0.5]])
+
+ctrlptw = ctrlptw0
+
+# weights for the matrix of control points
+matctrlpts = [[[0,0,0,ctrlptw[0,0]],[1,0,0,ctrlptw[1,0]],[2,0,0,ctrlptw[2,0]],[3,0,0,ctrlptw[3,0]]],
+              [[0,1,0,ctrlptw[0,1]],[1,1,0,ctrlptw[1,1]],[2,1,0,ctrlptw[2,1]],[3,1,0,ctrlptw[3,1]]],
+              [[0,2,0,ctrlptw[0,2]],[1,2,0,ctrlptw[1,2]],[2,2,0,ctrlptw[2,2]],[3,2,0,ctrlptw[3,2]]],               
+              [[0,3,0,ctrlptw[0,3]],[1,3,0,ctrlptw[1,3]],[2,3,0,ctrlptw[2,3]],[3,3,0,ctrlptw[3,3]]]] 
+
+
+# Normalized 1D gaussian
+def gaus1d(x=0, mx=0, sx=1):
+  return 1. / (2. * np.pi * sx) * np.exp(-((x - mx)**2. / (2. * sx**2.)))
+
+# Normalized 2D gaussian
+def gaus2d(x=0, y=0, mx=0, my=0, sx=1, sy=1):
+  return 1. / (2. * np.pi * sx * sy) * np.exp(-((x - mx)**2. / (2. * sx**2.) + (y - my)**2. / (2. * sy**2.)))
+
+# Eggbox: a = height of bumps, b = wave length
+def eggbox(x=0, y=0, a=1, b=1):
+  return a * (np.cos(2*np.pi * x/b) + np.sin(2* np.pi*y/b))
+
+# Creates a matrix m x n of control points 
+# where each entry is a vector of dim 4 (coords + weight)
+def matctrlpts_mn(m,n):
+  assert (m>0 and n >0)
+  mat = np.zeros(m*n*4)
+  mat = mat.reshape(m,n,4)
+  for i in range(m):
+    for j in range(n):
+      mat[i,j] = [i,j,0,1]
+      
+  return mat
+
+def matgrowthrate_xyz_mn(m,n,func, **args):
+  assert (m>0 and n >0)
+  mat_x = np.zeros(m*n)
+  mat_x = mat_x.reshape(m,n)
+  mat_y = np.zeros(m*n)
+  mat_y = mat_y.reshape(m,n)
+  mat_z = np.zeros(m*n)
+  mat_z = mat_z.reshape(m,n)
+  
+  mxx = myy = 0
+  if 'mx' in args:
+    mxx = args['mx']
+  if 'my' in args:
+    myy = args['my']
+  
+  max_z = 0
+  for i in range(m):
+    for j in range(n):
+      zval = func(i,j, **args)
+      mat_z[i,j] = zval
+      if zval > max_z:
+        max_z = zval
+  
+  for i in range(m):
+    for j in range(n):
+      #r = linalg.norm([i-mxx,j-myy])
+      zval = func(i,j, **args) 
+      theta = np.arctan2(j-myy,i-mxx)
+      if abs(j-myy) + abs(i-mxx) < 0.1:
+        mat_x[i,j] = 0
+        mat_y[i,j] = 0
+      else:
+        mat_x[i,j] = 0.7*gaus1d(zval, mx = 2*max_z/3, sx = 0.4*max_z)* np.cos(theta)
+        mat_y[i,j] = 0.7*gaus1d(zval, mx = 2*max_z/3, sx = 0.4*max_z)* np.sin(theta)
+  
+  return mat_x,mat_y,mat_z
+
+def matgrowthrate_z_mn(m,n,func, **args):
+  assert (m>0 and n >0)
+  mat = np.zeros(m*n)
+  mat = mat.reshape(m,n)
+  for i in range(m):
+    for j in range(n):
+      mat[i,j] = func(i,j, **args)
+  return mat
+
+
+NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
+
+m, n = 11,11
+
+# growth rates
+gr11 = 0.5
+
+gr = np.array([[0,0.0,0.0,0.0],
+               [0,1,0.5,0.0],
+               [0,0.7,0.5,0.3],
+               [0,0.0,0.3,0.7]])
+ 
+def move_ctrlpt_vertical(NURBSspace, dt, ctrlpt, gr_rate):
+  v = NURBSspace.ctrlPointMatrix[ctrlpt]
+  #print("Before:", v)
+  v[2] = v[2] + gr_rate * dt
+  #print("After:",v)
+  NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
+  return True
+  
+def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y, xy_speedup_factor = 1):
+  v = NURBSspace.ctrlPointMatrix[ctrlpt]
+  #print("Before:", v)
+  v[0] = v[0] + gr_rate_x * dt *xy_speedup_factor  
+  v[1] = v[1] + gr_rate_y * dt *xy_speedup_factor 
+  #print("After:",v)
+  NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
+  return True
+
+##################################
+# Koch curve growth parameters
+##################################
+
+INITIAL_SEG_LEN_INDIRECT = 1    # for indirect interpretation
+INITIAL_SEG_LEN_DIRECT = 7      # for direct interpretation
+ACTUAL_LENGTH_ON_SURFACE = True # to estimate the distance between endpoints by summing distances on the surface
+SEGLEN_RESOLUTION = 0.5         # length units (size of the patch in x,y is 10)
+
+xy_speedup_factor = 1.0         # increase to speed up the horizontal mushroom growth
+
+##################################
+# Simulation parameters
+##################################
+
+TotalTimeSteps = 100
+dt = 0.04  
+
+##################################
+# Selection of a test
+##################################
+
+INDIRECT_INTERPRETATION  = True
+
+
+
+module NSpace
+
+Axiom:
+  u0= 0.05
+  v0= 0.05
+  xy_speedup_factor = 2.0
+  INITIAL_SEG_LEN_INDIRECT = 1
+  SEGLEN_RESOLUTION = 0.3
+  scale = 18
+  grid_growthrates_x = grid_growthrates_y = []
+  grid_growthrates_x, grid_growthrates_y, grid_growthrates_z = matgrowthrate_xyz_mn(m,n,gaus2d,mx=5,my=5,sx=1.,sy=1.)
+  grid_growthrates_z = grid_growthrates_z*scale
+  
+  # Create the NURBS space and plot it:
+  # 1. creates a matrix of control points (each entry of the matrix contains the 3 coordinates 
+  # of the corresponding control point
+  mat = matctrlpts_mn(m,n)
+  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3, ccw = False)
+  # NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
+  # print(NURBSspace)
+  # 2. Sets the current Space for the turtle
+  nproduce SetSpace(Patch(nspace))
+  #Do not use PlotSpace(dic), as the u-vstrides are not displayed. Instead uses @g below 
+  #dic = {'CCW': True}
+  #nproduce ;(0)PlotSpace(dic)
+  nproduce @g(nspace)
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  nproduce InitTurtle([u0,v0,1,0])
+  nproduce +(20)
+  
+  nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
+  # Draw the small segments in th (u,v) domain: this ensures:
+  # - a good connection with the rest of the polyline
+  # - balanced segments
+  # However, the decision to divide is taken on the basis of the distance between points at the surface
+  if INDIRECT_INTERPRETATION:
+    nproduce StartIndirectInterpretation
+    INITIAL_SEG_LEN = INITIAL_SEG_LEN_INDIRECT
+    nproduce ;(5)_(LINEWIDTH) ?T B(0)StaticF(INITIAL_SEG_LEN, {})C(0) ?T 
+  else:
+    INITIAL_SEG_LEN = INITIAL_SEG_LEN_DIRECT
+    nproduce ;(5)_(LINEWIDTH) ?T F(INITIAL_SEG_LEN) ?T 
+  if INDIRECT_INTERPRETATION:
+    nproduce StopIndirectInterpretation
+  nproduce A 
+
+
+derivation length: TotalTimeSteps
+production:
+
+NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
+  #move_ctrlpt(delta_t, (2,2), gr11)
+  for i in range(m):
+    for j in range(n):
+      move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
+      if grid_growthrates_x != [] and grid_growthrates_y != []:
+        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j], xy_speedup_factor)
+  produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
+
+decomposition:
+maximum depth: 2
+
+# Necessary to put the second argument for the StaticF as otherwise, if the last arg is not a dictionary
+# an argument will be added to the module to cach the forward data (a dictionary), and this will 
+# make it impossible match the module StaticF afterwards as the signatures would be different ...
+?T(t1) < B(n1)StaticF(x, dict)C(n2) > ?T(t2):
+  # print('getIterationNb() = ', getIterationNb())
+  if 'uvpq' in t1: # To bypass the lack of uvpq at the beginning 
+    u1,v1,p1,q1 = t1.uvpq 
+    u2,v2,p2,q2 = t2.uvpq
+    
+    #D = -1
+    #if 'uvpq' in dict and ACTUAL_LENGTH_ON_SURFACE:
+    #  D = t1.space.path_length(dict['uvpq'])
+    #else: 
+      # Estimate the surface distance by the euclidean distance
+      # --> compute distance between the two endpoints P1 and P2 in R3
+      
+      
+    P1 = t1.space.S(u1,v1)
+    P2 = t2.space.S(u2,v2)
+      
+    D = linalg.norm(P2-P1)
+    
+    assert(D>=0)
+    COND = True
+    if not FEEDBACK and n1 >= 3:
+      COND = False
+
+    if D > SEGLEN_RESOLUTION and COND:
+        nproduce    B(n1+1)StaticF(x/3,{})C(n2+1)?T +(60)   
+        nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)?T -(120)
+        nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)?T +(60)
+        nproduce ?T B(n1+1)StaticF(x/3,{})C(n2+1)
+    else:
+      nproduce B(n1)StaticF(x, dict)C(n2)
+  else :
+    produce B(n1)StaticF(x, dict)C(n2)
+      
+
+?T(t1) < F(x) > ?T(t2):
+  # print('getIterationNb() = ', getIterationNb())
+  if 'uvpq' in t1: # To bypass the lack of uvpq at the beginning 
+    u1,v1,p1,q1 = t1.uvpq 
+    u2,v2,p2,q2 = t2.uvpq
+    
+    D = -1
+    # Estimate the surface distance by the euclidean distance
+    # --> compute distance between the two endpoints P1 and P2 in R3
+    P1 = t1.space.S(u1,v1)
+    P2 = t2.space.S(u2,v2)
+    
+    D = linalg.norm(P2-P1)
+    
+    assert(D>=0)
+    
+    COND = True
+    if not FEEDBACK and n1 >= 3:
+      COND = False
+    if D > SEGLEN_RESOLUTION and COND: # add condition n1 < 3 to avoid divisions due to space growth dilation
+        nproduce F(D/3)?T+(60)   
+        nproduce ?T F(D/3)?T -(120)
+        nproduce ?T F(D/3)?T +(60)
+        nproduce ?T F(D/3)
+    else:
+      nproduce F(x)
+  else :
+    produce F(x)
+
+interpretation:
+B(n):
+  if n > 2:
+    nproduce ;(2+n)
+
+C(n):
+  if n > 2:
+    nproduce ;(2+n)
+
+endlsystem
+
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_7 = pgl.Material("Color_7" , ambient = (30,60,10) , diffuse = 3 , )
+	Color_7.name = "Color_7"
+	context.turtle.setMaterial(7,Color_7)
+	Color_8 = pgl.Material("Color_8" , ambient = (60,0,0) , diffuse = 3 , )
+	Color_8.name = "Color_8"
+	context.turtle.setMaterial(8,Color_8)
+	Color_9 = pgl.Material("Color_9" , ambient = (60,60,15) , diffuse = 3 , )
+	Color_9.name = "Color_9"
+	context.turtle.setMaterial(9,Color_9)
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('FEEDBACK', 'Bool', False)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	patch1 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0.0295491, 0.0172273, 0.0204014, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (0.325603, 0.00690836, 0.425017, 1), (0.303992, 0.200873, 0.366263, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.00441042, -0.518639, 0.489863, 1), (0.346984, -0.0268568, 0.48347, 1), (0.334252, 0.212297, 0.456407, 1), (-0.0147519, 0.496314, 0.461605, 1)], [(0, -0.5, 0.666667, 1), (0.367414, 0.0717941, 0.599293, 1), (0.325871, 0.177369, 0.550018, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0.000294821, 0.152723, 1.00003, 1), (0, 0.5, 1, 1)]]) , 
+vstride = 20 , 	    )
+	patch1.name = "patch1"
+	import openalea.plantgl.all as pgl
+	vasefunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0160347, 0.559939, 1),(0.440107, -0.0643654, 1),(0.905046, 0.267064, 1),(1, 0.135477, 1),(1, 0.00596927, 1)]) , 
+	    )
+	vasefunc.name = "vasefunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1),('Function',vasefunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('vasefunc',vasefunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["patch1"] = patch1
+	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+__references__ = '###'

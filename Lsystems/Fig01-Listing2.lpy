@@ -1,3 +1,5 @@
+# Listing 2: Random walk in 2-D
+
 from random import random
 dl = 1.
 Axiom : A (0)

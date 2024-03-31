@@ -1,3 +1,5 @@
+# Listing 3: Fractal curve (von Koch flake)
+
 Axiom : _(0.001)F(1) -(120) F(1) -(120) F(1)
 derivation length : 5
 production :

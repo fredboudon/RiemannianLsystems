@@ -1,3 +1,7 @@
+# Figure 24b: Modeling tropism using abstract Riemannian spaces. 
+
+# A branching system interpreted in a Beltrami-Poincaré half plane. This simulates a form of "gravity attraction" of the branches. 
+
 """
 	L-systems in Riemannian geometry
 	
@@ -12,18 +16,6 @@
 import numpy as np
 from math import ceil
 from random import random, seed
-
-# To import libs from other directories
-#(append dynamically other dirs to PYTHONPATH variable)
-from importlib import reload
-
-import riemann_lsystem.surfaces
-surfaces = reload(riemann_lsystem.surfaces)
-import riemann_lsystem.riemannianturtle
-riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
-
-from riemann_lsystem.surfaces import *
-from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
@@ -171,8 +163,4 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 __references__ = '#'

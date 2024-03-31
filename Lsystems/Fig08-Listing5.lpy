@@ -1,3 +1,8 @@
+#Figure 8: Holonomy and parallel transport using Riemannian Lsystems.
+
+#(a-b) parallel transport of a vector along a polygon made of geodesics. 
+#The vector is initially tangent to the first geodesic, then is perpendicular to the tangent on the second geodesic, then points backward on the third geodesic segment. (d-c) parallel transport of a vector not tangent to the first geodesic. The vector keeps a constant angle with the tangent vector, but this angle changes each time the turtle turns. (e-f) parallel transport along a curve that is not a geodesic: the angle between the transporting curve and the transported vector varies continuously.'
+
 from riemann_lsystem.surfaces import *
 from riemann_lsystem.riemannianturtle import *
 from math import pi

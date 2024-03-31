@@ -1,3 +1,7 @@
+# Figure 10l-n: B-splines on a curved surface.
+
+# (l) The control polygon of a salamander shape. The interpretation of the control polygon as BSplines of degree DEGREE. The degree of the curve controls the number of control point that influences each point of the curve.
+
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 import openalea.plantgl.all as pgl
 from math import *
@@ -43,7 +47,7 @@ def rock(ra,rb,h):
     pts[i][-1] = pts[0][-1]
   return pts
    
-npatch = NurbsPatch(rock(ra,rb,heigth), ustride= 200, vstride=200, ccw=False)
+npatch = pgl.NurbsPatch(rock(ra,rb,heigth), ustride= 200, vstride=200, ccw=False)
 
 Axiom: 
   global line
@@ -68,7 +72,7 @@ Axiom:
   
   if SUBDIVCURVE:
       nproduce InitTurtle([line[0][0],line[0][1],1,0]) @Gc
-      nproduce [,(2)_(0.08) BSplineSubdivision(line, 2)
+      nproduce [,(2)_(0.08) BSplineSubdivision(line, DEGREE)
       nproduce ]
 
 derivation length: 6
@@ -87,7 +91,7 @@ def __initialiseContext__(context):
 	Color_5 = pgl.Material("Color_5" , ambient = (0,0,0) , diffuse = 40 , )
 	Color_5.name = "Color_5"
 	context.turtle.setMaterial(5,Color_5)
-	scalars = [('CTRLPTS', 'Bool', True), ('SUBDIVCURVE', 'Bool', True), ('ROCK', 'Bool', True)]
+	scalars = [('CTRLPTS', 'Bool', True), ('SUBDIVCURVE', 'Bool', True), ('ROCK', 'Bool', True), ('DEGREE', 'Integer', 2, 2, 8)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]

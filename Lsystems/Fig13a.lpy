@@ -1,3 +1,7 @@
+# Figure 13a: Growing tree structures on curved surfaces.
+
+# Tree on spheres (constant Gaussian positive curvature) with decreasing radii (1, 0.7, 0.5)
+
 """
 	L-systems in Riemannian geometry
 
@@ -154,8 +158,4 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 __references__ = '#'

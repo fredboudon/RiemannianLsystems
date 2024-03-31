@@ -1,0 +1,336 @@
+# Figure 19: Feedback of surface dynamics on forms constructed at the surface. 
+
+# Convected Sierpinski carpet at a reference scale (indirect interpretation). 
+# Floating Sierpinski carpet (direct interpretation, all curves are geodesics): due to holonomy, its topology is not preserved.
+
+
+"""
+	L-systems in Riemannian geometry
+	
+		Author: Ch. Godin, Inria
+		Date: 2019-2022
+
+	Fig19.b --> TEST = 3, INDIRECT_INTERPRETATION = True, FRACTAL_DEPTH = 4 (long simulation, try FRACTAL_DEPTH = 3 first)
+	Fig19.c --> TEST = 3,  INDIRECT_INTERPRETATION = False, FRACTAL_DEPTH = 4 (long simulation, try FRACTAL_DEPTH = 3 first)
+	
+"""
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+
+import numpy as np
+import numpy.linalg as linalg
+
+PRINT_CURVATURES = True
+
+#######################
+# Units
+#######################
+# Scaling model in graphic scene
+meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
+            # (F(1) for instance corresponds to a forward move of 1 meter)
+cm = 0.01 * meter
+
+# Surface parameters
+R = 2. * meter   # Radius of the sphere in meter
+
+#######################
+# DISPLAY PARAMETERS
+#######################
+
+# Flags to control the display
+PLOTSPACE = True
+
+# maximum len of subdivision step required to draw any line on the surface
+# this controls the resolution of the geodesic plot with respect to the
+# surface curvature
+MAXSTEPLEN = 1 * cm  # Should be > 0.0
+
+# Width to draw the geodesics
+LINEWIDTH  = 1. * cm
+
+# To control the Frame size
+FRAMESIZE  = 0.3 * meter
+FRAMEWIDTH = 1 * cm
+
+#######################
+# SIMULATION PARAMETERS
+#######################
+extern(FRACTAL_DEPTH = 3 if not MAXDEPTH else 4)
+extern(T = 40)  # Controls the depth of the eggs (0 is flat)
+extern(dt = 0.04)
+
+ra = 1.
+rb = 0.5
+
+seglen = ra/10.
+length_geodesic =  ra/5
+
+m, n = 11,11
+
+#########################
+# Selectiong of tests
+#########################
+
+TEST = 1           # To test different parametric surfaces
+PRINT_TEST = 2     # To print different types of results related to curvature
+
+
+##################################
+# Simulation parameters
+##################################
+
+TotalTimeSteps = 100
+dt = 0.04  
+
+INDIRECT_INTERPRETATION = False
+
+INITIAL_SEG_LEN_INDIRECT = 0.65    # for indirect interpretation
+INITIAL_SEG_LEN_DIRECT = 6      # for direct interpretation
+SEGLEN_RESOLUTION = 0.5         # length units (size of the patch in x,y is 10)
+
+xy_speedup_factor = 1.0
+
+
+# NURBS Patch = defined by a matrix NxM of control points 
+# Note: for the curve to be at least of degree 3, put at least4 control points, etc.
+# a control point is a 4 vector: 3 spatial coords + a weight (real) that can be 1 by default 
+
+# Matrix of weights for the control points: entries must be strictly positive 
+# weights uniform
+ctrlptw0 = np.ones(16)
+ctrlptw0 = ctrlptw0.reshape(4,4)
+
+# not uniform
+ctrlptw1 = np.array([[0.1,0.5,0.8,0.2],
+                    [0.1,0.2,0.5,0.5],
+                    [0.1,0.2,0.5,0.5],
+                    [0.1,0.1,0.2,0.5]])
+
+ctrlptw = ctrlptw0
+
+# weights matrix of control points
+matctrlpts = [[[0,0,0,ctrlptw[0,0]],[1,0,0,ctrlptw[1,0]],[2,0,0,ctrlptw[2,0]],[3,0,0,ctrlptw[3,0]]],
+              [[0,1,0,ctrlptw[0,1]],[1,1,0,ctrlptw[1,1]],[2,1,0,ctrlptw[2,1]],[3,1,0,ctrlptw[3,1]]],
+              [[0,2,0,ctrlptw[0,2]],[1,2,0,ctrlptw[1,2]],[2,2,0,ctrlptw[2,2]],[3,2,0,ctrlptw[3,2]]],               
+              [[0,3,0,ctrlptw[0,3]],[1,3,0,ctrlptw[1,3]],[2,3,0,ctrlptw[2,3]],[3,3,0,ctrlptw[3,3]]]] 
+
+
+# Normalized 1D gaussian
+def gaus1d(x=0, mx=0, sx=1):
+  return 1. / (2. * np.pi * sx) * np.exp(-((x - mx)**2. / (2. * sx**2.)))
+
+# Normalized 2D gaussian
+def gaus2d(x=0, y=0, mx=0, my=0, sx=1, sy=1):
+  return 1. / (2. * np.pi * sx * sy) * np.exp(-((x - mx)**2. / (2. * sx**2.) + (y - my)**2. / (2. * sy**2.)))
+  
+# Eggbox: a = height of bumps, b = wave length
+def eggbox(x=0, y=0, a=1, b=1):
+  return a * (np.cos(2*np.pi * x/b) + np.sin(2* np.pi*y/b))
+
+def matctrlpts_mn(m,n):
+  assert (m>0 and n >0)
+  mat = np.zeros(m*n*4)
+  mat = mat.reshape(m,n,4)
+  for i in range(m):
+    for j in range(n):
+      mat[i,j] = [i,j,0,1]
+      
+  return mat
+
+def matgrowthrate_xyz_mn(m,n,func, **args):
+  assert (m>0 and n >0)
+  mat_x = np.zeros(m*n)
+  mat_x = mat_x.reshape(m,n)
+  mat_y = np.zeros(m*n)
+  mat_y = mat_y.reshape(m,n)
+  mat_z = np.zeros(m*n)
+  mat_z = mat_z.reshape(m,n)
+  
+  mxx = myy = 0
+  if 'mx' in args:
+    mxx = args['mx']
+  if 'my' in args:
+    myy = args['my']
+  
+  max_z = 0
+  for i in range(m):
+    for j in range(n):
+      zval = func(i,j, **args)
+      mat_z[i,j] = zval
+      if zval > max_z:
+        max_z = zval
+  
+  for i in range(m):
+    for j in range(n):
+      #r = linalg.norm([i-mxx,j-myy])
+      zval = func(i,j, **args) 
+      if abs(j-myy) + abs(i-mxx) < 0.1:
+        print("i,j=", i,j, ":", j-myy,i-mxx)
+      theta = np.arctan2(j-myy,i-mxx)
+      if abs(j-myy) + abs(i-mxx) < 0.1:
+        mat_x[i,j] = 0
+        mat_y[i,j] = 0
+      else:
+        mat_x[i,j] = 0.7*gaus1d(zval, mx = 2*max_z/3, sx = 0.4*max_z)* np.cos(theta)
+        mat_y[i,j] = 0.7*gaus1d(zval, mx = 2*max_z/3, sx = 0.4*max_z)* np.sin(theta)
+  
+  return mat_x,mat_y,mat_z
+
+def matgrowthrate_z_mn(m,n,func, **args):
+  assert (m>0 and n >0)
+  mat = np.zeros(m*n)
+  mat = mat.reshape(m,n)
+  for i in range(m):
+    for j in range(n):
+      mat[i,j] = func(i,j, **args)
+  return mat
+
+NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
+
+# growth rates
+gr11 = 0.5
+
+gr = np.array([[0,0.0,0.0,0.0],
+               [0,1,0.5,0.0],
+               [0,0.7,0.5,0.3],
+               [0,0.0,0.3,0.7]])
+ 
+def move_ctrlpt_vertical(NURBSspace, dt, ctrlpt, gr_rate):
+  v = NURBSspace.ctrlPointMatrix[ctrlpt]
+  #print("Before:", v)
+  v[2] = v[2] + gr_rate * dt
+  #print("After:",v)
+  NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
+  return True
+
+def move_ctrlpt_horizontal(NURBSspace, dt, ctrlpt, gr_rate_x, gr_rate_y, xy_speedup_factor = 1):
+  v = NURBSspace.ctrlPointMatrix[ctrlpt]
+  #print("Before:", v)
+  v[0] = v[0] + gr_rate_x * dt *xy_speedup_factor  
+  v[1] = v[1] + gr_rate_y * dt *xy_speedup_factor 
+  #print("After:",v)
+  NURBSspace.ctrlPointMatrix[ctrlpt] = Vector4(v)
+  return True
+
+
+module NSpace
+
+Axiom:
+  scale = 14
+  xy_speedup_factor = 2.0
+  grid_growthrates_x, grid_growthrates_y, grid_growthrates_z = matgrowthrate_xyz_mn(m,n,gaus2d,mx=5,my=5,sx=1.,sy=1.)
+  grid_growthrates_z = grid_growthrates_z*scale
+  
+  mat = matctrlpts_mn(m,n)
+  nspace = NurbsPatch(mat, ustride=50, vstride = 50, udegree = 3, vdegree = 3, ccw = False)
+  #NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
+  # Sets the Riemannian space in which the turtle will move
+  dic = {}
+  dic = dict(CCW = False, du =0.5, dv = 0.5) 
+  #print(NURBSspace)
+  nproduce @g(nspace)
+  nproduce SetSpace(Patch(nspace))
+  #nproduce ;(0)PlotSpace(dic)
+  # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
+  u0= 0.3 # 0.5 and 0.6
+  v0= 0.4
+  nproduce InitTurtle([u0,v0,1,0])
+  #nproduce InitTurtle([u0,v0,0,1])
+  #nproduce [;(3)@O(0.1)]
+    
+  nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
+  a = 8.0
+  if INDIRECT_INTERPRETATION:
+    nproduce StartIndirectInterpretation
+    INITIAL_SEG_LEN = INITIAL_SEG_LEN_INDIRECT
+    nproduce ;(5)_(LINEWIDTH) B(0)StaticF(INITIAL_SEG_LEN, {})
+  else:
+    INITIAL_SEG_LEN = INITIAL_SEG_LEN_DIRECT
+    nproduce ;(5)_(LINEWIDTH) B(0) F(INITIAL_SEG_LEN) 
+  if INDIRECT_INTERPRETATION:
+    nproduce StopIndirectInterpretation
+  nproduce A 
+
+derivation length: TotalTimeSteps
+production:
+
+NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
+  #move_ctrlpt(delta_t, (2,2), gr11)
+  for i in range(m):
+    for j in range(n):
+      move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
+      if grid_growthrates_x != [] and grid_growthrates_y != []:
+        move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j], xy_speedup_factor)
+  produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
+
+
+# Necessary to put the second argument for the StaticF as otherwise, if the last arg is not a dictionary
+# an argument will be added to the module to cach the forward data (a dictionary), and this will 
+# make it impossible match the module StaticF afterwards as the signatures would be different ...
+B(n1)StaticF(x, dict):
+    # print('getIterationNb() = ', getIterationNb())
+    if n1 <FRACTAL_DEPTH:
+        nproduce    B(n1+1)StaticF(x/3,{})?T +(90)   
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)Staticf(x/3,{})?T +(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T +(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T +(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T -(90)
+        nproduce ?T B(n1+1)StaticF(x/3,{})?T 
+    else:
+        nproduce B(n1)StaticF(x, dict)
+
+B(n1)F(x):
+    # print('getIterationNb() = ', getIterationNb())
+    if n1 < FRACTAL_DEPTH:
+        nproduce    B(n1+1)F(x/3)?T +(90)   
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)f(x/3)?T +(90)
+        nproduce ?T B(n1+1)F(x/3)?T +(90)
+        nproduce ?T B(n1+1)F(x/3)?T +(90)
+        nproduce ?T B(n1+1)F(x/3)?T -(90)
+        nproduce ?T B(n1+1)F(x/3)?T 
+    else:
+        nproduce B(n1)F(x)
+
+
+
+endlsystem
+
+
+###### INITIALISATION ######
+
+__lpy_code_version__ = 1.1
+
+def __initialiseContext__(context):
+	import openalea.plantgl.all as pgl
+	Color_14 = pgl.Material("Color_14" , transparency = 0.45 , )
+	Color_14.name = "Color_14"
+	context.turtle.setMaterial(14,Color_14)
+	context.animation_timestep = 0.001
+	scalars = [('INDIRECT_INTERPRETATION', 'Bool', True), ('MAXDEPTH', 'Bool', False)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
+	import openalea.plantgl.all as pgl
+	patch1 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0.0295491, 0.0172273, 0.0204014, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (0.325603, 0.00690836, 0.425017, 1), (0.303992, 0.200873, 0.366263, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.00441042, -0.518639, 0.489863, 1), (0.346984, -0.0268568, 0.48347, 1), (0.334252, 0.212297, 0.456407, 1), (-0.0147519, 0.496314, 0.461605, 1)], [(0, -0.5, 0.666667, 1), (0.367414, 0.0717941, 0.599293, 1), (0.325871, 0.177369, 0.550018, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0.000294821, 0.152723, 1.00003, 1), (0, 0.5, 1, 1)]]) , 
+vstride = 20 , 	    )
+	patch1.name = "patch1"
+	import openalea.plantgl.all as pgl
+	vasefunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0160347, 0.559939, 1),(0.440107, -0.0643654, 1),(0.905046, 0.267064, 1),(1, 0.135477, 1),(1, 0.00596927, 1)]) , 
+	    )
+	vasefunc.name = "vasefunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1),('Function',vasefunc)])
+	parameterset = [panel_0,]
+	context["__functions__"] = [('vasefunc',vasefunc),]
+	context["__curves__"] = []
+	context["__parameterset__"] = parameterset
+	context["patch1"] = patch1
+	context["vasefunc"] = pgl.QuantisedFunction(vasefunc)
+__references__ = '#'

@@ -1,3 +1,7 @@
+# Figure 23: Different geometric embeddings of the same intrinsic von Koch flake curve. 
+
+# A von Koch flake moves progressively from left to right ( in an abstract 2D space where the metric linearly depends on the distance at the origin (small yellow dot). During this move, the flake is deformed by the metric. Geodesics forming the segments close to the origin tend to be strongly curved, thus deforming the entire flake. At the end of the sequence, the metrics becomes more homogeneous over the entire flake, which is less and less distorted.
+
 """
 	L-systems in Riemannian geometry
 	
@@ -13,18 +17,6 @@
 import numpy as np
 from math import ceil
 from random import random, seed
-
-# To import libs from other directories
-#(append dynamically other dirs to PYTHONPATH variable)
-from importlib import reload
-
-import riemann_lsystem.surfaces
-surfaces = reload(riemann_lsystem.surfaces)
-import riemann_lsystem.riemannianturtle
-riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
-
-from riemann_lsystem.surfaces import *
-from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
@@ -73,94 +65,46 @@ def g22s_ps(v,u,*args):
     return g22_ps(u,v,*args)
 
 
-
-#######################
-# Units
-#######################
-# Scaling model in graphic scene
-meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
-            # (F(1) for instance corresponds to a forward move of 1 meter)
-cm = 0.01 * meter
-
-# Surface parameters
-R = 1. * meter   # Radius of the sphere in meter
-
-#######################
-# DISPLAY PARAMETERS
-#######################
-
-
-# maximum len of subdivision step required to draw any line on the surface
-# this controls the resolution of the geodesic plot with respect to the
-# surface curvature
-MAXSTEPLEN = 1 * cm  # Should be > 0.0
-
-# Width to draw the geodesics
-LINEWIDTH  = 0.9 * cm
-
-# To control the Frame size
-FRAMESIZE  = 0.5 * meter
-FRAMEWIDTH = 0.6 * cm
-
 #######################
 # SIMULATION PARAMETERS
 #######################
-
-# Tighten the nec of the pin form structure to see that the geodesic 
-# at some threshold is doomed to stay in the lower part and cannot reach the other part
-nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
-            # To draw one geodesic, set it to 1 and set dashed to False
-
-slen = 0.10 # 
 
 #Metric parameters for psi and psd
 source = (0.0,1.)
 ry = 3.
 rz = 3.
 
-TEST = 3
+nbsteps = 100
+initx = -1.9
+endx = 1
+dx = (endx-initx)/nbsteps
 
-extern(startx = -1.9)
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   params = (source, ry, rz)
   # choice of functions used to define the intrinsic metric (see above their definition
   metric_funcs = {'g11' : g11_ps, 'g12' : g12_ps, 'g22' : g22_ps, 'g11s' : g11s_ps, 'g12s' : g12s_ps, 'g22s' : g22s_ps}
-  #metric_funcs = {'g11' : g11_psi, 'g12' : g12_psi, 'g22' : g22_psi, 'g11s' : g11s_psi, 'g12s' : g12s_psi, 'g22s' : g22s_psi}
-  #metric_funcs = {'g11' : g11_psd, 'g12' : g12_psd, 'g22' : g22_psd, 'g11s' : g11s_psd, 'g12s' : g12s_psd, 'g22s' : g22s_psd}
-  if TEST == 1:
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
-    nproduce ;(0)PlotSpace
-    nproduce InitTurtle([0.,0.,0.,1.])
-    nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
-  elif TEST == 2:
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1, umax = 1., vmin = 0, vmax = 2, metric_tensor_params = params))
-    nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
-    nproduce InitTurtle([-0.50,0.,0.,1.])
-    nproduce +(-25)
-    nproduce S;(6)_(LINEWIDTH)A(0)@O(0.03)
-  elif TEST == 3: # analyze here the effect of original orientation on geodesic 
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = -1, vmax = 2.5, metric_tensor_params = params))
-    #nproduce ;(0)PlotSpace
-    #nproduce PlotDS2(dict(DS2_SCALEFACTOR = 4))
-    nproduce InitTurtle([startx,0.12,0.9,0.4])
-    nproduce [S]
-    nproduce ;(3)_(0.01)F(2)-(120)F(2)-(120)F(2)
-#    a = 80
-#    for i in range(a+1):
-#      nproduce [InitTurtle([0.,0.,np.sin(-np.pi/2 + np.pi/a*i),np.cos(-np.pi/2 + np.pi/a*i)])
-#      nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)]    
+  nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -2, umax = 2., vmin = -1, vmax = 2.5, metric_tensor_params = params))
+  nproduce InitTurtle([initx,0.12,0.9,0.4])
+  nproduce [S] 
+  nproduce ;(3)_(0.01)G(2,0)-(120)G(2,0)-(120)G(2,0)
 
 
 
-derivation length: 0
+derivation length: nbsteps
 production:
+InitTurtle(v) :
+  v[0] += dx
+  produce InitTurtle(v)
+
 decomposition:
 maximum depth: 4
-F(x):
-  nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
+G(x,o):
+  if o == 2:
+    nproduce F(x/3.)+(60)F(x/3.)-(120)F(x/3.)+(60)+F(x/3.)
+  else:
+     nproduce G(x/3.,o+1)+(60)G(x/3.,o+1)-(120)G(x/3.,o+1)+(60)+G(x/3.,o+1)
 
 interpretation:
 
@@ -187,8 +131,4 @@ def __initialiseContext__(context):
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
 	context.options.setSelection('Axiom decomposition',1)
-	scalars = [('a', 'Float', 1.0, 0.1, 5.0, 2), ('b', 'Float', 2.87, 0.1, 5.0, 2)]
-	context["__scalars__"] = scalars
-	for s in scalars:
-		if not s[1] == "Category" : context[s[0]] = s[2]
 __references__ = '#'

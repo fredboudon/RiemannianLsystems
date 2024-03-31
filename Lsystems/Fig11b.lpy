@@ -1,3 +1,6 @@
+# Figure 11b: Geodesics on surfaces of revolution.
+
+# Comparison of the behavior of close geodesic trajectories in spaces with positive (sphere) and negative (pseudo-sphere) curvatures. In both examples, geodesics start with parallel orientation (red arrow).'
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 import numpy as np

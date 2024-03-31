@@ -1,22 +1,19 @@
-import sys
-sys.path.append("../RiemannTurtleLib")
+# Figure 21: Kidney fern model.  
+
+# Consecutive stages of the developmental model.
+
+%pastefile ../src/riemann_lsystem/riemannianrules.lpy
 import numpy as np
 from numpy.linalg import norm
 from openalea.plantgl.scenegraph.nurbsshape import nurbsHalfEllipsoid
 
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
-
 import openalea.plantgl.all as pgl
 import riemann_lsystem.nurbsswung as ns
-reload(ns)
 
 from math import *
 
 angleListN = [20,30,60,90,150,180, 210,270,300,330,340]
 angleList0 = angleListN
-#aMin0, aMax0 = 30, 330
-#angleList0 = angleListN
-#[aMin0+(a-angleListN[0])*(aMax0-aMin0)/(angleListN[-1]-angleListN[0]) for a in angleListN]
 
 def anglesListAt(t):
   return list(map(radians,angleListN)) #[a0*(1-t)+aN*t for a0,aN in zip(angleList0,angleListN)]))
@@ -27,30 +24,11 @@ for objname, obj in dict(globals()).items():
     obj.ctrlPointList.scale(curvescale)
 
 profileList=[profile0a,profile0b, profile0c, profile1,profile2,profile3,profile2,profile1, profile0c, profile0b,profile0a]
-#swung = ns.NurbsSwung(profileList=profileList,angleList=anglesListAt(0),stride=100, slices=100, ccw=False)
 
 ctrlpoints = [[[x*cos(theta), x*sin(theta),y,w] for x,y,w in profile.ctrlPointList] for theta,profile in zip(anglesListAt(0), profileList)]
-#ctrlpoints = np.transpose(ctrlpoints,(1,0,2))
 
 swung = NurbsPatch(ctrlpoints)
 uoriented = False
-
-#######################
-# Units0.5
-#######################
-# Scaling model in graphic scene
-meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
-            # (F(1) for instance corresponds to a forward move of 1 meter)
-cm = 0.01 * meter
-
-#######################
-# DISPLAY PARAMETERS
-#######################
-
-# maximum len of subdivision step required to draw any line on the surface
-# this controls the resolution of the geodesic plot with respect to the
-# surface curvature
-MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 
 def determine_points_on_line(u0, nb, uoriented=uoriented, shift = 0.5):
@@ -134,7 +112,6 @@ derivation length: nb_steps
 production:
 
 SetSpace(p):
-  print(getIterationNb(),nb_steps)
   assert getIterationNb() < nb_steps
   global apexid, targetu_s, umax, umaxid
   umaxid +=1

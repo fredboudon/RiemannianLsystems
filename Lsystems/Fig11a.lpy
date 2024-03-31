@@ -1,3 +1,7 @@
+#Figure 11a: Geodesics on surfaces of revolution.
+
+# (step 0) The quadrilateral control polygon of a sphere is drawn to be refined. (step 1) Duplication operation with new control points (in purple) are inserted in the midpoint of each segment. (step 2&3) All original control points (in red) are move toward the midpoint of their succeeding segments (in purple). In this case a B-Spline of degree 3 is targeted and thus 2 move operation are applied. (step4) The resulting control polygon after a complete subdivision step.
+
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 import numpy as np
 

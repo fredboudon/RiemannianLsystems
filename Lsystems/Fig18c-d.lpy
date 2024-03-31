@@ -1,6 +1,6 @@
-# Figure 14: Geodesics on a pin-formed surface.
+# Figure 18: Deflection of geodesic trajectories using surface vector fields
 
-# A geodesic of constant length l in yellow is initiated at a constant angle (28 degrees downward) with respect to the latitude at the level of the pollen grain position (green point). From left to right: the mid-height neck of the pin surface is progressively reduced from left to right (the value of D decreases). As a result the geodesic coils increasingly around the neck, up to a point where it cannot pass the neck anymore and coils in the top region.
+# Simulated tip-growing filament trajectories on pin-formed structure with a scalar field at the surface (color gradient from red (high) to dark blue (low values)). SENSITIVITY_ID=0: Geodesic trajectory (not interfering with the scalar field). SENSITIVITY_ID>0: effect of tropism resulting of an interaction with the scalar field. Geodesics are deflected in the direction of the gradient of the scalar field, with an increasing intensity $\sigma$ from 0 to 5. 
 
 """
 	L-systems in Riemannian geometry
@@ -8,10 +8,7 @@
 		Author: Ch. Godin, Inria
 		Date: 2019-2022
 
-	Computation of curvatures on different surfaces
-	
-	Fig14 --> From left to right: PINFUNCID = 1 (then 2,3,4,5,6)
-	
+	Fig 18 c-d: sensitivity = 0 then 0.1, 0.7, 1.5, 3.0, 5.0
 """
 
 import numpy as np
@@ -31,8 +28,6 @@ from riemann_lsystem.surfaces import *
 from riemann_lsystem.riemannianturtle import *
 
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
-
-PRINT_CURVATURES = True
 
 #######################
 # Units
@@ -56,33 +51,24 @@ LINEWIDTH  = 1. * cm
 FRAMESIZE  = 0.3 * meter
 FRAMEWIDTH = 1 * cm
 
-PINFUNCID = 6
-PINFUNCNAMES = {1:"pinfunc_1",2:"pinfunc_2",3:"pinfunc_3",4:"pinfunc_4",5:"pinfunc_5",6:"pinfunc_6"}
-pin_fun_name = PINFUNCNAMES[PINFUNCID]
-
 #######################
 # Pin form definition
 #######################
-def pin(x, args):
+def pin(x, *args):
   if x < 0: 
     x = 0.
   # normalization of the argument before calling
-  scale = 1.0     # value by default
-  radius = 1.0
-  if len(args) > 0:
-    scale = args[0]
-    if len(args) > 1:
-      radius = args[1]
-  u = x / scale
+  radius = 1.0     # value by default
+  if args:
+    radius = args[0]
+  u = x / radius
   if u > 1.0:
     u = 1.0
   
-  pinf = globals()[pin_fun_name]
-  # rescaling the norm of the argument before returning
-  return scale * pinf.getValue(u) * radius
+  # restoring the norm of the argument before returning
+  return radius * pinfunc.getValue(u)
 
-SCALE_FACTOR = 2     # multiplicative factor for the whole the pin form 
-RADIUS_FACTOR = 1  # multiplicative factor for the radius the pin form 
+HEIGHT = 2*meter   # Height of the pin form
 
 #######################
 # length and the discretization of the trajectory
@@ -111,24 +97,27 @@ MAXSTEPLEN = 0.02
 # Controling the tropism field
 #######################
 
-sensitivity = 5 # 1.0 rate of geometric tropism: it is in units of angle per distance units
-                 # how much Turtle Head must turn for a distance delta_s at the surface
-                 # The actual angle is prop to the angle (between current Head and the principal direction) and to the distance ds
+#try 
+sensitivities = [0.0, 0.1, 0.7, 1.5, 3.0, 5.0]
+sensitivity = sensitivities[SENSITIVITY_ID] # rate of geometric tropism: it is in units of angle per distance units
+                  # how much Turtle Head must turn for a distance delta_s at the surface
+                  # The actual angle is prop to the angle 
+                  # (between current Head and the principal direction) and to the distance ds
              
 def PinScalarField(u,v):
   # it is assumed that umin=0,umax=2*np.pi,vmin=-np.pi/2.,vmax=np.pi/2
   # this function return a scalar value between 0 and 1 (0 for v = -pi/2, 1 for v = +pi/2)
-  h = SCALE_FACTOR
+  h = HEIGHT
   v = h-v
-  return v/SCALE_FACTOR
+  return v/HEIGHT
 
 
 #########################
 # Selection of tests
 #########################
 
-GEODESIC = True           # Displays the pure Geodesic
-TUBE = False               # Displays the tube trajectory = geodesic + deviation due to gradient
+GEODESIC = True           # Displays in addition the pure Geodesic (without deflection) as a reference trajectory
+TUBE = True               # Displays the tube trajectory = geodesic + deviation due to gradient
 
 STOP_IN_SOURCE_REGION= True # If True, the computations of Geodesics stop as soon as they reach the source region.
 VSOURCE_REGION_DEF = 0.1      # Value of v under which we consider the source region is entered
@@ -140,14 +129,7 @@ def unit_vector(vector):
     return vector / np.linalg.norm(vector)
 
 def angle_between(v1, v2): # code from on stackoverflow
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
-            >>> angle_between((1, 0, 0), (0, 1, 0))
-            1.5707963267948966
-            >>> angle_between((1, 0, 0), (1, 0, 0))
-            0.0
-            >>> angle_between((1, 0, 0), (-1, 0, 0))
-            3.141592653589793
-    """
+    """ Returns the angle in radians between vectors 'v1' and 'v2' """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
@@ -158,24 +140,22 @@ module PrintCurvatures(scalefactor,color_plus,color_minus,linewidth)
 Axiom:
  # Default initial conditions
   u0= 0.   # azimuthal position
-  v0= 1.9 # altitude (max = SCALE_FACTOR)
+  v0= 1.85 # altitude (max = HEIGHT)
   initial_angle = -118  # 0 is pointing upwards the pin form  
   
   field_source = [0,0]
   fieldfunc = PinScalarField
   
   # Draws the space (pin-like form)
-  #nproduce SetSpace(Revolution(pin, (HEIGHT), zmin = 0, zmax = HEIGHT))
-  nproduce SetSpace(Revolution(pin, [SCALE_FACTOR, RADIUS_FACTOR], zmin = 0, zmax = SCALE_FACTOR))
+  nproduce SetSpace(Revolution(pin, (HEIGHT), zmin = 0, zmax = HEIGHT))
     
-  #dic = {'colorvalfunc': fieldfunc, 'cmap' : 'jet', 'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
-  dic = {'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
+  dic = {'colorvalfunc': fieldfunc, 'cmap' : 'jet', 'Du' : 0.4, 'Dv' : 0.04, 'CCW' : True}
   nproduce ;(0)PlotSpace(dic)
   
   # Plots Frame and field source location
   nproduce [
   # Indicates the origin of the scalar field diffusion
-  nproduce [InitTurtle([field_source[0],field_source[1],0,1])]
+  nproduce [InitTurtle([field_source[0],field_source[1],0,1]);(3)@O(0.02)]
   # to draw the principal directions on the surface
   #nproduce ;(1)_(LINEWIDTH) S
   nproduce ]
@@ -197,7 +177,6 @@ Axiom:
   if GEODESIC:
     nproduce [?T(ParameterSet())G(N)]
   nproduce @Ge
-  nproduce S
   
 derivation length: N
 production:
@@ -251,7 +230,108 @@ production:
   u0,v0,p0,q0 = t.uvpq
   if v0 > VSOURCE_REGION_DEF or not STOP_IN_SOURCE_REGION :
     nproduce ;(4)StaticF(steplen)?T(ParameterSet())G(n-1)
+  
+interpretation:
 
+maximum depth: 3
+
+S:
+  n = 20
+  ulist = np.linspace(0,2*pi,n)
+  vlist = np.linspace(0,HEIGHT,n)    
+  scalefactor = 0.01
+  linewidth = 0.01  
+  color_plus = 5
+  color_minus = 6
+  for u in ulist:
+    for v in vlist:
+      nproduce RiemannMoveTo([u,v]) @O(0.005) 
+      nproduce PrintCurvatures(scalefactor,color_plus,color_minus,linewidth)
+      #nproduce Frame(0.1)
+  
+  
+PrintCurvatures(scalefactor,color_plus,color_minus,linewidth):
+  u,v,p,q = turtle.uvpq
+  print(f'u={u:.3f} v={v:.3f} p={p:.3f} q={q:.3f} ')
+  
+  if PRINT_TEST == 1:
+    # Test: computed numerical coef o the fundamental forms I and II
+    E,F,G,L,M,N = turtle.space.fundFormCoef(u,v)
+    print("Form I & II    computed coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(E,F,G,L,M,N) )
+    if TEST == 8: # Pseudosphere
+      # theoretical values of E,F,G,L,M,N for pseudosphere :
+      EE = (R*np.tanh(u))**2
+      FF = 0
+      GG = (R/np.cosh(u))**2
+    
+      LL = -R*np.sinh(u)/(np.cosh(u)**2)
+      MM = 0
+      NN = -R*(1/np.cosh(u))*np.tanh(u)
+    
+      print("Form I & II theoretical coefs :{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}".format(EE,FF,GG,LL,MM,NN))
+    
+  if PRINT_TEST == 2:
+    K,H,kmin,kmax = turtle.space.localCurvatures(u,v)
+    if np.isnan(kmax):
+      produce 
+      
+    # principal directions returns the array of eigen-values, and the column matrix of eigen vectors
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
+    
+    #print("The norm of the eigen vectors should be 1: ", np.linalg.norm(evv[:,0]), np.linalg.norm(evv[:,1]) )
+    #produce _(FRAMEWIDTH)Frame(FRAMESIZE)
+    
+    # pdirs_uv are 
+    if pdirmin_uv == []:
+      produce
+    if pdirmax_uv == []:
+      produce
+      
+    # Compute the pushforward of principal direction 1 expressed in the covariant basis
+    pushforward = turtle.space.Shift(u,v)
+    pdirmax = pushforward.dot(pdirmax_uv)
+    print("pdirmax = ", pdirmax)
+    # Compute the local normal vector, and the second principal direction (perpendicular)
+    ndir = turtle.space.normal(u,v)
+    pdirmin = np.cross(pdirmax, ndir)
+    print("pdirmin = ", pdirmin)
+    
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
+    pdirs = [pdirmax,pdirmin]
+    print(pdirs)
+    #nproduce CovariantBasis(0.3)
+    pcurvs = [curvmax,curvmin]
+    
+    #nproduce ;(5)_(0.005)DrawVect(dir1,0.3)
+    #nproduce ;(6)_(0.005)DrawVect(dir2,0.3)
+    nproduce _(linewidth)DrawTensor2Lines(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
+    normal = turtle.space.normal(u,v)
+    nproduce DrawVect(normal, 0.1)
+
+  if PRINT_TEST == 3:
+    curvmin, curvmax, pdirmin_uv, pdirmax_uv = turtle.space.principalDirections(u,v)
+    # pdirs_uv are 
+    if pdirmin_uv == []:
+      produce
+    if pdirmax_uv == []:
+      produce
+      
+    # Compute the pushforward of principal direction 1 expressed in the covariant basis
+    pushforward = turtle.space.Shift(u,v)
+    pdirmax = pushforward.dot(pdirmax_uv)
+    # Compute the local normal vector, and the second principal direction (perpendicular)
+    ndir = turtle.space.normal(u,v)
+    pdirmin = np.cross(pdirmax, ndir)
+    
+    #pdirmin = A.dot(pdirs_uv[:,1]) # not used as pdirmax is constructed from pdir
+    pdirs = [pdirmax,pdirmin]
+    print(pdirs)
+    #nproduce CovariantBasis(0.3)
+    pcurvs = [curvmax,curvmin]
+
+    #nproduce DrawEllipsis(pdirs,pcurvs,scalefactor,color_plus,color_minus)
+    
 endlsystem
 
 
@@ -265,40 +345,25 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
+	scalars = [('SENSITIVITY_ID', 'Integer', 0, 0, 5)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
-	pinfunc_1 = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.211184, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
+	patch1 = pgl.NurbsPatch(	
+	    pgl.Point4Matrix([[(0, -0.5, 0, 1), (0.0295491, 0.0172273, 0.0204014, 1), (0.0012238, 0.186899, 0.00203897, 1), (0, 0.5, 0, 1)], [(-0.0337475, -0.532502, 0.259858, 1), (0.325603, 0.00690836, 0.425017, 1), (0.303992, 0.200873, 0.366263, 1), (0.00594731, 0.473902, 0.221347, 1)], [(-0.00441042, -0.518639, 0.489863, 1), (0.346984, -0.0268568, 0.48347, 1), (0.334252, 0.212297, 0.456407, 1), (-0.0147519, 0.496314, 0.461605, 1)], [(0, -0.5, 0.666667, 1), (0.367414, 0.0717941, 0.599293, 1), (0.325871, 0.177369, 0.550018, 1), (0, 0.5, 0.666667, 1)], [(0, -0.5, 1, 1), (0, -0.166667, 1, 1), (0.000294821, 0.152723, 1.00003, 1), (0, 0.5, 1, 1)]]) , 
+vstride = 20 , 	    )
+	patch1.name = "patch1"
+	import openalea.plantgl.all as pgl
+	pinfunc = pgl.NurbsCurve2D(	
+	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.0368201, 0.260583, 1),(0.506336, 0.0733913, 1),(0.867958, 0.190238, 1),(0.990524, 0.129466, 1),(1, 0.00596927, 1)]) , 
 	    )
-	pinfunc_1.name = "pinfunc_1"
-	pinfunc_2 = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, 0.15, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
-	    )
-	pinfunc_2.name = "pinfunc_2"
-	pinfunc_3 = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.505749, 0.0891841, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
-	    )
-	pinfunc_3.name = "pinfunc_3"
-	pinfunc_4 = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.515205, 0.0756484, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
-	    )
-	pinfunc_4.name = "pinfunc_4"
-	pinfunc_5 = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.510477, 0.0776566, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
-	    )
-	pinfunc_5.name = "pinfunc_5"
-	pinfunc_6 = pgl.NurbsCurve2D(	
-	    ctrlPointList = pgl.Point3Array([(0, 0.00200282, 1),(0.00315813, 0.251725, 1),(0.501021, -0.05, 1),(0.853114, 0.192712, 1),(1, 0.148556, 1),(1, 0.00596927, 1)]) , 
-	    )
-	pinfunc_6.name = "pinfunc_6"
-	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('Function',pinfunc_1),('Function',pinfunc_2),('Function',pinfunc_3),('Function',pinfunc_4),('Function',pinfunc_5),('Function',pinfunc_6)])
+	pinfunc.name = "pinfunc"
+	panel_0 = ({'name': 'Panel 2', 'active': True, 'visible': True},[('NurbsPatch',patch1),('Function',pinfunc)])
 	parameterset = [panel_0,]
-	context["__functions__"] = [('pinfunc_1',pinfunc_1),('pinfunc_2',pinfunc_2),('pinfunc_3',pinfunc_3),('pinfunc_4',pinfunc_4),('pinfunc_5',pinfunc_5),('pinfunc_6',pinfunc_6),]
+	context["__functions__"] = [('pinfunc',pinfunc),]
 	context["__curves__"] = []
 	context["__parameterset__"] = parameterset
-	context["pinfunc_1"] = pgl.QuantisedFunction(pinfunc_1)
-	context["pinfunc_2"] = pgl.QuantisedFunction(pinfunc_2)
-	context["pinfunc_3"] = pgl.QuantisedFunction(pinfunc_3)
-	context["pinfunc_4"] = pgl.QuantisedFunction(pinfunc_4)
-	context["pinfunc_5"] = pgl.QuantisedFunction(pinfunc_5)
-	context["pinfunc_6"] = pgl.QuantisedFunction(pinfunc_6)
+	context["patch1"] = patch1
+	context["pinfunc"] = pgl.QuantisedFunction(pinfunc)
 __references__ = '#'
