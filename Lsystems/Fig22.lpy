@@ -5,23 +5,6 @@
 # (TEST=2) In the Beltrami-Poincaré half plane, all geodesics are circles centered on the u1-axis. Geodesic starting with a vertical orientation are vertical lines (degenerated circles).
 
 
-"""
-	L-systems in Riemannian geometry
-	
-		Author: Ch. Godin, Inria
-		Date: 2019-2022
-
-	Example of geodesics in a 2D intrinsic Riemaniann space (Beltrami-Poincare hyperbolic space)
-	
-	Fig22.a-b --> TEST0
-	Fig22.c-d --> TEST1
-	Fig22.e   --> TEST3
-"""
-
-import numpy as np
-from math import ceil
-from random import random, seed
-
 %pastefile ../src/riemann_lsystem/riemannianrules.lpy
 
 
@@ -29,158 +12,36 @@ from random import random, seed
 # DEFINITION OF THE METRIC (INTRINSIC)
 ######################################
 
-######################################################
+def hyperbolic(u,v,*args):
+    return 1./v**2
 
 # Euclidean metric (Halfplane PoinCaré-Beltrami)
-def g11_euclidean(u,v,*args):
-    return 10.
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
-def g11s_euclidean(v,u,*args):
-    return g11_euclidean(u,v,*args)
-
-# g12 == g21
-def g12_euclidean(u,v,*args):
-    return 0.
-def g12s_euclidean(v,u,*args):
-    return g12_euclidean(u,v,*args)
-
-def g22_euclidean(u,v,*args):
-    return 10.
-def g22s_euclidean(v,u,*args):
-    return g22_euclidean(u,v,*args)
-
+euclidean_metric = {'g11' : 10, 'g12' : 0, 'g22' : 10}
 
 # Hyperbolic metric (Halfplane PoinCaré-Beltrami)
-def g11_hyperbolic(u,v,*args):
-    return 1./v**2
-# g11 with swapped u,v --> v,u (to carry out devivative of first argument)
-def g11s_hyperbolic(v,u,*args):
-    return g11_hyperbolic(u,v,*args)
+hyperbolic_metric = {'g11' : hyperbolic, 'g12' : 0, 'g22' : hyperbolic}
 
-# g12 == g21
-def g12_hyperbolic(u,v,*args):
-    return 0.
-def g12s_hyperbolic(v,u,*args):
-    return g12_hyperbolic(u,v,*args)
-
-def g22_hyperbolic(u,v,*args):
-    return 1./v**2
-def g22s_hyperbolic(v,u,*args):
-    return g22_hyperbolic(u,v,*args)
-
-
-#######################
-# Units
-#######################
-# Scaling model in graphic scene
-meter = 1.0 # An object of 1 meter is mapped onto a graphic unit size of 1.0
-            # (F(1) for instance corresponds to a forward move of 1 meter)
-cm = 0.01 * meter
-
-# Surface parameters
-R = 1. * meter   # Radius of the sphere in meter
-
-#######################
-# DISPLAY PARAMETERS
-#######################
-
-
-# maximum len of subdivision step required to draw any line on the surface
-# this controls the resolution of the geodesic plot with respect to the
-# surface curvature
-MAXSTEPLEN = 1 * cm  # Should be > 0.0
-
-# Width to draw the geodesics
-LINEWIDTH  = 0.9 * cm
-
-# To control the Frame size
-FRAMESIZE  = 0.2 * meter
-FRAMEWIDTH = 0.6 * cm
-
-DS2_SCALEFACTOR = 10.
-
-#######################
-# SIMULATION PARAMETERS
-#######################
-
-# Tighten the nec of the pin form structure to see that the geodesic 
-# at some threshold is doomed to stay in the lower part and cannot reach the other part
-nb_seg = 10 # nb of segment to draw the geodesic (defines the parameter of the F)
-            # To draw one geodesic, set it to 1 and set dashed to False
-
-slen = 1  # unit length
-
-module GeodesicToTarget
 
 Axiom: 
   # Sets the Riemanian space in which the turtle will move
   if TEST == 0: # Euclidean geometry
-    metric_funcs = {'g11' : g11_euclidean, 'g12' : g12_euclidean, 'g22' : g22_euclidean, 'g11s' : g11s_euclidean, 'g12s' : g12s_euclidean, 'g22s' : g22s_euclidean}
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.0, umax = 1.0, vmin = 0.0, vmax = 2))
-    nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 20))
-    nproduce InitTurtle([-0.5,0.10,0,1])
-    nproduce -(10)
-    nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)
+    nproduce SetSpace(RiemannianSpace2D(**euclidean_metric, umin = -1.0, umax = 1.0, vmin = 0.1, vmax = 2))
   elif TEST == 1: # Hyperbolic geometry
-    metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
-    # Note the second argument is optional and set the display 
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.0, umax = 1.0, vmin = 0.0, vmax = 2))
-    #nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 20))
-    nproduce InitTurtle([-0.5,0.10,0,1])
-    nproduce -(10)
-    nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)
-  elif TEST == 2: # analyze here the effect of original orientation on geodesic 
-    metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -0.5, umax = 3., vmin = 0, vmax = 5))
-    nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 25))
-    a = 15
-    for i in range(0,a):
-      #nproduce [InitTurtle([0.1,0.1,np.sin(-np.pi/2 + np.pi/a*i),np.cos(-np.pi/2 + np.pi/a*i)])
-      nproduce [InitTurtle([0.1,0.1,1,0])
-      nproduce +(90-i)
-      nproduce ;(6)_(LINEWIDTH)A(0)@O(0.03)] 
-  elif TEST == 4: # LineTo Geodesics   
-    metric_funcs = {'g11' : g11_hyperbolic, 'g12' : g12_hyperbolic, 'g22' : g22_hyperbolic, 'g11s' : g11s_hyperbolic, 'g12s' : g12s_hyperbolic, 'g22s' : g22s_hyperbolic}
-    # Note the second argument is optional and set the display 
-    target_point = (0.5,1.)
-    nproduce SetSpace(RiemannianSpace2D(**metric_funcs, umin = -1.0, umax = 1.0, vmin = 0.0, vmax = 2))
-    nproduce ;(0)PlotSpace
-    nproduce PlotDS2(dict(DS2_SCALEFACTOR = 20))
-    nproduce InitTurtle([-0.5,0.10,0,1])
-    nproduce _(FRAMEWIDTH) Frame(FRAMESIZE)
-    # plot the target point
-    nproduce [;(6)MoveTo(0, *target_point) @O(0.05)]
-    # plot the IVP geodesic to check the solution
-    nproduce [;(3)-(5.76)F(10)]
-    for i in range(15):
-      target_point = (0.5,0.2 + i/10.)
-      nproduce [GeodesicToTarget(target_point)]
-    
-    
-
-derivation length: 5
-production:
-
-A(n):
-  nproduce StaticF(slen)A(n+1)
-
+    nproduce SetSpace(RiemannianSpace2D(**hyperbolic_metric, umin = -1.0, umax = 1.0, vmin = 0.1, vmax = 2))
+  elif TEST == 2:
+    nproduce SetSpace(RiemannianSpace2D(**hyperbolic_metric, umin = -0.5, umax = 3., vmin = 0.1, vmax = 5))
   
-interpretation:
+  #nproduce PlotSpace
+  nproduce ;(0)PlotDS2(dict(DS2_SCALEFACTOR = 25))
+  nproduce InitTurtle([-0.5,0.10,0,1])
+  nproduce ;(6)_(0.009)
+  if TEST < 2:
+    nproduce -(10)StaticF(5) @O(0.03)
+  else:
+    # analyze here the effect of original orientation on geodesic 
+    for i in range(0,15):
+      nproduce [InitTurtle([0.1,0.1,1,0]) +(90-i) StaticF(5) @O(0.03)_(0.006) Frame(0.2)] 
 
-A(n):
-  produce _(FRAMEWIDTH) Frame(FRAMESIZE)
-  
-GeodesicToTarget(target):
-  # first arg target point
-  # scnd  arg number of segments
-  # third arg max number of iterations 
-  # of iterations between 20 and 50 does not seem to impact the result much
-  nproduce ;(2)RiemannLineTo(target,30,50)
-
-endlsystem
 ###### INITIALISATION ######
 
 __lpy_code_version__ = 1.1
@@ -194,7 +55,7 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('TEST', 'Integer', 1, 0, 2)]
+	scalars = [('TEST', 'Integer', 2, 0, 2)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]

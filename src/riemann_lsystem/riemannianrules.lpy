@@ -8,12 +8,13 @@
 	the main turtle primitives: F, f, + and -
 
 """
+import warnings
+warnings.filterwarnings("ignore")
+
 #######################################################
 # Generic Interpretation rules for Riemannian geometry
 # (DO NOT EDIT)
 #######################################################
-# To import libs from other directories
-#(append dynamically other dirs to PYTHONPATH variable)
 from math import ceil
 
 from importlib import reload

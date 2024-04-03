@@ -101,6 +101,10 @@ def interpol_uvpq_at_v(uvpq1, uvpq2, v):
      
 
 ################################################
+def swap_uvarg(fun):
+  # fun with swapped u,v --> v,u (to carry out devivative of first argument)
+  def swapped_uvarg_fun(v,u,*args): return fun(u,v,*args)
+  return swapped_uvarg_fun
 
 # TODO: Split this class in a purely abstract class and a class IntrinsicRiemannianSpace2D that creates a branch different from the Riemaniann 2D surface one
 class RiemannianSpace2D:
@@ -119,14 +123,14 @@ class RiemannianSpace2D:
     but usually they will redefine the some of them.
     '''
 
-    def __init__(self, g11 = None, g12 = None, g22 = None, g11s = None, g12s = None, g22s = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False, UPERIODIC = False, VPERIODIC=False):
+    def __init__(self, g11 = None, g12 = None, g22 = None, umin = 0, umax = 1.0, vmin = 0, vmax = 1.0, metric_tensor_params = (), STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False, UPERIODIC = False, VPERIODIC=False):
       # functions to compute the metric
-      self.g11 = g11
-      self.g12 = g12
-      self.g22 = g22
-      self.g11s = g11s
-      self.g12s = g12s
-      self.g22s = g22s
+      self.g11 = g11 if callable(g11) else lambda u,v,*args : g11
+      self.g12 = g12 if callable(g12) else lambda u,v,*args : g12
+      self.g22 = g22 if callable(g22) else lambda u,v,*args : g22
+      self.g11s = swap_uvarg(self.g11)
+      self.g12s = swap_uvarg(self.g12)
+      self.g22s = swap_uvarg(self.g22)
 
       self.metric_tensor_params = metric_tensor_params
 
