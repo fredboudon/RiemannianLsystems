@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.10
-  - openalea.lpy=3.14.*
+  - openalea.lpy=3.15.*
   - jupyterlab>=3.0.16
   - jupyterlab_widgets
   - notebook
@@ -15,6 +15,7 @@ dependencies:
   - scipy
   - pip
   - pip:
-    - pgljupyter>=2.0.*
+    - pgljupyter==2.0.0
     - pynverse
     - -e ..
+
