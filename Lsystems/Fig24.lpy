@@ -4,7 +4,7 @@
 
 
 
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+%pastemodule riemann_lsystem.riemannianrules
 import numpy as np
 
 

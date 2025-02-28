@@ -11,6 +11,7 @@ TODO: compute principal curvatures, gauss curvature for the mother class
 import math
 import numpy as np
 import numpy.linalg as linalg
+import sys
 
 from importlib import reload
 
@@ -51,7 +52,7 @@ def bruteforce_derivatives(surf, u, v, order):
 
 # computation of generic derivatives using scipy
 ################################################
-from scipy.misc import derivative
+from numdifftools import Derivative as derivative
 
 # Functions to generate derivatives (with a single x argument) automatically from a function with several arguments
 # Note that the original function func, may have optional arguments
@@ -267,12 +268,12 @@ class RiemannianSpace2D:
       It can also be used to transform a vector in the u,v tangent plane into a 3D vector
       in the ambient space if any.
       """
-      xu = 0.
-      yu = 1.
-      zu = 0.
-      xv = 0.
-      yv = 0.
-      zv = 1.
+      xu = 0.0
+      yu = 1.0
+      zu = 0.0
+      xv = 0.0
+      yv = 0.0
+      zv = 1.0
 
       return np.array([[xu,xv],[yu,yv],[zu,zv]])
 
@@ -1685,6 +1686,70 @@ class PseudoSphere(ParametricSurface):
       else:
           return [p,q,pdot,qdot]
 
+class Plane(ParametricSurface):
+
+    def __init__(self, height = 0.):
+        super(Plane, self).__init__(umin=sys.float_info.min, umax=sys.float_info.max, vmin=sys.float_info.min, vmax=sys.float_info.max,UPERIODIC = False, VPERIODIC=False)
+        self.heigth = height
+
+    # Surface position vector
+    # uvpq is an 1x4 array of reals where:
+    # - u,v are the coordinates on the surface of the moving point
+    # - p,q are the coordinates of the initial vector corresponding to
+    # the initial direction in the local covariant basis (at point [u,v]
+
+    def S(self,u,v):
+      """ Returns the coordinates (x,y,z) of a position vector restricted to the sphere surface
+      """
+      return np.array([u,v,self.heigth])
+
+    # the Shift tensor may be wieved as the coordinates of the surface
+    # covariant basis expressed in the ambiant basis (3x2) = 2 column vectors in 3D.
+    def Shift(self,u,v):
+      """
+      Shit tensor (3,2 matrix) to transform the coordinates u,v in x,y,z
+      It is derived from the partial derivatives of the surface equations wrt u,v
+      (may be could be computed automatically from S(u,v) ... see that later)
+      """
+      xu = 1.
+      yu = 0.
+      zu = 0.
+      xv = 0.
+      yv = 1.
+      zv = 0.
+
+      return np.array([[xu,xv],[yu,yv],[zu,zv]])
+
+    def secondsuu(self,u,v):
+      """
+      second derivatives of the position vector at the surface
+      """
+      return np.array([0.,0.,0.])
+
+    def secondsuv(self,u,v):
+      return np.array([0.,0.,0.])
+
+    def secondsvv(self,u,v):
+      return np.array([0.,0.,0.])
+
+    def metric_tensor(self,u,v):
+      return np.array([[1.,0.],[0.,1.]])
+
+    def normal(self,u,v):
+      '''
+      Note: this normal is well defined everywhere despite the fact that the poles
+      are degenerated. This comes that in the computation cos(v) appears as a global
+      factor, that cancels out in the normed vector.
+      '''
+
+      return np.array([0.,0.,1.])
+
+
+    def geodesic_eq(self,uvpq,s):
+      u,v,p,q = uvpq
+      #X = self.S(u, v)              # current 3D point on the trajectory      
+      return [p, q, 0., 0.]
+
 
 # For the moment the implementation is not done (copied from Sphere)
 class EllipsoidOfRevolution(ParametricSurface):
@@ -2161,7 +2226,7 @@ class Patch(ParametricSurface):
       vmin = min(self.patch.vknotList)
       vmax = max(self.patch.vknotList)
 
-      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V)
+      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V, UPERIODIC=UPERIODIC, VPERIODIC=VPERIODIC)
 
 
     def getPointAt(self, u,v):
@@ -2330,6 +2395,8 @@ class ExtrusionSurface(Patch):
       cs = extrusion.crossSection
       extrusion.vknotList = [cs.firstKnot,cs.lastKnot]
       VPERIODIC = (norm(cs.getPointAt(cs.firstKnot)-cs.getPointAt(cs.lastKnot)) < 1e-5)
+      print("VPERIODIC = ", VPERIODIC)
+
       self.framecache = {}
       self.ducache = (extrusion.axis.lastKnot-extrusion.axis.firstKnot) / extrusion.axis.stride
 

@@ -7,13 +7,11 @@ from math import *
 from random import uniform, randint, seed, getstate, setstate
 import numpy as np
 
-seed(0)
+seed(100)
 brstate = getstate()
-
 seed(1)
 
-
-%pastefile ../src/riemann_lsystem/riemannianrules.lpy
+%pastemodule riemann_lsystem.riemannianrules
 
 scale = 1
 ip = trunkaxis.ctrlPointList[0]
@@ -61,7 +59,7 @@ Ivy:
   u = p['u']
   if u <= 0 or u >= 1:
     produce
-  ang = 50 
+  ang = 60 
   if n > 0:
     dl = l/(nbleaf*nmax)
     for i in range(nbleaf):
@@ -168,7 +166,7 @@ def __initialiseContext__(context):
 	Color_7 = pgl.Material("Color_7" , ambient = (30,60,10) , diffuse = 3 , transparency = 0.8 , )
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
-	Color_8 = pgl.Material("Color_8" , ambient = (144,133,110) , diffuse = 0.166667 , shininess = 0 , )
+	Color_8 = pgl.Material("Color_8" , ambient = (144,133,110) , diffuse = 0.166667 , shininess = 0 , transparency = 0.69 , )
 	Color_8.name = "Color_8"
 	context.turtle.setMaterial(8,Color_8)
 	Color_9 = pgl.Material("Color_9" , ambient = (204,204,204) , diffuse = 0.117647 , shininess = 0 , transparency = 0.81 , )
