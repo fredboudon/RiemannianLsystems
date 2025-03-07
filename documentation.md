@@ -133,6 +133,8 @@ A second implementation of LineTo in curved space is based on a shooting strateg
     
 For the moment, this shooting strategy is slower than the first BVP one.
 
+Note that after a RiemannLineTo or RiemannShootingLineTo, the Head vector at the target point is systemically aligned with the tangent of the constructed geodesic.
+
 ### Moving to a target point without drawing a line
 
 produce RiemannMoveTo(uv)
