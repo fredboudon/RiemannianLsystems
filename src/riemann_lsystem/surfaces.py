@@ -53,6 +53,7 @@ def bruteforce_derivatives(surf, u, v, order):
 # computation of generic derivatives using scipy
 ################################################
 from numdifftools import Derivative as derivative
+#from scipy.differentiate import  derivative
 
 # Functions to generate derivatives (with a single x argument) automatically from a function with several arguments
 # Note that the original function func, may have optional arguments
@@ -69,12 +70,12 @@ def gen_func(func, *args):
 # function defined as
 def gen_prime_deriv(func, *args):
     def prime_derive(x):
-        return derivative(func, x, dx = 1e-6, n = 1, args=args)
+        return derivative(func, n = 1)(x, *args)
     return prime_derive
 
 def gen_second_deriv(func, *args):
     def second_derive(x):
-        return derivative(func, x, dx = 1e-6, n = 2, args=args)
+        return derivative(func, n = 2)(x, *args)
     return second_derive
 
 # Interpolation of coordinates
