@@ -5,20 +5,8 @@ Authors: C. Godin & F. Boudon
 
 These lines should be placed as a header of a L-py file to use Riemannian L-Py code
 
-    from importlib import reload
-
-    import riemann_lsystem
-    import riemann_lsystem.surfaces
-    surfaces = reload(riemann_lsystem.surfaces)
-    import riemann_lsystem.riemannianturtle
-    riemannian_turtle = reload(riemann_lsystem.riemannianturtle)
-
-    from riemann_lsystem.surfaces import *
-    from riemann_lsystem.riemannianturtle import *
-
-    %pastefile ../src/riemann_lsystem/riemannianrules.lpy
+    %pastemodule riemann_lsystem.riemannianrules
     
-The last line is currently not portable (depends on the installation). It will be fixed in the future
 
 ## Creating a space, plotting the space
 Note: Can be set in either production, decomposition or interpretation rules
@@ -144,6 +132,8 @@ A second implementation of LineTo in curved space is based on a shooting strateg
     nproduce RiemannShootingLineTo(target_pt,20)
     
 For the moment, this shooting strategy is slower than the first BVP one.
+
+Note that after a RiemannLineTo or RiemannShootingLineTo, the Head vector at the target point is systemically aligned with the tangent of the constructed geodesic.
 
 ### Moving to a target point without drawing a line
 
