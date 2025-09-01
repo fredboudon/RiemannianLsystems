@@ -66,7 +66,7 @@ def __initialiseContext__(context):
 	Color_7 = pgl.Material("Color_7" , ambient = (0,0,0) , diffuse = 14.5455 , )
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
-	scalars = [('SPACE', 'Integer', 1, 0, 2)]
+	scalars = [('SPACE', 'Integer', 0, 0, 2)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]

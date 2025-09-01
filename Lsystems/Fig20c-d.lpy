@@ -212,6 +212,9 @@ TEST =  3 if PEANO else 1  # 1: excentered gaussian, 2: eggbox, 3: mushroom
 CURVE = 2 if PEANO else 1  # 0: von Koch, 1: Sierpinski carpet, 2: Peano
 NMAX = 10  # 3: to show the effect of non division due to growth, otherwise put it large
 
+def StartEach():
+  frameDisplay(True)
+
 def EndEach(lstring):
     #print(lstring)
     #for mod in lstring:
@@ -260,7 +263,7 @@ Axiom:
   # NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
   # print(NURBSspace)
   # 2. Sets the current Space for the turtle
-  nproduce SetSpace(Patch(nspace))
+  nproduce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
   #Do not use PlotSpace(dic), as the u-vstrides are not displayed. Instead uses @g above 
   #dic = {'CCW': True}
   #nproduce ;(0)PlotSpace(dic)
@@ -270,7 +273,6 @@ Axiom:
   nproduce InitTurtle([u0,v0,1,0])
   nproduce +(theta)
   
-  nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
   # Draw the small segments in th (u,v) domain: this ensures:
   # - a good connection with the rest of the polyline
   # - balanced segments
@@ -285,11 +287,10 @@ derivation length: TotalTimeSteps
 production:
 
 NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
-  #move_ctrlpt(delta_t, (2,2), gr11)
   for i in range(m):
     for j in range(n):
       move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
-      if grid_growthrates_x != [] and grid_growthrates_y != []:
+      if len(grid_growthrates_x) != 0 and len(grid_growthrates_y) != 0:
         move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j])
   produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
 
@@ -336,8 +337,9 @@ maximum depth: 2
       
 interpretation:
 
-S(x,n):
-  nproduce StaticF(x,{})
+NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z) --> SetSpace(Patch(nspace))
+
+S(x,n) --> StaticF(x,{})
 
 endlsystem
 

@@ -8,6 +8,8 @@ from random import  uniform,seed
 
 seed(1)
 
+LINEWIDTH = 0.1
+
 R = 5
 nbseg = 30
 nb = 25
@@ -95,7 +97,7 @@ def __initialiseContext__(context):
 	Color_7 = pgl.Material("Color_7" , ambient = (0,0,0) , diffuse = 5 , )
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
-	scalars = [('SPHERE', 'Bool', True)]
+	scalars = [('SPHERE', 'Bool', False)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]

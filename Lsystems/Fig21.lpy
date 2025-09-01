@@ -96,7 +96,9 @@ Axiom:
     uvpq = [u0,v,1,0]
     if not uoriented:
       uvpq = [v,u0,0,1]
-    nproduce [InitTurtle(uvpq)  ,(4) @Gc StartIndirectInterpretation 
+    nproduce [InitTurtle(uvpq)  ,(4) @Gc 
+    if INDIRECT: 
+      nproduce StartIndirectInterpretation 
     if uoriented:
       nproduce RiemannLineTo([umax, tv],nb_seg)
     else:
@@ -155,6 +157,10 @@ def __initialiseContext__(context):
 	Color_7.name = "Color_7"
 	context.turtle.setMaterial(7,Color_7)
 	context.options.setSelection('Axiom decomposition',1)
+	scalars = [('INDIRECT', 'Bool', True)]
+	context["__scalars__"] = scalars
+	for s in scalars:
+		if not s[1] == "Category" : context[s[0]] = s[2]
 	import openalea.plantgl.all as pgl
 	profile0a = pgl.NurbsCurve2D(	
 	    ctrlPointList = pgl.Point3Array([(0.00515674, -0.00159672, 1),(0.109274, -0.00307425, 1),(0.261016, -0.103233, 1),(0.211734, -0.200753, 1),(0.153044, -0.22514, 1)]) , 

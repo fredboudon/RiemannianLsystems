@@ -223,7 +223,7 @@ Axiom:
   # NURBSspace1 = NurbsPatch(matctrlpts, ustride=30, vstride = 30, udegree = 3, vdegree = 3)
   # print(NURBSspace)
   # 2. Sets the current Space for the turtle
-  nproduce SetSpace(Patch(nspace))
+  nproduce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
   #Do not use PlotSpace(dic), as the u-vstrides are not displayed. Instead uses @g below 
   #dic = {'CCW': True}
   #nproduce ;(0)PlotSpace(dic)
@@ -232,7 +232,6 @@ Axiom:
   nproduce InitTurtle([u0,v0,1,0])
   nproduce +(20)
   
-  nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
   # Draw the small segments in th (u,v) domain: this ensures:
   # - a good connection with the rest of the polyline
   # - balanced segments
@@ -257,7 +256,7 @@ NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
   for i in range(m):
     for j in range(n):
       move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
-      if grid_growthrates_x != [] and grid_growthrates_y != []:
+      if not grid_growthrates_x is None and not grid_growthrates_y is None:
         move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j], xy_speedup_factor)
   produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
 
@@ -339,6 +338,9 @@ B(n):
 C(n):
   if n > 2:
     nproduce ;(2+n)
+
+interpretation:
+NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z) --> SetSpace(Patch(nspace))
 
 endlsystem
 

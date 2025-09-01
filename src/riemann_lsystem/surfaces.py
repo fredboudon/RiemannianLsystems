@@ -2215,7 +2215,7 @@ NurbsPatch.getSecondDerivativeUVAt = nb_getSecondDerivativeUVAt
 NurbsPatch.getSecondDerivativeVVAt = nb_getSecondDerivativeVVAt
 """
 
-class Patch(ParametricSurface):
+class PglPatch(ParametricSurface):
 
     # Note: replaced utoric, vtoric with UPERIODIC, VPERIODIC, initialized both to False by default
     def __init__(self, patch, STOP_AT_BOUNDARY_U = True, STOP_AT_BOUNDARY_V = True, UPERIODIC=False, VPERIODIC=False):
@@ -2227,7 +2227,7 @@ class Patch(ParametricSurface):
       vmin = min(self.patch.vknotList)
       vmax = max(self.patch.vknotList)
 
-      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V, UPERIODIC=UPERIODIC, VPERIODIC=VPERIODIC)
+      super(PglPatch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V, UPERIODIC=UPERIODIC, VPERIODIC=VPERIODIC)
 
 
     def getPointAt(self, u,v):
@@ -2317,10 +2317,16 @@ def to_nurbs_python(sh):
 
     return surf
 
+def Patch(patch, *args, **kwd):
+   from openalea.plantgl.all import NurbsPatch, BezierPatch
+   if isinstance(patch, (NurbsPatch, BezierPatch)) :
+      return GeomLibPatch(patch, *args, **kwd)
+   else:
+      return PglPatch(patch, *args, **kwd)
 
 class GeomLibPatch(ParametricSurface):
 
-    def __init__(self, patch):
+    def __init__(self, patch, STOP_AT_BOUNDARY_U = True, STOP_AT_BOUNDARY_V = True, UPERIODIC=False, VPERIODIC=False):
       self.patch = patch
       self.nurbssurf = to_nurbs_python(patch)
 
@@ -2329,7 +2335,7 @@ class GeomLibPatch(ParametricSurface):
       vmin = min(self.nurbssurf.knotvector_v)
       vmax = max(self.nurbssurf.knotvector_v)
 
-      super(Patch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax)
+      super(GeomLibPatch, self).__init__(umin=umin, umax=umax, vmin=vmin, vmax=vmax, STOP_AT_BOUNDARY_U = STOP_AT_BOUNDARY_U, STOP_AT_BOUNDARY_V = STOP_AT_BOUNDARY_V, UPERIODIC=UPERIODIC, VPERIODIC=VPERIODIC)
 
 
     def S(self,u,v):
@@ -2389,7 +2395,7 @@ def m3_tolist(self):
 
 Matrix3.tolist = m3_tolist
 
-class ExtrusionSurface(Patch):
+class ExtrusionSurface(PglPatch):
 
     def __init__(self, extrusion, STOP_AT_BOUNDARY_U = False, STOP_AT_BOUNDARY_V = False):
       extrusion.uknotList = [extrusion.axis.firstKnot,extrusion.axis.lastKnot]

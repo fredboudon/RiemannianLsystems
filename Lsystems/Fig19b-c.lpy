@@ -46,7 +46,7 @@ PLOTSPACE = True
 MAXSTEPLEN = 1 * cm  # Should be > 0.0
 
 # Width to draw the geodesics
-LINEWIDTH  = 1. * cm
+LINEWIDTH  = 2. * cm
 
 # To control the Frame size
 FRAMESIZE  = 0.3 * meter
@@ -79,13 +79,13 @@ PRINT_TEST = 2     # To print different types of results related to curvature
 # Simulation parameters
 ##################################
 
-TotalTimeSteps = 100
+TotalTimeSteps = 50
 dt = 0.04  
 
-INDIRECT_INTERPRETATION = False
+#INDIRECT_INTERPRETATION = False
 
-INITIAL_SEG_LEN_INDIRECT = 0.65    # for indirect interpretation
-INITIAL_SEG_LEN_DIRECT = 6      # for direct interpretation
+INITIAL_SEG_LEN_INDIRECT = 0.55    # for indirect interpretation
+INITIAL_SEG_LEN_DIRECT = 10      # for direct interpretation
 SEGLEN_RESOLUTION = 0.5         # length units (size of the patch in x,y is 10)
 
 xy_speedup_factor = 1.0
@@ -229,16 +229,13 @@ Axiom:
   dic = dict(CCW = False, du =0.5, dv = 0.5) 
   #print(NURBSspace)
   nproduce @g(nspace)
-  nproduce SetSpace(Patch(nspace))
+  nproduce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z) 
   #nproduce ;(0)PlotSpace(dic)
   # Sets the initial position of the turtle in this space in the space coordinates: u,v (and p,q their first derivatives)
-  u0= 0.3 # 0.5 and 0.6
-  v0= 0.4
+  u0= 0.05 # 0.5 and 0.6
+  v0= 0.45
   nproduce InitTurtle([u0,v0,1,0])
-  #nproduce InitTurtle([u0,v0,0,1])
-  #nproduce [;(3)@O(0.1)]
-    
-  nproduce [;(1)_(LINEWIDTH) NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)]
+  
   a = 8.0
   if INDIRECT_INTERPRETATION:
     nproduce StartIndirectInterpretation
@@ -249,7 +246,6 @@ Axiom:
     nproduce ;(5)_(LINEWIDTH) B(0) F(INITIAL_SEG_LEN) 
   if INDIRECT_INTERPRETATION:
     nproduce StopIndirectInterpretation
-  nproduce A 
 
 derivation length: TotalTimeSteps
 production:
@@ -259,7 +255,7 @@ NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z):
   for i in range(m):
     for j in range(n):
       move_ctrlpt_vertical(nspace,dt, (i,j), grid_growthrates_z[i,j])
-      if grid_growthrates_x != [] and grid_growthrates_y != []:
+      if not grid_growthrates_x is None and not grid_growthrates_y is None:
         move_ctrlpt_horizontal(nspace,dt, (i,j), grid_growthrates_x[i,j], grid_growthrates_y[i,j], xy_speedup_factor)
   produce NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z)
 
@@ -297,7 +293,8 @@ B(n1)F(x):
     else:
         nproduce B(n1)F(x)
 
-
+interpretation:
+NSpace(nspace, grid_growthrates_x, grid_growthrates_y, grid_growthrates_z) --> SetSpace(Patch(nspace))
 
 endlsystem
 
@@ -312,7 +309,7 @@ def __initialiseContext__(context):
 	Color_14.name = "Color_14"
 	context.turtle.setMaterial(14,Color_14)
 	context.animation_timestep = 0.001
-	scalars = [('INDIRECT_INTERPRETATION', 'Bool', True), ('MAXDEPTH', 'Bool', False)]
+	scalars = [('INDIRECT_INTERPRETATION', 'Bool', True), ('MAXDEPTH', 'Bool', True)]
 	context["__scalars__"] = scalars
 	for s in scalars:
 		if not s[1] == "Category" : context[s[0]] = s[2]

@@ -18,9 +18,9 @@ dl = 0.195
 
 BASERADIUS = 0.03
 
-def StartEach():
-  if getIterationNb == 0:
-    frameDisplay(True)
+#def StartEach():
+#  if getIterationNb == 0:
+#    frameDisplay(True)
 
 module DrawLeaf, InitSpace
 
@@ -65,6 +65,7 @@ maximum depth: 2
 
 InitSpace(x):
   if hasattr(turtle,'getScene'):
+    print('Retrieve space')
     s = turtle.getScene()[0].geometry
     x.shape = Extrusion(cspline.cspline(s.axis), section, s.scale, s.orientation, s.knotList, s.solid, s.ccw, s.initialNormal)
   produce

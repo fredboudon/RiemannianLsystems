@@ -101,11 +101,12 @@ Axiom:
   nproduce _(LINEWIDTH)InitTurtle(turtle_init);(1)
   nproduce +(45)
   # plots the point at the origin
-  nproduce Frame(0.2)
   # plots the target point as a sphere on the surface
+  nproduce [
   for tgpt in target_pts:
     nproduce ;(3)DrawPoint(tgpt,0.02)
-  nproduce S(0)
+  nproduce S(0) ]
+  nproduce Frame(0.2)
 
 derivation length: N+1 #nb_seg
 production:
